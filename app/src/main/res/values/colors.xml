@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Backgrounds -->
+    <color name="echo_bg_main">#0A0C0F</color>
+    <color name="echo_card_surface">#111318</color>
+    <color name="echo_elevated_surface">#070809</color>
+
+    <!-- Accents -->
+    <color name="echo_primary_accent">#7C9EBF</color>
+    <color name="echo_alert_accent">#C0616A</color>
+    <color name="echo_positive_accent">#5E9E82</color>
+    <color name="echo_amber_accent">#C8935A</color>
+
+    <!-- Accent tints (for badge backgrounds) -->
+    <color name="echo_primary_tint">#267C9EBF</color>
+    <color name="echo_alert_tint">#26C0616A</color>
+    <color name="echo_positive_tint">#265E9E82</color>
+
+    <!-- Text -->
+    <color name="echo_text_primary">#D8DFE8</color>
+    <color name="echo_text_secondary">#7E8896</color>
+    <color name="echo_muted_disabled">#3D4451</color>
+
+    <!-- Structural -->
+    <color name="echo_divider">#0FFFFFFF</color>
+    <color name="echo_border">#12FFFFFF</color>
 </resources>

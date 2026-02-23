@@ -1,0 +1,18 @@
+<resources>
+    <!-- Base spacing scale (8px unit) -->
+    <dimen name="spacing_1">8dp</dimen>
+    <dimen name="spacing_2">16dp</dimen>
+    <dimen name="spacing_3">24dp</dimen>
+    <dimen name="spacing_4">32dp</dimen>
+
+    <!-- Component dimensions -->
+    <dimen name="app_bar_height">56dp</dimen>
+    <dimen name="fab_size">56dp</dimen>
+    <dimen name="fab_mini_size">48dp</dimen>
+    <dimen name="min_touch_target">44dp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+    <dimen name="list_item_padding_vertical">12dp</dimen>
+    <dimen name="card_corner_radius">10dp</dimen>
+    <dimen name="badge_corner_radius">20dp</dimen>
+    <dimen name="input_corner_radius">8dp</dimen>
+</resources>

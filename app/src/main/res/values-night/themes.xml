@@ -1,7 +1,14 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.EchoDrop" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+<resources>
+    <style name="Theme.EchoDrop" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/echo_primary_accent</item>
+        <item name="colorOnPrimary">@color/echo_text_primary</item>
+        <item name="colorSurface">@color/echo_card_surface</item>
+        <item name="colorOnSurface">@color/echo_text_primary</item>
+        <item name="android:colorBackground">@color/echo_bg_main</item>
+        <item name="colorOnBackground">@color/echo_text_primary</item>
+        <item name="colorError">@color/echo_alert_accent</item>
+        <item name="colorOnError">@color/echo_text_primary</item>
+        <item name="android:statusBarColor">@color/echo_elevated_surface</item>
+        <item name="android:navigationBarColor">@color/echo_elevated_surface</item>
     </style>
 </resources>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Typography: H1 App Title — 20sp, Medium, tight tracking -->
+    <style name="TextAppearance.EchoDrop.H1" parent="TextAppearance.Material3.TitleLarge">
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/echo_text_primary</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+
+    <!-- Typography: H2 Screen Title — 18sp, Medium, tight tracking -->
+    <style name="TextAppearance.EchoDrop.H2" parent="TextAppearance.Material3.TitleMedium">
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/echo_text_primary</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+
+    <!-- Typography: Body Large — 16sp, Regular -->
+    <style name="TextAppearance.EchoDrop.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/echo_text_primary</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineSpacingMultiplier">1.5</item>
+    </style>
+
+    <!-- Typography: Body — 14sp, Regular -->
+    <style name="TextAppearance.EchoDrop.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/echo_text_primary</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineSpacingMultiplier">1.5</item>
+    </style>
+
+    <!-- Typography: Small / Caption — 12sp, Regular, open tracking -->
+    <style name="TextAppearance.EchoDrop.Small" parent="TextAppearance.Material3.BodySmall">
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/echo_text_secondary</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+
+    <!-- Typography: Mono — 13sp, Medium, Roboto Mono -->
+    <style name="TextAppearance.EchoDrop.Mono" parent="TextAppearance.Material3.BodyMedium">
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/echo_text_primary</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+
+    <!-- BottomSheet rounded top corners -->
+    <style name="Theme.EchoDrop.BottomSheet" parent="Theme.Material3.Dark.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.EchoDrop.BottomSheet</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="colorPrimary">@color/echo_primary_accent</item>
+        <item name="colorSurface">@color/echo_card_surface</item>
+        <item name="colorOnSurface">@color/echo_text_primary</item>
+        <item name="android:statusBarColor">@color/echo_elevated_surface</item>
+        <item name="android:navigationBarColor">@color/echo_elevated_surface</item>
+    </style>
+
+    <style name="Widget.EchoDrop.BottomSheet" parent="Widget.Material3.BottomSheet">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.EchoDrop.BottomSheet</item>
+        <item name="backgroundTint">@color/echo_card_surface</item>
+    </style>
+
+    <style name="ShapeAppearance.EchoDrop.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">20dp</item>
+        <item name="cornerSizeTopRight">20dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+</resources>
