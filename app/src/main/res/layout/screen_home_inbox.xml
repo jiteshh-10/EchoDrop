@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/echo_bg_main">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/home_toolbar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/app_bar_height"
+        android:background="@color/echo_elevated_surface"
+        android:title="@string/home_title"
+        android:titleTextColor="@color/echo_text_primary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/search_container"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/spacing_2"
+        android:background="@drawable/bg_search_input"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        app:layout_constraintTop_toBottomOf="@id/home_toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/content_search"
+            android:src="@android:drawable/ic_menu_search"
+            android:tint="@color/echo_text_secondary" />
+
+        <EditText
+            android:id="@+id/search_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:fontFamily="sans-serif"
+            android:hint="@string/search_placeholder"
+            android:inputType="text"
+            android:textColor="@color/echo_text_primary"
+            android:textColorHint="@color/echo_text_secondary"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/sync_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/sync_dot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_circle" />
+
+            <TextView
+                android:id="@+id/sync_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="@string/sync_no_devices"
+                android:textColor="@color/echo_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/tab_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="@dimen/spacing_2"
+        android:paddingRight="@dimen/spacing_2"
+        app:layout_constraintTop_toBottomOf="@id/search_container"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:id="@+id/tab_all_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tab_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:text="@string/tab_all"
+                android:textColor="@color/echo_primary_accent"
+                android:textSize="14sp" />
+
+            <View
+                android:id="@+id/tab_all_indicator"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="@color/echo_primary_accent" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_alerts_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tab_alerts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:text="@string/tab_alerts"
+                android:textColor="@color/echo_text_secondary"
+                android:textSize="14sp" />
+
+            <View
+                android:id="@+id/tab_alerts_indicator"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="@color/echo_primary_accent"
+                android:visibility="invisible" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_chats_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tab_chats"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:text="@string/tab_chats"
+                android:textColor="@color/echo_text_secondary"
+                android:textSize="14sp" />
+
+            <View
+                android:id="@+id/tab_chats_indicator"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="@color/echo_primary_accent"
+                android:visibility="invisible" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:id="@+id/tab_divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/echo_divider"
+        app:layout_constraintTop_toBottomOf="@id/tab_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/message_list"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingBottom="80dp"
+        android:scrollbars="none"
+        app:layout_constraintTop_toBottomOf="@id/tab_divider"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/empty_state"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tab_divider"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            app:cardBackgroundColor="@color/echo_card_surface"
+            app:cardCornerRadius="40dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/empty_state_title"
+                android:src="@android:drawable/ic_dialog_email"
+                android:tint="@color/echo_muted_disabled" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/empty_state_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="sans-serif"
+            android:text="@string/empty_state_title"
+            android:textColor="@color/echo_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/empty_state_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="sans-serif"
+            android:maxWidth="280dp"
+            android:text="@string/empty_state_sub"
+            android:textAlignment="center"
+            android:textColor="@color/echo_text_secondary"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_post"
+        android:layout_width="@dimen/fab_size"
+        android:layout_height="@dimen/fab_size"
+        android:contentDescription="@string/fab_post"
+        android:src="@android:drawable/ic_menu_edit"
+        android:tint="@color/echo_text_primary"
+        app:backgroundTint="@color/echo_primary_accent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="24dp" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_chats"
+        android:layout_width="@dimen/fab_mini_size"
+        android:layout_height="@dimen/fab_mini_size"
+        android:contentDescription="@string/fab_chats"
+        android:src="@android:drawable/ic_dialog_email"
+        android:tint="@color/echo_primary_accent"
+        app:backgroundTint="@color/echo_card_surface"
+        app:borderWidth="1dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_margin="24dp" />
+</androidx.constraintlayout.widget.ConstraintLayout>

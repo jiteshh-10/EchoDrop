@@ -1,0 +1,6 @@
+<resources>
+    <integer name="anim_press">40</integer>
+    <integer name="anim_fast">180</integer>
+    <integer name="anim_standard">250</integer>
+    <integer name="anim_slow">400</integer>
+</resources>

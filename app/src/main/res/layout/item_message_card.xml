@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/echo_card_surface"
+    android:orientation="horizontal"
+    android:paddingLeft="@dimen/card_padding"
+    android:paddingRight="@dimen/card_padding"
+    android:paddingTop="@dimen/list_item_padding_vertical"
+    android:paddingBottom="@dimen/list_item_padding_vertical">
+
+    <View
+        android:id="@+id/unread_border"
+        android:layout_width="3dp"
+        android:layout_height="match_parent"
+        android:background="@color/echo_primary_accent" />
+
+    <View
+        android:id="@+id/priority_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_circle" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/message_preview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
+            android:maxLines="2"
+            android:textColor="@color/echo_text_primary"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/scope_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_primary"
+                android:fontFamily="sans-serif"
+                android:paddingLeft="6dp"
+                android:paddingTop="2dp"
+                android:paddingRight="6dp"
+                android:paddingBottom="2dp"
+                android:textColor="@color/echo_primary_accent"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/priority_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="sans-serif"
+                android:textColor="@color/echo_alert_accent"
+                android:textSize="10sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="·"
+                android:textColor="@color/echo_muted_disabled"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/ttl_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:fontFamily="sans-serif"
+                android:textColor="@color/echo_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/chevron"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:contentDescription="@string/content_add"
+        android:src="@android:drawable/ic_media_next"
+        android:tint="@color/echo_muted_disabled" />
+</LinearLayout>
