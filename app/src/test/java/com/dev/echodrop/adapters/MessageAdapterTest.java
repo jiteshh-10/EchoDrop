@@ -8,7 +8,7 @@ import android.view.View;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.test.core.app.ApplicationProvider;
 
-import com.dev.echodrop.models.Message;
+import com.dev.echodrop.db.MessageEntity;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +24,8 @@ import java.util.List;
  * Unit tests for {@link MessageAdapter}.
  * Uses Robolectric to provide Android framework stubs.
  *
+ * Updated in Iteration 2 to use {@link MessageEntity} instead of Message POJO.
+ *
  * Tests cover:
  * - Adapter construction
  * - Item count after submitList
@@ -31,13 +33,14 @@ import java.util.List;
  * - DiffUtil areContentsTheSame (field comparison)
  * - Empty list handling
  * - List replacement
+ * - Click listener contract
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 33, manifest = Config.NONE)
 public class MessageAdapterTest {
 
     private MessageAdapter adapter;
-    private DiffUtil.ItemCallback<Message> diffCallback;
+    private DiffUtil.ItemCallback<MessageEntity> diffCallback;
 
     private static final long NOW = System.currentTimeMillis();
     private static final long EXPIRES = NOW + 3600000L;
@@ -49,7 +52,7 @@ public class MessageAdapterTest {
         // Extract the DIFF_CALLBACK via reflection for direct testing
         Field field = MessageAdapter.class.getDeclaredField("DIFF_CALLBACK");
         field.setAccessible(true);
-        diffCallback = (DiffUtil.ItemCallback<Message>) field.get(null);
+        diffCallback = (DiffUtil.ItemCallback<MessageEntity>) field.get(null);
     }
 
     // ── Adapter Construction ──────────────────────────────────────
@@ -63,9 +66,9 @@ public class MessageAdapterTest {
 
     @Test
     public void submitList_updatesItemCount() {
-        List<Message> messages = Arrays.asList(
-                createMessage("1", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL),
-                createMessage("2", "World", Message.Scope.ZONE, Message.Priority.ALERT)
+        List<MessageEntity> messages = Arrays.asList(
+                createEntity("1", "Hello", "LOCAL", "NORMAL"),
+                createEntity("2", "World", "ZONE", "ALERT")
         );
         adapter.submitList(messages);
         assertEquals(2, adapter.getItemCount());
@@ -74,7 +77,7 @@ public class MessageAdapterTest {
     @Test
     public void submitList_null_clearsAdapter() {
         adapter.submitList(Arrays.asList(
-                createMessage("1", "Test", Message.Scope.LOCAL, Message.Priority.NORMAL)
+                createEntity("1", "Test", "LOCAL", "NORMAL")
         ));
         adapter.submitList(null);
         assertEquals(0, adapter.getItemCount());
@@ -88,12 +91,12 @@ public class MessageAdapterTest {
 
     @Test
     public void submitList_replacesList() {
-        List<Message> first = Arrays.asList(
-                createMessage("1", "First", Message.Scope.LOCAL, Message.Priority.NORMAL)
+        List<MessageEntity> first = Arrays.asList(
+                createEntity("1", "First", "LOCAL", "NORMAL")
         );
-        List<Message> second = Arrays.asList(
-                createMessage("2", "Second", Message.Scope.ZONE, Message.Priority.ALERT),
-                createMessage("3", "Third", Message.Scope.EVENT, Message.Priority.BULK)
+        List<MessageEntity> second = Arrays.asList(
+                createEntity("2", "Second", "ZONE", "ALERT"),
+                createEntity("3", "Third", "EVENT", "BULK")
         );
 
         // Use commitCallback to wait for DiffUtil to finish
@@ -106,9 +109,7 @@ public class MessageAdapterTest {
         if (committed[0]) {
             assertEquals(2, adapter.getItemCount());
         } else {
-            // If async hasn't finished, the earlier list or some intermediate state may be present
-            // This is acceptable — DiffUtil runs asynchronously
-            assertTrue("Item count should be 1 or 2 during async diff",
+            assertTrue("Item count should be ≥0 during async diff",
                     adapter.getItemCount() >= 0);
         }
     }
@@ -117,15 +118,15 @@ public class MessageAdapterTest {
 
     @Test
     public void diffUtil_sameId_returnsTrue() {
-        Message a = createMessage("abc", "Text A", Message.Scope.LOCAL, Message.Priority.NORMAL);
-        Message b = createMessage("abc", "Text B", Message.Scope.ZONE, Message.Priority.ALERT);
+        MessageEntity a = createEntity("abc", "Text A", "LOCAL", "NORMAL");
+        MessageEntity b = createEntity("abc", "Text B", "ZONE", "ALERT");
         assertTrue("Same ID → same item", diffCallback.areItemsTheSame(a, b));
     }
 
     @Test
     public void diffUtil_differentId_returnsFalse() {
-        Message a = createMessage("id-1", "Same text", Message.Scope.LOCAL, Message.Priority.NORMAL);
-        Message b = createMessage("id-2", "Same text", Message.Scope.LOCAL, Message.Priority.NORMAL);
+        MessageEntity a = createEntity("id-1", "Same text", "LOCAL", "NORMAL");
+        MessageEntity b = createEntity("id-2", "Same text", "LOCAL", "NORMAL");
         assertFalse("Different ID → different item", diffCallback.areItemsTheSame(a, b));
     }
 
@@ -133,57 +134,74 @@ public class MessageAdapterTest {
 
     @Test
     public void diffUtil_identicalContent_returnsTrue() {
-        Message a = createMessage("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL);
-        Message b = createMessage("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL);
+        MessageEntity a = createEntity("id", "Hello", "LOCAL", "NORMAL");
+        MessageEntity b = createEntity("id", "Hello", "LOCAL", "NORMAL");
         assertTrue("Identical content → same contents", diffCallback.areContentsTheSame(a, b));
     }
 
     @Test
     public void diffUtil_differentText_returnsFalse() {
-        Message a = createMessage("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL);
-        Message b = createMessage("id", "World", Message.Scope.LOCAL, Message.Priority.NORMAL);
+        MessageEntity a = createEntity("id", "Hello", "LOCAL", "NORMAL");
+        MessageEntity b = createEntity("id", "World", "LOCAL", "NORMAL");
         assertFalse("Different text → different contents", diffCallback.areContentsTheSame(a, b));
     }
 
     @Test
     public void diffUtil_differentScope_returnsFalse() {
-        Message a = createMessage("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL);
-        Message b = createMessage("id", "Hello", Message.Scope.ZONE, Message.Priority.NORMAL);
+        MessageEntity a = createEntity("id", "Hello", "LOCAL", "NORMAL");
+        MessageEntity b = createEntity("id", "Hello", "ZONE", "NORMAL");
         assertFalse("Different scope → different contents", diffCallback.areContentsTheSame(a, b));
     }
 
     @Test
     public void diffUtil_differentPriority_returnsFalse() {
-        Message a = createMessage("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL);
-        Message b = createMessage("id", "Hello", Message.Scope.LOCAL, Message.Priority.ALERT);
+        MessageEntity a = createEntity("id", "Hello", "LOCAL", "NORMAL");
+        MessageEntity b = createEntity("id", "Hello", "LOCAL", "ALERT");
         assertFalse("Different priority → different contents", diffCallback.areContentsTheSame(a, b));
     }
 
     @Test
     public void diffUtil_differentExpiresAt_returnsFalse() {
-        Message a = new Message("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL, NOW, EXPIRES, false);
-        Message b = new Message("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL, NOW, EXPIRES + 1000, false);
+        String hash = MessageEntity.computeHash("Hello", "LOCAL", NOW);
+        MessageEntity a = new MessageEntity("id", "Hello", "LOCAL", "NORMAL", NOW, EXPIRES, false, hash);
+        MessageEntity b = new MessageEntity("id", "Hello", "LOCAL", "NORMAL", NOW, EXPIRES + 1000, false, hash);
         assertFalse("Different expiresAt → different contents", diffCallback.areContentsTheSame(a, b));
     }
 
     @Test
     public void diffUtil_differentReadState_returnsFalse() {
-        Message a = new Message("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL, NOW, EXPIRES, false);
-        Message b = new Message("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL, NOW, EXPIRES, true);
+        String hash = MessageEntity.computeHash("Hello", "LOCAL", NOW);
+        MessageEntity a = new MessageEntity("id", "Hello", "LOCAL", "NORMAL", NOW, EXPIRES, false, hash);
+        MessageEntity b = new MessageEntity("id", "Hello", "LOCAL", "NORMAL", NOW, EXPIRES, true, hash);
         assertFalse("Different read state → different contents", diffCallback.areContentsTheSame(a, b));
     }
 
     @Test
     public void diffUtil_differentCreatedAt_sameOtherFields_returnsTrue() {
         // createdAt is NOT part of areContentsTheSame
-        Message a = new Message("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL, NOW, EXPIRES, false);
-        Message b = new Message("id", "Hello", Message.Scope.LOCAL, Message.Priority.NORMAL, NOW + 5000, EXPIRES, false);
+        String hash = MessageEntity.computeHash("Hello", "LOCAL", NOW);
+        MessageEntity a = new MessageEntity("id", "Hello", "LOCAL", "NORMAL", NOW, EXPIRES, false, hash);
+        MessageEntity b = new MessageEntity("id", "Hello", "LOCAL", "NORMAL", NOW + 5000, EXPIRES, false, hash);
         assertTrue("Different createdAt but same visual fields → same contents", diffCallback.areContentsTheSame(a, b));
+    }
+
+    // ── Click Listener ────────────────────────────────────────────
+
+    @Test
+    public void setOnMessageClickListener_acceptsNull() {
+        // Should not throw
+        adapter.setOnMessageClickListener(null);
+    }
+
+    @Test
+    public void setOnMessageClickListener_acceptsListener() {
+        adapter.setOnMessageClickListener(message -> {});
     }
 
     // ── Helper ────────────────────────────────────────────────────
 
-    private Message createMessage(String id, String text, Message.Scope scope, Message.Priority priority) {
-        return new Message(id, text, scope, priority, NOW, EXPIRES, false);
+    private MessageEntity createEntity(String id, String text, String scope, String priority) {
+        String hash = MessageEntity.computeHash(text, scope, NOW);
+        return new MessageEntity(id, text, scope, priority, NOW, EXPIRES, false, hash);
     }
 }

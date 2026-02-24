@@ -15,15 +15,25 @@ import androidx.core.content.ContextCompat;
 
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.FragmentPostComposerBinding;
-import com.dev.echodrop.models.Message;
+import com.dev.echodrop.db.MessageEntity;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.snackbar.Snackbar;
 
+/**
+ * Bottom sheet dialog for composing and posting new messages.
+ *
+ * <p>Updated in Iteration 2:
+ * <ul>
+ *   <li>Creates MessageEntity instead of Message POJO</li>
+ *   <li>Dedup checking is handled by the listener (HomeInboxFragment)</li>
+ * </ul>
+ * </p>
+ */
 public class PostComposerSheet extends BottomSheetDialogFragment {
 
     public interface OnPostListener {
-        void onPost(Message message);
+        void onPost(MessageEntity entity);
     }
 
     private FragmentPostComposerBinding binding;
@@ -158,13 +168,16 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
             return;
         }
         String text = binding.postInput.getText() == null ? "" : binding.postInput.getText().toString().trim();
-        Message.Scope scope = getSelectedScope();
-        Message.Priority priority = binding.urgentSwitch.isChecked() ? Message.Priority.ALERT : Message.Priority.NORMAL;
+        MessageEntity.Scope scope = getSelectedScope();
+        MessageEntity.Priority priority = binding.urgentSwitch.isChecked()
+                ? MessageEntity.Priority.ALERT : MessageEntity.Priority.NORMAL;
         long ttlMillis = getSelectedTtlMillis();
         long created = System.currentTimeMillis();
-        Message message = new Message(text, scope, priority, created, created + ttlMillis, false);
+
+        MessageEntity entity = MessageEntity.create(text, scope, priority, created, created + ttlMillis);
+
         if (listener != null) {
-            listener.onPost(message);
+            listener.onPost(entity);
         }
         dismiss();
         // Show Snackbar on the activity's root view so it's visible after sheet dismissal
@@ -178,15 +191,15 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
         }
     }
 
-    private Message.Scope getSelectedScope() {
+    private MessageEntity.Scope getSelectedScope() {
         int id = binding.scopeGroup.getCheckedChipId();
         if (id == binding.chipScopeArea.getId()) {
-            return Message.Scope.ZONE;
+            return MessageEntity.Scope.ZONE;
         }
         if (id == binding.chipScopeEvent.getId()) {
-            return Message.Scope.EVENT;
+            return MessageEntity.Scope.EVENT;
         }
-        return Message.Scope.LOCAL;
+        return MessageEntity.Scope.LOCAL;
     }
 
     private long getSelectedTtlMillis() {

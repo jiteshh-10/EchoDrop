@@ -13,14 +13,33 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.ItemMessageCardBinding;
-import com.dev.echodrop.models.Message;
+import com.dev.echodrop.db.MessageEntity;
 
 import java.util.concurrent.TimeUnit;
 
-public class MessageAdapter extends ListAdapter<Message, MessageAdapter.MessageViewHolder> {
+/**
+ * RecyclerView adapter for displaying MessageEntity items in the inbox.
+ *
+ * <p>Updated in Iteration 2 to work with Room's MessageEntity instead
+ * of the in-memory Message POJO.</p>
+ */
+public class MessageAdapter extends ListAdapter<MessageEntity, MessageAdapter.MessageViewHolder> {
+
+    /**
+     * Listener for message card click events.
+     */
+    public interface OnMessageClickListener {
+        void onMessageClick(MessageEntity message);
+    }
+
+    private OnMessageClickListener clickListener;
 
     public MessageAdapter() {
         super(DIFF_CALLBACK);
+    }
+
+    public void setOnMessageClickListener(OnMessageClickListener listener) {
+        this.clickListener = listener;
     }
 
     @NonNull
@@ -33,7 +52,13 @@ public class MessageAdapter extends ListAdapter<Message, MessageAdapter.MessageV
 
     @Override
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
-        holder.bind(getItem(position));
+        MessageEntity message = getItem(position);
+        holder.bind(message);
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onMessageClick(message);
+            }
+        });
     }
 
     static class MessageViewHolder extends RecyclerView.ViewHolder {
@@ -44,11 +69,11 @@ public class MessageAdapter extends ListAdapter<Message, MessageAdapter.MessageV
             this.binding = binding;
         }
 
-        void bind(Message message) {
+        void bind(MessageEntity message) {
             Context context = binding.getRoot().getContext();
             binding.messagePreview.setText(message.getText());
-            binding.scopeBadge.setText(getScopeLabel(context, message.getScope()));
-            if (message.getScope() == Message.Scope.LOCAL) {
+            binding.scopeBadge.setText(getScopeLabel(context, message.getScopeEnum()));
+            if (message.getScopeEnum() == MessageEntity.Scope.LOCAL) {
                 binding.scopeBadge.setBackgroundResource(R.drawable.bg_badge_positive);
                 binding.scopeBadge.setTextColor(ContextCompat.getColor(context, R.color.echo_positive_accent));
             } else {
@@ -57,13 +82,13 @@ public class MessageAdapter extends ListAdapter<Message, MessageAdapter.MessageV
             }
             binding.ttlText.setText(context.getString(R.string.message_ttl_expires_in, formatTtl(message.getExpiresAt())));
 
-            if (message.getPriority() == Message.Priority.ALERT) {
+            if (message.getPriorityEnum() == MessageEntity.Priority.ALERT) {
                 binding.priorityLabel.setVisibility(View.VISIBLE);
                 binding.priorityLabel.setText(R.string.message_priority_urgent);
                 binding.priorityLabel.setTextColor(ContextCompat.getColor(context, R.color.echo_alert_accent));
                 binding.priorityDot.setBackgroundTintList(ContextCompat.getColorStateList(context, R.color.echo_alert_accent));
                 binding.unreadBorder.setBackgroundTintList(ContextCompat.getColorStateList(context, R.color.echo_alert_accent));
-            } else if (message.getPriority() == Message.Priority.BULK) {
+            } else if (message.getPriorityEnum() == MessageEntity.Priority.BULK) {
                 binding.priorityLabel.setVisibility(View.GONE);
                 binding.priorityDot.setBackgroundTintList(ContextCompat.getColorStateList(context, R.color.echo_muted_disabled));
                 binding.unreadBorder.setBackgroundTintList(ContextCompat.getColorStateList(context, R.color.echo_muted_disabled));
@@ -76,11 +101,11 @@ public class MessageAdapter extends ListAdapter<Message, MessageAdapter.MessageV
             binding.unreadBorder.setVisibility(message.isRead() ? View.INVISIBLE : View.VISIBLE);
         }
 
-        private String getScopeLabel(Context context, Message.Scope scope) {
-            if (scope == Message.Scope.LOCAL) {
+        private String getScopeLabel(Context context, MessageEntity.Scope scope) {
+            if (scope == MessageEntity.Scope.LOCAL) {
                 return context.getString(R.string.message_scope_nearby);
             }
-            if (scope == Message.Scope.ZONE) {
+            if (scope == MessageEntity.Scope.ZONE) {
                 return context.getString(R.string.message_scope_area);
             }
             return context.getString(R.string.message_scope_event);
@@ -100,17 +125,17 @@ public class MessageAdapter extends ListAdapter<Message, MessageAdapter.MessageV
         }
     }
 
-    private static final DiffUtil.ItemCallback<Message> DIFF_CALLBACK = new DiffUtil.ItemCallback<Message>() {
+    private static final DiffUtil.ItemCallback<MessageEntity> DIFF_CALLBACK = new DiffUtil.ItemCallback<MessageEntity>() {
         @Override
-        public boolean areItemsTheSame(@NonNull Message oldItem, @NonNull Message newItem) {
+        public boolean areItemsTheSame(@NonNull MessageEntity oldItem, @NonNull MessageEntity newItem) {
             return oldItem.getId().equals(newItem.getId());
         }
 
         @Override
-        public boolean areContentsTheSame(@NonNull Message oldItem, @NonNull Message newItem) {
+        public boolean areContentsTheSame(@NonNull MessageEntity oldItem, @NonNull MessageEntity newItem) {
             return oldItem.getText().equals(newItem.getText())
-                    && oldItem.getScope() == newItem.getScope()
-                    && oldItem.getPriority() == newItem.getPriority()
+                    && oldItem.getScope().equals(newItem.getScope())
+                    && oldItem.getPriority().equals(newItem.getPriority())
                     && oldItem.getExpiresAt() == newItem.getExpiresAt()
                     && oldItem.isRead() == newItem.isRead();
         }

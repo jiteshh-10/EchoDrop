@@ -1,7 +1,6 @@
 package com.dev.echodrop.screens;
 
 import android.animation.ObjectAnimator;
-import android.animation.AnimatorSet;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.text.Editable;
@@ -21,20 +20,33 @@ import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.dev.echodrop.R;
 import com.dev.echodrop.adapters.MessageAdapter;
 import com.dev.echodrop.components.PostComposerSheet;
 import com.dev.echodrop.databinding.ScreenHomeInboxBinding;
-import com.dev.echodrop.models.Message;
+import com.dev.echodrop.db.MessageEntity;
+import com.dev.echodrop.repository.MessageRepo;
 import com.dev.echodrop.viewmodels.MessageViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Home inbox screen displaying all active messages from Room database.
+ *
+ * <p>Updated in Iteration 2:
+ * <ul>
+ *   <li>Uses MessageEntity instead of Message POJO</li>
+ *   <li>Room-backed LiveData for reactive updates</li>
+ *   <li>Click on message card → MessageDetailFragment</li>
+ *   <li>Post composer inserts via MessageRepo with dedup</li>
+ * </ul>
+ * </p>
+ */
 public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnPostListener {
 
     private ScreenHomeInboxBinding binding;
@@ -42,7 +54,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     private MessageViewModel viewModel;
     private Tab activeTab = Tab.ALL;
     private String query = "";
-    private List<Message> allMessages = new ArrayList<>();
+    private List<MessageEntity> allMessages = new ArrayList<>();
     private ObjectAnimator syncDotAnimator;
 
     private enum Tab {
@@ -88,6 +100,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
 
     private void setupRecycler() {
         adapter = new MessageAdapter();
+        adapter.setOnMessageClickListener(this::onMessageClicked);
         binding.messageList.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.messageList.setAdapter(adapter);
 
@@ -97,6 +110,18 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
 
         // Hide scrollbar for clean look
         binding.messageList.setVerticalScrollBarEnabled(false);
+    }
+
+    private void onMessageClicked(MessageEntity message) {
+        MessageDetailFragment detailFragment = MessageDetailFragment.newInstance(message.getId());
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, detailFragment)
+                .addToBackStack("detail")
+                .commit();
     }
 
     private void setupSearch() {
@@ -197,14 +222,14 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     }
 
     private void applyFilters() {
-        List<Message> filtered = new ArrayList<>();
+        List<MessageEntity> filtered = new ArrayList<>();
         String normalized = query.toLowerCase(Locale.US).trim();
         int alertCount = 0;
-        for (Message message : allMessages) {
-            if (message.getPriority() == Message.Priority.ALERT) {
+        for (MessageEntity message : allMessages) {
+            if (message.getPriorityEnum() == MessageEntity.Priority.ALERT) {
                 alertCount++;
             }
-            if (activeTab == Tab.ALERTS && message.getPriority() != Message.Priority.ALERT) {
+            if (activeTab == Tab.ALERTS && message.getPriorityEnum() != MessageEntity.Priority.ALERT) {
                 continue;
             }
             if (activeTab == Tab.CHATS) {
@@ -293,9 +318,33 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     }
 
     @Override
-    public void onPost(Message message) {
+    public void onPost(MessageEntity entity) {
         if (viewModel != null) {
-            viewModel.addMessage(message);
+            viewModel.addMessage(entity, new MessageRepo.InsertCallback() {
+                @Override
+                public void onInserted() {
+                    // Success — Snackbar is shown by PostComposerSheet
+                }
+
+                @Override
+                public void onDuplicate() {
+                    if (getActivity() != null) {
+                        getActivity().runOnUiThread(() -> {
+                            View rootView = getView();
+                            if (rootView != null) {
+                                Snackbar snackbar = Snackbar.make(rootView,
+                                        R.string.post_dedup_snackbar, Snackbar.LENGTH_LONG);
+                                snackbar.getView().setBackgroundColor(
+                                        ContextCompat.getColor(requireContext(), R.color.echo_card_surface));
+                                snackbar.setTextColor(
+                                        ContextCompat.getColor(requireContext(), R.color.echo_amber_accent));
+                                snackbar.setDuration(3000);
+                                snackbar.show();
+                            }
+                        });
+                    }
+                }
+            });
         }
     }
 
