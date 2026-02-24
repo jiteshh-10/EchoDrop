@@ -17,6 +17,7 @@
 - [9. Thread Safety & Lifecycle](#9-thread-safety--lifecycle)
 - [10. Design Decisions & Rationale](#10-design-decisions--rationale)
 - [11. Known Limitations & Future Work](#11-known-limitations--future-work)
+- [12. Room Persistence Layer (Iteration 2)](#12-room-persistence-layer-iteration-2)
 
 ---
 
@@ -579,35 +580,103 @@ Immutability provides:
 
 | Limitation                       | Planned Resolution                          |
 |----------------------------------|---------------------------------------------|
-| No persistent storage            | Room database in iteration 1                |
-| No actual DTN networking         | Nearby Connections API in iteration 2       |
-| Permissions not requested        | Runtime permissions in iteration 1          |
-| In-memory seed data only         | Database seeding + real message reception   |
-| No message encryption            | End-to-end encryption in iteration 3        |
-| Single-thread data operations    | Coroutines/RxJava for I/O operations        |
-| No configuration change testing  | Espresso UI tests in iteration 1            |
-| Hardcoded 3 seed messages        | Dynamic message reception via mesh          |
+| No actual DTN networking         | Nearby Connections API in future iteration   |
+| Permissions not requested        | Runtime permissions in future iteration      |
+| No message encryption            | End-to-end encryption in future iteration    |
+| Hardcoded destructive migration  | Proper migration strategy for production     |
 
 ### Architecture Evolution Path
 
 ```
-Iteration 0-1 (Current)
+Iteration 0-1 (Complete)
     └── MVVM + In-memory LiveData + Manual nav
 
-Iteration 1 (Planned)
-    └── + Room Database + Repository Pattern + Runtime Permissions
+Iteration 2 (Complete)
+    └── + Room Database + Repository Pattern + WorkManager
+    └── + SHA-256 Dedup + Storage Cap + TTL Cleanup
+    └── + MessageDetailFragment with TTL progress
 
-Iteration 2 (Planned)
-    └── + Nearby Connections API + Background Service + WorkManager
-
-Iteration 3 (Planned)
-    └── + Encryption + Message Deduplication + TTL Enforcement
-
-Iteration 4 (Planned)
-    └── + Kotlin Migration + Navigation Component + Compose UI
+Future Iterations
+    └── + Nearby Connections API + Background Service
+    └── + Encryption + Runtime Permissions + Compose UI
 ```
 
 ---
 
-*Architecture document for EchoDrop Iteration 0-1*  
+## 12. Room Persistence Layer (Iteration 2)
+
+### Database Schema
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        messages (table)                           │
+├──────────────────┬───────────┬───────────────────────────────────┤
+│ Column           │ Type      │ Constraints                       │
+├──────────────────┼───────────┼───────────────────────────────────┤
+│ id               │ TEXT      │ PRIMARY KEY                       │
+│ text             │ TEXT      │ NOT NULL                          │
+│ scope            │ TEXT      │ NOT NULL (LOCAL/ZONE/EVENT)       │
+│ priority         │ TEXT      │ NOT NULL (ALERT/NORMAL/BULK)      │
+│ created_at       │ INTEGER   │ NOT NULL (epoch ms)               │
+│ expires_at       │ INTEGER   │ NOT NULL (epoch ms)               │
+│ read             │ INTEGER   │ NOT NULL (0/1)                    │
+│ content_hash     │ TEXT      │ NOT NULL, UNIQUE                  │
+├──────────────────┴───────────┴───────────────────────────────────┤
+│ Indices: content_hash (unique), expires_at, priority             │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+```
+┌─────────┐     ┌──────────────┐     ┌────────────┐     ┌──────────┐
+│ Fragment │────▶│ MessageRepo  │────▶│ MessageDao │────▶│ Room DB  │
+│   (UI)  │     │ (Business    │     │ (SQL)      │     │ (SQLite) │
+│         │◀────│  Logic)      │◀────│            │◀────│          │
+└─────────┘     └──────────────┘     └────────────┘     └──────────┘
+     │                │
+     │                ▼
+     │          ┌──────────────┐
+     │          │ WorkManager  │
+     │          │ TTL Cleanup  │
+     │          └──────────────┘
+     │
+     ▼
+┌─────────────────┐
+│ MessageViewModel│
+│ (AndroidViewModel│
+│  + LiveData)    │
+└─────────────────┘
+```
+
+### Deduplication Strategy
+
+Messages are deduplicated using SHA-256 hashing:
+
+```
+hash = SHA-256(lowercase(text) + "|" + scope + "|" + hour_bucket)
+```
+
+- **Text** is lowercased and trimmed before hashing
+- **Hour bucket** = `createdAt / 3600000` — groups messages within the same hour
+- Hash is stored in `content_hash` column with UNIQUE constraint
+- Insert uses `OnConflictStrategy.IGNORE` as safety net
+
+### Storage Cap Enforcement
+
+When total message count exceeds 200:
+
+1. **Phase 1:** Delete oldest BULK messages (by `created_at` ASC)
+2. **Phase 2:** If still over cap, delete oldest NORMAL messages
+3. **ALERT messages are never evicted** by storage cap
+
+### TTL Cleanup
+
+- **Periodic:** WorkManager `PeriodicWorkRequest` every 15 minutes (`ExistingPeriodicWorkPolicy.KEEP`)
+- **On-demand:** `OneTimeWorkRequest` fired on every `Activity.onResume()`
+- **Query:** `DELETE FROM messages WHERE expires_at <= :now`
+
+---
+
+*Architecture document for EchoDrop — Iterations 0-1 + 2*  
 *Last updated: 2025*

@@ -2,231 +2,217 @@ package com.dev.echodrop.viewmodels;
 
 import static org.junit.Assert.*;
 
+import android.app.Application;
+
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.LiveData;
+import androidx.room.Room;
+import androidx.test.core.app.ApplicationProvider;
 
-import com.dev.echodrop.models.Message;
+import com.dev.echodrop.db.AppDatabase;
+import com.dev.echodrop.db.MessageDao;
+import com.dev.echodrop.db.MessageEntity;
+import com.dev.echodrop.repository.MessageRepo;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Unit tests for {@link MessageViewModel}.
- * Uses {@link InstantTaskExecutorRule} to execute LiveData operations synchronously.
+ * Unit tests for {@link MessageViewModel} (Iteration 2).
+ *
+ * <p>Uses Robolectric + in-memory Room database.
+ * The ViewModel now extends AndroidViewModel and delegates to {@link MessageRepo}.</p>
  *
  * Tests cover:
- * - Seed data initialization (3 messages)
- * - Seed message properties (scope, priority, TTL)
- * - addMessage inserts at position 0
- * - LiveData observation contract
- * - Multiple sequential additions
- * - Ordering guarantees (newest first)
+ * - Initial state (empty — no seed data)
+ * - addMessage inserts into Room
+ * - addMessage with callback — onInserted
+ * - addMessage duplicate — onDuplicate callback
+ * - deleteMessage removes from Room
+ * - cleanupExpired removes expired messages
+ * - LiveData contract
+ * - getRepo returns non-null
  */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 33, manifest = Config.NONE)
 public class MessageViewModelTest {
 
-    /**
-     * Swaps the background executor used by Architecture Components with one
-     * that executes each task synchronously. Required for LiveData.setValue()
-     * to propagate immediately in unit tests.
-     */
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
     private MessageViewModel viewModel;
+    private AppDatabase db;
+    private Application app;
+
+    private static final long NOW = System.currentTimeMillis();
+    private static final long ONE_HOUR = 60 * 60 * 1000L;
 
     @Before
     public void setUp() {
-        viewModel = new MessageViewModel();
+        app = ApplicationProvider.getApplicationContext();
+        db = Room.inMemoryDatabaseBuilder(app, AppDatabase.class)
+                .allowMainThreadQueries()
+                .build();
+        AppDatabase.setInstance(db);
+        viewModel = new MessageViewModel(app);
     }
 
-    // ── Seed Data ─────────────────────────────────────────────────
-
-    @Test
-    public void initialization_seedsThreeMessages() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull("Messages LiveData must have a value after construction", messages);
-        assertEquals("Seed data must contain exactly 3 messages", 3, messages.size());
+    @After
+    public void tearDown() {
+        db.close();
+        AppDatabase.destroyInstance();
     }
 
-    @Test
-    public void seedData_firstMessage_isAlertLocal() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        Message first = messages.get(0);
-        assertEquals(Message.Scope.LOCAL, first.getScope());
-        assertEquals(Message.Priority.ALERT, first.getPriority());
-        assertFalse(first.isRead());
-        assertTrue("First seed message text should mention road", first.getText().toLowerCase().contains("road"));
-    }
+    // ── Initial State ─────────────────────────────────────────────
 
     @Test
-    public void seedData_secondMessage_isNormalZone() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        Message second = messages.get(1);
-        assertEquals(Message.Scope.ZONE, second.getScope());
-        assertEquals(Message.Priority.NORMAL, second.getPriority());
-        assertFalse(second.isRead());
-    }
-
-    @Test
-    public void seedData_thirdMessage_isNormalEvent() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        Message third = messages.get(2);
-        assertEquals(Message.Scope.EVENT, third.getScope());
-        assertEquals(Message.Priority.NORMAL, third.getPriority());
-        assertFalse(third.isRead());
-    }
-
-    @Test
-    public void seedData_allMessagesHaveValidIds() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        for (Message msg : messages) {
-            assertNotNull("Message ID must not be null", msg.getId());
-            assertFalse("Message ID must not be empty", msg.getId().isEmpty());
-        }
-    }
-
-    @Test
-    public void seedData_allMessagesHaveUniqueIds() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        String id0 = messages.get(0).getId();
-        String id1 = messages.get(1).getId();
-        String id2 = messages.get(2).getId();
-        assertNotEquals("IDs 0 and 1 must differ", id0, id1);
-        assertNotEquals("IDs 1 and 2 must differ", id1, id2);
-        assertNotEquals("IDs 0 and 2 must differ", id0, id2);
-    }
-
-    @Test
-    public void seedData_allMessagesAreUnread() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        for (Message msg : messages) {
-            assertFalse("Seed messages should be unread", msg.isRead());
-        }
-    }
-
-    @Test
-    public void seedData_allMessagesHaveValidTimestamps() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        for (Message msg : messages) {
-            assertTrue("createdAt must be positive", msg.getCreatedAt() > 0);
-            assertTrue("expiresAt must be after createdAt", msg.getExpiresAt() > msg.getCreatedAt());
-        }
-    }
-
-    @Test
-    public void seedData_firstMessageTtl_isOneHour() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        Message first = messages.get(0);
-        long ttl = first.getExpiresAt() - first.getCreatedAt();
-        assertEquals("First message TTL should be 1 hour", 60 * 60 * 1000L, ttl);
-    }
-
-    @Test
-    public void seedData_secondMessageTtl_isFourHours() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        Message second = messages.get(1);
-        long ttl = second.getExpiresAt() - second.getCreatedAt();
-        assertEquals("Second message TTL should be 4 hours", 4 * 60 * 60 * 1000L, ttl);
-    }
-
-    @Test
-    public void seedData_thirdMessageTtl_isTwelveHours() {
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        Message third = messages.get(2);
-        long ttl = third.getExpiresAt() - third.getCreatedAt();
-        assertEquals("Third message TTL should be 12 hours", 12 * 60 * 60 * 1000L, ttl);
+    public void initialization_hasNoSeedData() {
+        LiveData<List<MessageEntity>> liveData = viewModel.getMessages();
+        List<MessageEntity> messages = liveData.getValue();
+        // Room LiveData may be null initially or empty
+        assertTrue("Should start empty (no seed data)",
+                messages == null || messages.isEmpty());
     }
 
     // ── addMessage ────────────────────────────────────────────────
 
     @Test
-    public void addMessage_insertsAtPositionZero() {
-        long now = System.currentTimeMillis();
-        Message newMsg = new Message("New post", Message.Scope.LOCAL, Message.Priority.NORMAL, now, now + 3600000, false);
+    public void addMessage_insertsIntoRoom() throws InterruptedException {
+        MessageEntity entity = MessageEntity.create("Test msg", MessageEntity.Scope.LOCAL, MessageEntity.Priority.NORMAL, NOW, NOW + ONE_HOUR);
 
-        viewModel.addMessage(newMsg);
+        CountDownLatch latch = new CountDownLatch(1);
+        viewModel.addMessage(entity, new MessageRepo.InsertCallback() {
+            @Override public void onInserted() { latch.countDown(); }
+            @Override public void onDuplicate() { fail("Should not be duplicate"); }
+        });
+        latch.await(2, TimeUnit.SECONDS);
 
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        assertEquals("After adding, total should be 4", 4, messages.size());
-        assertEquals("New message should be at index 0", newMsg.getId(), messages.get(0).getId());
+        MessageEntity found = db.messageDao().getMessageByIdSync(entity.getId());
+        assertNotNull("Message should be in Room", found);
+        assertEquals("Test msg", found.getText());
     }
 
     @Test
-    public void addMessage_preservesExistingSeedData() {
-        List<Message> before = viewModel.getMessages().getValue();
-        assertNotNull(before);
-        String secondId = before.get(1).getId();
+    public void addMessage_fireAndForget_insertsIntoRoom() throws InterruptedException {
+        MessageEntity entity = MessageEntity.create("Fire and forget", MessageEntity.Scope.ZONE, MessageEntity.Priority.ALERT, NOW, NOW + ONE_HOUR);
+        viewModel.addMessage(entity);
 
-        long now = System.currentTimeMillis();
-        Message newMsg = new Message("New post", Message.Scope.LOCAL, Message.Priority.NORMAL, now, now + 3600000, false);
-        viewModel.addMessage(newMsg);
+        // Give async executor time to complete
+        Thread.sleep(500);
 
-        List<Message> after = viewModel.getMessages().getValue();
-        assertNotNull(after);
-        // Original seed messages should be shifted by 1
-        assertEquals("First seed message should now be at index 1", before.get(0).getId(), after.get(1).getId());
-        assertEquals("Second seed message should now be at index 2", before.get(1).getId(), after.get(2).getId());
-        assertEquals("Third seed message should now be at index 3", before.get(2).getId(), after.get(3).getId());
+        MessageEntity found = db.messageDao().getMessageByIdSync(entity.getId());
+        assertNotNull("Fire-and-forget insert should succeed", found);
     }
 
     @Test
-    public void addMessage_multipleAdds_newestFirst() {
-        long now = System.currentTimeMillis();
-        Message msg1 = new Message("First addition", Message.Scope.LOCAL, Message.Priority.NORMAL, now, now + 3600000, false);
-        Message msg2 = new Message("Second addition", Message.Scope.ZONE, Message.Priority.ALERT, now, now + 3600000, false);
-        Message msg3 = new Message("Third addition", Message.Scope.EVENT, Message.Priority.BULK, now, now + 3600000, false);
+    public void addMessage_duplicate_callsOnDuplicate() throws InterruptedException {
+        MessageEntity entity1 = MessageEntity.create("Duplicate test", MessageEntity.Scope.LOCAL, MessageEntity.Priority.NORMAL, NOW, NOW + ONE_HOUR);
+        // Insert first
+        CountDownLatch latch1 = new CountDownLatch(1);
+        viewModel.addMessage(entity1, new MessageRepo.InsertCallback() {
+            @Override public void onInserted() { latch1.countDown(); }
+            @Override public void onDuplicate() { fail("First insert should succeed"); }
+        });
+        latch1.await(2, TimeUnit.SECONDS);
 
-        viewModel.addMessage(msg1);
-        viewModel.addMessage(msg2);
-        viewModel.addMessage(msg3);
+        // Insert duplicate (same text+scope+hour → same hash)
+        MessageEntity entity2 = MessageEntity.create("Duplicate test", MessageEntity.Scope.LOCAL, MessageEntity.Priority.ALERT, NOW, NOW + ONE_HOUR);
+        CountDownLatch latch2 = new CountDownLatch(1);
+        final boolean[] wasDuplicate = {false};
+        viewModel.addMessage(entity2, new MessageRepo.InsertCallback() {
+            @Override public void onInserted() { latch2.countDown(); }
+            @Override public void onDuplicate() { wasDuplicate[0] = true; latch2.countDown(); }
+        });
+        latch2.await(2, TimeUnit.SECONDS);
 
-        List<Message> messages = viewModel.getMessages().getValue();
-        assertNotNull(messages);
-        assertEquals("Total should be 6 (3 seed + 3 added)", 6, messages.size());
-        assertEquals("Most recently added should be at 0", msg3.getId(), messages.get(0).getId());
-        assertEquals("Second addition should be at 1", msg2.getId(), messages.get(1).getId());
-        assertEquals("First addition should be at 2", msg1.getId(), messages.get(2).getId());
+        assertTrue("Second insert with same hash should be duplicate", wasDuplicate[0]);
+    }
+
+    // ── deleteMessage ─────────────────────────────────────────────
+
+    @Test
+    public void deleteMessage_removesFromRoom() throws InterruptedException {
+        MessageEntity entity = MessageEntity.create("To delete", MessageEntity.Scope.LOCAL, MessageEntity.Priority.NORMAL, NOW, NOW + ONE_HOUR);
+        CountDownLatch latch = new CountDownLatch(1);
+        viewModel.addMessage(entity, new MessageRepo.InsertCallback() {
+            @Override public void onInserted() { latch.countDown(); }
+            @Override public void onDuplicate() { latch.countDown(); }
+        });
+        latch.await(2, TimeUnit.SECONDS);
+
+        viewModel.deleteMessage(entity.getId());
+        Thread.sleep(500);
+
+        MessageEntity found = db.messageDao().getMessageByIdSync(entity.getId());
+        assertNull("Deleted message should not be in Room", found);
+    }
+
+    // ── cleanupExpired ────────────────────────────────────────────
+
+    @Test
+    public void cleanupExpired_removesExpiredMessages() throws InterruptedException {
+        // Insert an already-expired message directly via DAO
+        String hash = MessageEntity.computeHash("Expired", "LOCAL", NOW - ONE_HOUR);
+        MessageEntity expired = new MessageEntity("exp-id", "Expired", "LOCAL", "NORMAL",
+                NOW - ONE_HOUR, NOW - 1000, false, hash);
+        db.messageDao().insert(expired);
+
+        // Insert a valid message
+        MessageEntity valid = MessageEntity.create("Still valid", MessageEntity.Scope.ZONE, MessageEntity.Priority.NORMAL, NOW, NOW + ONE_HOUR);
+        db.messageDao().insert(valid);
+
+        viewModel.cleanupExpired();
+        Thread.sleep(500);
+
+        assertNull("Expired message should be cleaned up",
+                db.messageDao().getMessageByIdSync("exp-id"));
+        assertNotNull("Valid message should remain",
+                db.messageDao().getMessageByIdSync(valid.getId()));
     }
 
     // ── LiveData Contract ─────────────────────────────────────────
 
     @Test
     public void getMessages_returnsLiveData() {
-        LiveData<List<Message>> liveData = viewModel.getMessages();
+        LiveData<List<MessageEntity>> liveData = viewModel.getMessages();
         assertNotNull("getMessages() must not return null", liveData);
     }
 
     @Test
     public void getMessages_returnsSameInstance() {
-        LiveData<List<Message>> first = viewModel.getMessages();
-        LiveData<List<Message>> second = viewModel.getMessages();
+        LiveData<List<MessageEntity>> first = viewModel.getMessages();
+        LiveData<List<MessageEntity>> second = viewModel.getMessages();
         assertSame("getMessages() should return the same LiveData instance", first, second);
     }
 
+    // ── getRepo ───────────────────────────────────────────────────
+
     @Test
-    public void addMessage_triggersLiveDataUpdate() {
-        final int[] callCount = {0};
-        viewModel.getMessages().observeForever(messages -> callCount[0]++);
+    public void getRepo_returnsNonNull() {
+        assertNotNull("getRepo() should return a MessageRepo", viewModel.getRepo());
+    }
 
-        long now = System.currentTimeMillis();
-        Message newMsg = new Message("Trigger test", Message.Scope.LOCAL, Message.Priority.NORMAL, now, now + 3600000, false);
-        viewModel.addMessage(newMsg);
+    // ── Multiple Inserts ──────────────────────────────────────────
 
-        // callCount[0] should be at least 2: initial seed setValue + addMessage setValue
-        assertTrue("Observer should be called at least twice (seed + add)", callCount[0] >= 2);
+    @Test
+    public void multipleInserts_allPersisted() throws InterruptedException {
+        for (int i = 0; i < 5; i++) {
+            MessageEntity entity = MessageEntity.create("Message " + i, MessageEntity.Scope.LOCAL, MessageEntity.Priority.NORMAL,
+                    NOW + i * 1000, NOW + ONE_HOUR + i * 1000);
+            viewModel.addMessage(entity);
+        }
+        Thread.sleep(1000);
+
+        int count = db.messageDao().countAll();
+        assertEquals("All 5 messages should be persisted", 5, count);
     }
 }

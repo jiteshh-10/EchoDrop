@@ -2,43 +2,47 @@ package com.dev.echodrop.components;
 
 import static org.junit.Assert.*;
 
-import com.dev.echodrop.models.Message;
+import com.dev.echodrop.db.MessageEntity;
 
 import org.junit.Test;
 
 /**
  * Unit tests for the post composition logic used in {@link PostComposerSheet}.
  *
- * Since PostComposerSheet directly constructs Messages in its submit() method,
- * these tests validate the message construction contract:
+ * Updated in Iteration 2 to use {@link MessageEntity} enums and construction.
+ *
+ * Tests cover:
  * - Scope mapping from chip selection
  * - Priority mapping from urgent toggle
  * - TTL calculation from chip selection
  * - Validation rules (non-empty text, scope required)
  * - Character limit enforcement
+ * - MessageEntity construction contract
  */
 public class PostComposerLogicTest {
+
+    private static final long NOW = System.currentTimeMillis();
 
     // ── Scope Mapping ─────────────────────────────────────────────
 
     @Test
     public void scopeMapping_nearby_mapsToLocal() {
-        assertEquals(Message.Scope.LOCAL, mapScope("nearby"));
+        assertEquals(MessageEntity.Scope.LOCAL, mapScope("nearby"));
     }
 
     @Test
     public void scopeMapping_area_mapsToZone() {
-        assertEquals(Message.Scope.ZONE, mapScope("area"));
+        assertEquals(MessageEntity.Scope.ZONE, mapScope("area"));
     }
 
     @Test
     public void scopeMapping_event_mapsToEvent() {
-        assertEquals(Message.Scope.EVENT, mapScope("event"));
+        assertEquals(MessageEntity.Scope.EVENT, mapScope("event"));
     }
 
     @Test
     public void scopeMapping_default_fallsBackToLocal() {
-        assertEquals(Message.Scope.LOCAL, mapScope("unknown"));
+        assertEquals(MessageEntity.Scope.LOCAL, mapScope("unknown"));
     }
 
     // ── Priority Mapping ──────────────────────────────────────────
@@ -46,15 +50,15 @@ public class PostComposerLogicTest {
     @Test
     public void priority_urgentChecked_mapsToAlert() {
         boolean urgentChecked = true;
-        Message.Priority result = urgentChecked ? Message.Priority.ALERT : Message.Priority.NORMAL;
-        assertEquals(Message.Priority.ALERT, result);
+        MessageEntity.Priority result = urgentChecked ? MessageEntity.Priority.ALERT : MessageEntity.Priority.NORMAL;
+        assertEquals(MessageEntity.Priority.ALERT, result);
     }
 
     @Test
     public void priority_urgentUnchecked_mapsToNormal() {
         boolean urgentChecked = false;
-        Message.Priority result = urgentChecked ? Message.Priority.ALERT : Message.Priority.NORMAL;
-        assertEquals(Message.Priority.NORMAL, result);
+        MessageEntity.Priority result = urgentChecked ? MessageEntity.Priority.ALERT : MessageEntity.Priority.NORMAL;
+        assertEquals(MessageEntity.Priority.NORMAL, result);
     }
 
     // ── TTL Calculation ───────────────────────────────────────────
@@ -142,42 +146,59 @@ public class PostComposerLogicTest {
         assertEquals("danger", getCharCounterColorState(240));
     }
 
-    // ── Message Construction ──────────────────────────────────────
+    // ── MessageEntity Construction ────────────────────────────────
 
     @Test
-    public void constructMessage_setsCorrectTimestamps() {
-        long created = System.currentTimeMillis();
+    public void constructEntity_setsCorrectTimestamps() {
         long ttl = 4 * 60 * 60 * 1000L;
-        Message msg = new Message("Test", Message.Scope.LOCAL, Message.Priority.NORMAL, created, created + ttl, false);
+        MessageEntity entity = MessageEntity.create("Test", MessageEntity.Scope.LOCAL, MessageEntity.Priority.NORMAL, NOW, NOW + ttl);
 
-        assertEquals(created, msg.getCreatedAt());
-        assertEquals(created + ttl, msg.getExpiresAt());
+        assertEquals(NOW, entity.getCreatedAt());
+        assertEquals(NOW + ttl, entity.getExpiresAt());
     }
 
     @Test
-    public void constructMessage_isAlwaysUnread() {
-        long created = System.currentTimeMillis();
-        Message msg = new Message("Test", Message.Scope.LOCAL, Message.Priority.NORMAL, created, created + 3600000, false);
-        assertFalse("Newly created message should be unread", msg.isRead());
+    public void constructEntity_isAlwaysUnread() {
+        MessageEntity entity = MessageEntity.create("Test", MessageEntity.Scope.LOCAL, MessageEntity.Priority.NORMAL, NOW, NOW + 3600000);
+        assertFalse("Newly created entity should be unread", entity.isRead());
     }
 
     @Test
-    public void constructMessage_textIsTrimmed() {
-        String rawText = "  Hello World  ";
-        String trimmed = rawText.trim();
-        long now = System.currentTimeMillis();
-        Message msg = new Message(trimmed, Message.Scope.LOCAL, Message.Priority.NORMAL, now, now + 3600000, false);
-        assertEquals("Hello World", msg.getText());
+    public void constructEntity_hasNonNullId() {
+        MessageEntity entity = MessageEntity.create("Test", MessageEntity.Scope.LOCAL, MessageEntity.Priority.NORMAL, NOW, NOW + 3600000);
+        assertNotNull("Entity must have an ID", entity.getId());
+        assertFalse("Entity ID must not be empty", entity.getId().isEmpty());
+    }
+
+    @Test
+    public void constructEntity_hasContentHash() {
+        MessageEntity entity = MessageEntity.create("Test", MessageEntity.Scope.LOCAL, MessageEntity.Priority.NORMAL, NOW, NOW + 3600000);
+        assertNotNull("Entity must have a content hash", entity.getContentHash());
+        assertEquals(64, entity.getContentHash().length());
+    }
+
+    @Test
+    public void constructEntity_scopeAndPriority_areStrings() {
+        MessageEntity entity = MessageEntity.create("Test", MessageEntity.Scope.ZONE, MessageEntity.Priority.ALERT, NOW, NOW + 3600000);
+        assertEquals("ZONE", entity.getScope());
+        assertEquals("ALERT", entity.getPriority());
+    }
+
+    @Test
+    public void constructEntity_enumAccessors_work() {
+        MessageEntity entity = MessageEntity.create("Test", MessageEntity.Scope.EVENT, MessageEntity.Priority.BULK, NOW, NOW + 3600000);
+        assertEquals(MessageEntity.Scope.EVENT, entity.getScopeEnum());
+        assertEquals(MessageEntity.Priority.BULK, entity.getPriorityEnum());
     }
 
     // ── Helpers (mirror PostComposerSheet logic) ──────────────────
 
-    private Message.Scope mapScope(String chipId) {
+    private MessageEntity.Scope mapScope(String chipId) {
         switch (chipId) {
-            case "area": return Message.Scope.ZONE;
-            case "event": return Message.Scope.EVENT;
+            case "area": return MessageEntity.Scope.ZONE;
+            case "event": return MessageEntity.Scope.EVENT;
             case "nearby":
-            default: return Message.Scope.LOCAL;
+            default: return MessageEntity.Scope.LOCAL;
         }
     }
 
@@ -197,7 +218,7 @@ public class PostComposerLogicTest {
     }
 
     private int getMaxCharLimit() {
-        return 240; // android:maxLength="240" in fragment_post_composer.xml
+        return 240;
     }
 
     private String getCharCounterColorState(int length) {

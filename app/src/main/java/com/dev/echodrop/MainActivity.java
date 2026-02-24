@@ -6,9 +6,22 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.dev.echodrop.screens.HomeInboxFragment;
 import com.dev.echodrop.screens.HowItWorksFragment;
+import com.dev.echodrop.screens.MessageDetailFragment;
 import com.dev.echodrop.screens.OnboardingConsentFragment;
 import com.dev.echodrop.screens.PermissionsFragment;
+import com.dev.echodrop.workers.TtlCleanupWorker;
 
+/**
+ * Single-activity host for all fragments.
+ *
+ * <p>Updated in Iteration 2:
+ * <ul>
+ *   <li>Schedules TtlCleanupWorker on first launch</li>
+ *   <li>Triggers one-time TTL cleanup on every onResume</li>
+ *   <li>Adds navigation to MessageDetailFragment</li>
+ * </ul>
+ * </p>
+ */
 public class MainActivity extends AppCompatActivity {
 
     @Override
@@ -16,12 +29,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Schedule periodic TTL cleanup (every 15 minutes)
+        TtlCleanupWorker.schedule(this);
+
         if (savedInstanceState == null) {
             getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_container, new OnboardingConsentFragment())
                     .commit();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Run immediate TTL cleanup on each foreground resume
+        TtlCleanupWorker.runOnce(this);
     }
 
     public void showPermissions() {
@@ -53,6 +76,20 @@ public class MainActivity extends AppCompatActivity {
                         R.anim.fragment_enter, R.anim.fragment_exit,
                         R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
                 .replace(R.id.fragment_container, new HomeInboxFragment())
+                .commit();
+    }
+
+    /**
+     * Navigate to the message detail screen.
+     */
+    public void showMessageDetail(String messageId) {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, MessageDetailFragment.newInstance(messageId))
+                .addToBackStack("detail")
                 .commit();
     }
 }

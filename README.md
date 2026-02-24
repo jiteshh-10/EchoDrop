@@ -27,6 +27,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 - [8. Component Documentation](#8-component-documentation)
 - [9. Build & Setup](#9-build--setup)
 - [10. Iteration 0-1 Completion Status](#10-iteration-0-1-completion-status)
+- [11. Iteration 2 Completion Status](#11-iteration-2-completion-status)
 
 ---
 
@@ -40,11 +41,14 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 | **Compile SDK**  | 35                                           |
 | **Language**     | Java 11                                      |
 | **Theme**        | Material 3 — Dark Only                       |
-| **Branch**       | `iteration_0_1_foundations`                   |
+| **Branch**       | `main` (latest: `iteration-2`)               |
 
 ### Concept
 
-EchoDrop operates on a store-carry-forward paradigm. Users create short-lived messages scoped to geographic ranges (Local / Zone / Event). Messages propagate between devices in physical proximity without requiring traditional internet infrastructure. Each message has a time-to-live (TTL) after which it self-destructs. This Iteration 0-1 establishes the complete visual foundation and UI scaffold.
+EchoDrop operates on a store-carry-forward paradigm. Users create short-lived messages scoped to geographic ranges (Local / Zone / Event). Messages propagate between devices in physical proximity without requiring traditional internet infrastructure. Each message has a time-to-live (TTL) after which it self-destructs.
+
+- **Iteration 0-1** established the complete visual foundation and UI scaffold.
+- **Iteration 2** added Room persistence, SHA-256 deduplication, storage cap enforcement, WorkManager TTL cleanup, and a message detail screen.
 
 ---
 
@@ -57,6 +61,8 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 | Layout Binding        | ViewBinding (`buildFeatures { viewBinding true }`) |
 | List Rendering        | RecyclerView 1.3.2                                 |
 | Architecture          | ViewModel + LiveData (`lifecycle-viewmodel-ktx:2.7.0`) |
+| Persistence           | Room 2.6.1 (SQLite ORM)                           |
+| Background Work       | WorkManager 2.9.0 (TTL cleanup)                   |
 | Layout Constraint     | ConstraintLayout (via `libs.versions.toml`)        |
 | Typography            | System fonts (`sans-serif` / `monospace`)           |
 | Build System          | Gradle 8.x with Kotlin DSL catalog                 |
@@ -71,8 +77,20 @@ dependencies {
     implementation libs.constraintlayout
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.7.0'
+    implementation 'androidx.room:room-runtime:2.6.1'
+    annotationProcessor 'androidx.room:room-compiler:2.6.1'
+    implementation 'androidx.work:work-runtime:2.9.0'
     // Testing
     testImplementation libs.junit
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
+    testImplementation 'androidx.arch.core:core-testing:2.2.0'
+    testImplementation 'org.robolectric:robolectric:4.12.1'
+    testImplementation 'androidx.test:core:1.5.0'
+    testImplementation 'androidx.test.ext:junit:1.1.5'
+    testImplementation 'androidx.room:room-testing:2.6.1'
+    testImplementation 'androidx.work:work-testing:2.9.0'
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
 }
@@ -87,7 +105,8 @@ EchoDrop/
 ├── doc/                              ← You are here
 │   ├── README.md                     ← This file (project overview)
 │   ├── ARCHITECTURE.md               ← Architecture deep-dive
-│   └── CHANGELOG_ITERATION_01.md     ← Iteration 0-1 changelog
+│   ├── CHANGELOG_ITERATION_01.md     ← Iteration 0-1 changelog
+│   └── CHANGELOG_ITERATION_02.md     ← Iteration 2 changelog
 │
 ├── app/
 │   ├── build.gradle                  ← Module build config
@@ -96,7 +115,15 @@ EchoDrop/
 │       ├── java/com/dev/echodrop/
 │       │   ├── MainActivity.java           ← Single Activity host
 │       │   ├── models/
-│       │   │   └── Message.java            ← Core data model (POJO)
+│       │   │   └── Message.java            ← Legacy data model (POJO)
+│       │   ├── db/
+│       │   │   ├── MessageEntity.java       ← Room entity (primary data class)
+│       │   │   ├── MessageDao.java          ← Room DAO
+│       │   │   └── AppDatabase.java         ← Room database singleton
+│       │   ├── repository/
+│       │   │   └── MessageRepo.java         ← Repository (dedup + cap + cleanup)
+│       │   ├── workers/
+│       │   │   └── TtlCleanupWorker.java     ← WorkManager TTL cleanup
 │       │   ├── viewmodels/
 │       │   │   └── MessageViewModel.java   ← LiveData ViewModel
 │       │   ├── adapters/
@@ -105,7 +132,8 @@ EchoDrop/
 │       │   │   ├── OnboardingConsentFragment.java
 │       │   │   ├── PermissionsFragment.java
 │       │   │   ├── HowItWorksFragment.java
-│       │   │   └── HomeInboxFragment.java
+│       │   │   ├── HomeInboxFragment.java
+│       │   │   └── MessageDetailFragment.java  ← Message detail + TTL progress
 │       │   └── components/
 │       │       └── PostComposerSheet.java  ← BottomSheet dialog
 │       │
@@ -131,7 +159,8 @@ EchoDrop/
 │           │   ├── screen_how_it_works.xml
 │           │   ├── screen_home_inbox.xml
 │           │   ├── item_message_card.xml
-│           │   └── fragment_post_composer.xml
+│           │   ├── fragment_post_composer.xml
+│           │   └── fragment_message_detail.xml  ← Message detail layout
 │           ├── menu/
 │           │   └── home_menu.xml
 │           └── values/
@@ -746,4 +775,39 @@ android {
 ---
 
 *Documentation for EchoDrop Iteration 0-1 (Foundations + Visual Baseline)*  
+*Last updated: 2025*
+
+---
+
+## 11. Iteration 2 Completion Status
+
+> Full changelog with all implemented items is in [`CHANGELOG_ITERATION_02.md`](CHANGELOG_ITERATION_02.md).
+
+### Summary
+
+| Category                  | Items | Status |
+|---------------------------|-------|--------|
+| New Production Files      | 7     | ✅ Complete |
+| Updated Production Files  | 6     | ✅ Complete |
+| New Test Files            | 2     | ✅ Complete |
+| Updated Test Files        | 4     | ✅ Complete |
+| Dependencies Added        | 3     | ✅ (Room, WorkManager, lifecycle-livedata) |
+| Build Verification        | —     | ✅ `BUILD SUCCESSFUL` |
+| Unit Tests                | 191   | ✅ 0 failures (100% pass rate) |
+
+### Key Features
+
+- [x] Room persistence layer (MessageEntity, MessageDao, AppDatabase)
+- [x] SHA-256 content deduplication (text + scope + hour bucket)
+- [x] 200-row storage cap with priority-aware eviction (BULK → NORMAL, never ALERT)
+- [x] Repository pattern (MessageRepo) with InsertCallback
+- [x] WorkManager periodic TTL cleanup (every 15 minutes)
+- [x] MessageDetailFragment with TTL progress bar (green/amber/red)
+- [x] Dedup Snackbar feedback on duplicate post attempt
+- [x] Auto mark-as-read on detail view
+- [x] "Got it" button deletes message and navigates back
+
+---
+
+*Documentation for EchoDrop — Iterations 0-1 + 2*  
 *Last updated: 2025*

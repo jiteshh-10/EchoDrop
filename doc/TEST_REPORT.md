@@ -1,9 +1,9 @@
 # EchoDrop — Test Report
 
-> **Iteration 0-1: Foundations + Visual Baseline**  
-> **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1  
-> **Execution Date:** February 2025  
-> **Result:** ✅ **151 tests — 0 failures — 100% pass rate**
+> **Iterations 0-1 + 2: Foundations + Local Persistence**  
+> **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
+> **Execution Date:** 2025  
+> **Result:** ✅ **191 tests — 0 failures — 100% pass rate**
 
 ---
 
@@ -13,13 +13,15 @@
 - [2. Test Infrastructure](#2-test-infrastructure)
 - [3. Test Suite Breakdown](#3-test-suite-breakdown)
   - [3.1 MessageTest (20 tests)](#31-messagetest-20-tests)
-  - [3.2 MessageViewModelTest (17 tests)](#32-messageviewmodeltest-17-tests)
-  - [3.3 MessageAdapterTest (14 tests)](#33-messageadaptertest-14-tests)
-  - [3.4 MessageFilterLogicTest (14 tests)](#34-messagefilterlogictest-14-tests)
-  - [3.5 PostComposerLogicTest (24 tests)](#35-postcomposerlogictest-24-tests)
-  - [3.6 MainActivityTest (15 tests)](#36-mainactivitytest-15-tests)
-  - [3.7 DesignSystemTest (46 tests)](#37-designsystemtest-46-tests)
-  - [3.8 ExampleUnitTest (1 test)](#38-exampleunittest-1-test)
+  - [3.2 MessageEntityTest (28 tests)](#32-messageentitytest-28-tests)
+  - [3.3 MessageRepoTest (14 tests)](#33-messagerepotest-14-tests)
+  - [3.4 MessageViewModelTest (10 tests)](#34-messageviewmodeltest-10-tests)
+  - [3.5 MessageAdapterTest (16 tests)](#35-messageadaptertest-16-tests)
+  - [3.6 MessageFilterLogicTest (14 tests)](#36-messagefilterlogictest-14-tests)
+  - [3.7 PostComposerLogicTest (27 tests)](#37-postcomposerlogictest-27-tests)
+  - [3.8 MainActivityTest (15 tests)](#38-mainactivitytest-15-tests)
+  - [3.9 DesignSystemTest (46 tests)](#39-designsystemtest-46-tests)
+  - [3.10 ExampleUnitTest (1 test)](#310-exampleunittest-1-test)
 - [4. Bugs Found & Fixed During Testing](#4-bugs-found--fixed-during-testing)
 - [5. Test Coverage Matrix](#5-test-coverage-matrix)
 - [6. Testing Methodology](#6-testing-methodology)
@@ -31,31 +33,32 @@
 
 | Metric            | Value          |
 |-------------------|----------------|
-| **Total Tests**   | 151            |
-| **Passed**        | 151            |
+| **Total Tests**   | 191            |
+| **Passed**        | 191            |
 | **Failed**        | 0              |
 | **Ignored**       | 0              |
 | **Success Rate**  | 100%           |
-| **Duration**      | 4.580s         |
-| **Test Classes**  | 8              |
-| **Packages Tested** | 6           |
+| **Test Classes**  | 10             |
+| **Packages Tested** | 8           |
 
 ### Package Results
 
 | Package                           | Tests | Failures | Success Rate |
 |-----------------------------------|-------|----------|--------------|
 | `com.dev.echodrop`                | 62    | 0        | 100%         |
-| `com.dev.echodrop.adapters`       | 14    | 0        | 100%         |
-| `com.dev.echodrop.components`     | 24    | 0        | 100%         |
+| `com.dev.echodrop.adapters`       | 16    | 0        | 100%         |
+| `com.dev.echodrop.components`     | 27    | 0        | 100%         |
+| `com.dev.echodrop.db`             | 28    | 0        | 100%         |
 | `com.dev.echodrop.models`         | 20    | 0        | 100%         |
+| `com.dev.echodrop.repository`     | 14    | 0        | 100%         |
 | `com.dev.echodrop.screens`        | 14    | 0        | 100%         |
-| `com.dev.echodrop.viewmodels`     | 17    | 0        | 100%         |
+| `com.dev.echodrop.viewmodels`     | 10    | 0        | 100%         |
 
 ---
 
 ## 2. Test Infrastructure
 
-### Dependencies Added
+### Dependencies
 
 ```groovy
 // app/build.gradle — test dependencies
@@ -66,6 +69,8 @@ testImplementation 'androidx.arch.core:core-testing:2.2.0'
 testImplementation 'org.robolectric:robolectric:4.12.1'
 testImplementation 'androidx.test:core:1.5.0'
 testImplementation 'androidx.test.ext:junit:1.1.5'
+testImplementation 'androidx.room:room-testing:2.6.1'
+testImplementation 'androidx.work:work-testing:2.9.0'
 ```
 
 ### Build Configuration
@@ -123,45 +128,87 @@ Tests the immutable POJO model used for DTN message bundles.
 
 ---
 
-### 3.2 MessageViewModelTest (17 tests)
+### 3.2 MessageEntityTest (28 tests) — *New in Iteration 2*
 
-**File:** `app/src/test/java/com/dev/echodrop/viewmodels/MessageViewModelTest.java`  
-**Type:** Architecture Unit Test (requires `InstantTaskExecutorRule`)  
-**Class Under Test:** `com.dev.echodrop.viewmodels.MessageViewModel`
+**File:** `app/src/test/java/com/dev/echodrop/db/MessageEntityTest.java`  
+**Type:** Pure JUnit  
+**Class Under Test:** `com.dev.echodrop.db.MessageEntity`
 
-Tests the MVVM ViewModel that holds message state via LiveData.
+Tests the Room entity: factory, SHA-256 hash, TTL helpers, enum accessors, fromMessage conversion.
 
-| # | Test Name | What It Verifies |
-|---|-----------|------------------|
-| 1 | `initialization_seedsThreeMessages` | ViewModel starts with 3 seed messages |
-| 2 | `seedData_firstMessage_isAlertLocal` | First seed = LOCAL scope, ALERT priority |
-| 3 | `seedData_secondMessage_isNormalZone` | Second seed = ZONE scope, NORMAL priority |
-| 4 | `seedData_thirdMessage_isNormalEvent` | Third seed = EVENT scope, NORMAL priority |
-| 5 | `seedData_allMessagesHaveValidIds` | All seeds have non-null, non-empty IDs |
-| 6 | `seedData_allMessagesHaveUniqueIds` | All 3 seed IDs are distinct |
-| 7 | `seedData_allMessagesAreUnread` | All seeds start with read=false |
-| 8 | `seedData_allMessagesHaveValidTimestamps` | CreatedAt > 0, ExpiresAt > CreatedAt |
-| 9 | `seedData_firstMessageTtl_isOneHour` | First seed TTL = 1 hour (3,600,000ms) |
-| 10 | `seedData_secondMessageTtl_isFourHours` | Second seed TTL = 4 hours (14,400,000ms) |
-| 11 | `seedData_thirdMessageTtl_isTwelveHours` | Third seed TTL = 12 hours (43,200,000ms) |
-| 12 | `addMessage_insertsAtPositionZero` | New messages are prepended (newest first) |
-| 13 | `addMessage_preservesExistingSeedData` | Adding doesn't discard existing messages |
-| 14 | `addMessage_multipleAdds_newestFirst` | Multiple additions maintain LIFO order |
-| 15 | `getMessages_returnsLiveData` | `getMessages()` returns non-null LiveData |
-| 16 | `getMessages_returnsSameInstance` | Same LiveData reference on multiple calls |
-| 17 | `addMessage_triggersLiveDataUpdate` | `addMessage()` notifies observers |
-
-**Key Testing Aspect:** Uses `InstantTaskExecutorRule` to force `LiveData.setValue()` to execute synchronously, avoiding test flakiness from the Architecture Components' background executor.
+| # | Test | What It Verifies |
+|---|------|------------------|
+| 1 | `create_generatesUniqueIds` | Two entities get different UUIDs |
+| 2 | `create_setsAllFields` | All fields populated correctly |
+| 3 | `create_isUnread` | New entity starts with read=false |
+| 4–9 | SHA-256 hash tests | Deterministic, 64-char hex, different inputs → different hashes, same hour → same hash, case insensitive, trimmed input |
+| 10–15 | Enum helper tests | All 6 scope+priority values round-trip |
+| 16–19 | TTL progress tests | Full remaining → 1.0, expired → 0.0, zero duration, halfway |
+| 20–24 | TTL formatting tests | Hours+minutes, exact hours, minutes only, expired shows "0m" |
+| 25 | `isExpired` | Detects expired messages |
+| 26 | `fromMessage` | Converts legacy POJO to entity |
+| 27 | `setRead` | Mutates read state |
+| 28 | `contentHash_stored` | Hash persists through constructor |
 
 ---
 
-### 3.3 MessageAdapterTest (14 tests)
+### 3.3 MessageRepoTest (14 tests) — *New in Iteration 2*
+
+**File:** `app/src/test/java/com/dev/echodrop/repository/MessageRepoTest.java`  
+**Type:** Mockito-based unit test  
+**Class Under Test:** `com.dev.echodrop.repository.MessageRepo`
+
+Tests the repository layer with mocked DAO: dedup, storage cap, eviction, cleanup.
+
+| # | Test | What It Verifies |
+|---|------|------------------|
+| 1 | `insert_noDuplicate_callsOnInserted` | Fresh insert → onInserted callback |
+| 2 | `insert_duplicateHash_callsOnDuplicate` | Existing hash → onDuplicate callback |
+| 3 | `insert_rowIdNegativeOne_callsOnDuplicate` | DAO returns -1 → onDuplicate |
+| 4 | `storageCap_underCap_noEviction` | ≤200 rows → no deletions |
+| 5 | `storageCap_overCap_deletesBulkFirst` | Over cap → deletes BULK first |
+| 6 | `storageCap_noBulk_deletesNormal` | No BULK available → deletes NORMAL |
+| 7 | `storageCap_partialBulk_thenNormal` | Partial BULK + remaining from NORMAL |
+| 8 | `STORAGE_CAP_is200` | Constant value = 200 |
+| 9 | `deleteById_delegates` | Delegates to DAO |
+| 10 | `markAsRead_delegates` | Delegates to DAO |
+| 11 | `cleanupExpiredSync_delegates` | Delegates to DAO |
+| 12 | `isDuplicateSync_exists` | Returns true when hash found |
+| 13 | `isDuplicateSync_notExists` | Returns false when hash not found |
+| 14 | `insert_noCallback_noException` | Null callback doesn't throw |
+
+---
+
+### 3.4 MessageViewModelTest (10 tests) — *Rewritten in Iteration 2*
+
+**File:** `app/src/test/java/com/dev/echodrop/viewmodels/MessageViewModelTest.java`  
+**Type:** Robolectric + In-memory Room DB  
+**Class Under Test:** `com.dev.echodrop.viewmodels.MessageViewModel`
+
+Tests the AndroidViewModel with real Room persistence. **Replaces the 17-test seed-data suite from Iteration 0-1.**
+
+| # | Test Name | What It Verifies |
+|---|-----------|------------------|
+| 1 | `initialization_hasNoSeedData` | ViewModel starts empty (no seed) |
+| 2 | `addMessage_insertsIntoRoom` | Insert persists to Room DB |
+| 3 | `addMessage_fireAndForget_insertsIntoRoom` | Fire-and-forget insert works |
+| 4 | `addMessage_duplicate_callsOnDuplicate` | Duplicate hash → onDuplicate callback |
+| 5 | `deleteMessage_removesFromRoom` | Delete by ID removes from DB |
+| 6 | `cleanupExpired_removesExpiredMessages` | Expired messages are cleaned up |
+| 7 | `getMessages_returnsLiveData` | getMessages() returns non-null LiveData |
+| 8 | `getMessages_returnsSameInstance` | Same LiveData reference |
+| 9 | `getRepo_returnsNonNull` | getRepo() returns MessageRepo |
+| 10 | `multipleInserts_allPersisted` | 5 sequential inserts all persisted |
+
+---
+
+### 3.5 MessageAdapterTest (16 tests) — *Updated in Iteration 2*
 
 **File:** `app/src/test/java/com/dev/echodrop/adapters/MessageAdapterTest.java`  
 **Type:** Robolectric Test  
 **Class Under Test:** `com.dev.echodrop.adapters.MessageAdapter`
 
-Tests the RecyclerView adapter and its DiffUtil callback.
+Tests the RecyclerView adapter and its DiffUtil callback. **Updated to use MessageEntity + added click listener tests.**
 
 | # | Test Name | What It Verifies |
 |---|-----------|------------------|
@@ -178,13 +225,15 @@ Tests the RecyclerView adapter and its DiffUtil callback.
 | 11 | `diffUtil_differentPriority_returnsFalse` | Priority change → contents differ |
 | 12 | `diffUtil_differentExpiresAt_returnsFalse` | ExpiresAt change → contents differ |
 | 13 | `diffUtil_differentReadState_returnsFalse` | Read status change → contents differ |
-| 14 | `diffUtil_differentCreatedAt_sameOtherFields_returnsTrue` | `createdAt` is NOT compared in contents check |
+| 14 | `diffUtil_differentCreatedAt_sameOtherFields_returnsTrue` | `createdAt` is NOT compared |
+| 15 | `setOnMessageClickListener_acceptsNull` | Null listener doesn't throw |
+| 16 | `setOnMessageClickListener_acceptsListener` | Lambda listener is accepted |
 
 **Key Testing Aspect:** Uses reflection (`Field.setAccessible(true)`) to extract the private `DIFF_CALLBACK` static field for direct testing without view inflation.
 
 ---
 
-### 3.4 MessageFilterLogicTest (14 tests)
+### 3.6 MessageFilterLogicTest (14 tests)
 
 **File:** `app/src/test/java/com/dev/echodrop/screens/MessageFilterLogicTest.java`  
 **Type:** Pure JUnit (extracted algorithm)  
@@ -211,13 +260,13 @@ Tests the message filtering logic (tab switching + search) independently of the 
 
 ---
 
-### 3.5 PostComposerLogicTest (24 tests)
+### 3.7 PostComposerLogicTest (27 tests) — *Updated in Iteration 2*
 
 **File:** `app/src/test/java/com/dev/echodrop/components/PostComposerLogicTest.java`  
 **Type:** Pure JUnit (extracted logic)  
 **Logic Under Test:** Post composition logic from `PostComposerSheet`
 
-Tests scope mapping, priority mapping, TTL calculation, validation, and character limits.
+Tests scope mapping, priority mapping, TTL calculation, validation, character limits, and MessageEntity construction. **Updated from 24 to 27 tests in Iteration 2.**
 
 | # | Test Name | What It Verifies |
 |---|-----------|------------------|
@@ -242,13 +291,16 @@ Tests scope mapping, priority mapping, TTL calculation, validation, and characte
 | 19 | `charCounterColor_under200_isDefault` | 0–199 chars → default color |
 | 20 | `charCounterColor_200to239_isWarning` | 200–239 chars → warning (amber) |
 | 21 | `charCounterColor_240_isDanger` | 240 chars → danger (red) |
-| 22 | `constructMessage_setsCorrectTimestamps` | CreatedAt and ExpiresAt are set correctly |
-| 23 | `constructMessage_isAlwaysUnread` | New message → read=false |
-| 24 | `constructMessage_textIsTrimmed` | Text trimming is applied before construction |
+| 22 | `constructEntity_setsCorrectTimestamps` | CreatedAt and ExpiresAt are set correctly |
+| 23 | `constructEntity_isAlwaysUnread` | New entity → read=false |
+| 24 | `constructEntity_hasNonNullId` | Entity has non-null, non-empty ID |
+| 25 | `constructEntity_hasContentHash` | Entity has 64-char content hash |
+| 26 | `constructEntity_scopeAndPriority_areStrings` | Scope/priority stored as strings |
+| 27 | `constructEntity_enumAccessors_work` | Enum accessors return correct values |
 
 ---
 
-### 3.6 MainActivityTest (15 tests)
+### 3.8 MainActivityTest (15 tests)
 
 **File:** `app/src/test/java/com/dev/echodrop/MainActivityTest.java`  
 **Type:** Pure JUnit (reflection-based contract tests)  
@@ -278,7 +330,7 @@ Tests the navigation contract — verifying method signatures, fragment types, a
 
 ---
 
-### 3.7 DesignSystemTest (46 tests)
+### 3.9 DesignSystemTest (46 tests)
 
 **File:** `app/src/test/java/com/dev/echodrop/DesignSystemTest.java`  
 **Type:** Robolectric Test  
@@ -351,7 +403,7 @@ Tests the navigation contract — verifying method signatures, fragment types, a
 
 ---
 
-### 3.8 ExampleUnitTest (1 test)
+### 3.10 ExampleUnitTest (1 test)
 
 **File:** `app/src/test/java/com/dev/echodrop/ExampleUnitTest.java`  
 **Type:** Pure JUnit  
@@ -406,10 +458,12 @@ Tests the navigation contract — verifying method signatures, fragment types, a
 | Component | Class | Tests | Unit Tested | Integration Tested | UI Tested |
 |-----------|-------|-------|-------------|--------------------|-----------| 
 | `Message` | Model POJO | 20 | ✅ Full | N/A | N/A |
-| `MessageViewModel` | ViewModel | 17 | ✅ Full | ✅ LiveData contract | N/A |
-| `MessageAdapter` | ListAdapter | 14 | ✅ DiffUtil logic | ✅ submitList behavior | ❌ View binding* |
+| `MessageEntity` | Room Entity | 28 | ✅ Full (hash, TTL, enums) | N/A | N/A |
+| `MessageRepo` | Repository | 14 | ✅ Full (dedup, cap, eviction) | ✅ Mock DAO | N/A |
+| `MessageViewModel` | AndroidViewModel | 10 | ✅ Full | ✅ In-memory Room DB | N/A |
+| `MessageAdapter` | ListAdapter | 16 | ✅ DiffUtil + click listener | ✅ submitList behavior | ❌ View binding* |
 | `HomeInboxFragment` | Fragment | 14 | ✅ Filter logic extracted | ❌ Fragment lifecycle | ❌ UI interactions |
-| `PostComposerSheet` | BottomSheet | 24 | ✅ Logic extracted | ❌ Sheet lifecycle | ❌ UI interactions |
+| `PostComposerSheet` | BottomSheet | 27 | ✅ Logic + entity construction | ❌ Sheet lifecycle | ❌ UI interactions |
 | `MainActivity` | Activity | 15 | ✅ Contract verified | ❌ Navigation flow** | ❌ Layout inflation |
 | Design System | Resources | 46 | N/A | ✅ Resource integrity | N/A |
 
@@ -427,7 +481,7 @@ Tests the navigation contract — verifying method signatures, fragment types, a
 | 7 layout files | ✅ All 7 verified present |
 | 4 animation files | ✅ All 4 verified present |
 | 8 drawable files | ✅ 7 of 8 verified (bg_icon_holder not individually tested) |
-| 3 seed messages with correct properties | ✅ All 3 verified (scope, priority, TTL, read state) |
+| 3 seed messages with correct properties | ✅ Verified in Iter 0-1 (seed removed in Iter 2) |
 | UUID uniqueness | ✅ Verified per message and across seed data |
 | DiffUtil 5-field content comparison | ✅ All 5 fields + createdAt exclusion verified |
 | Tab filtering (ALL/ALERTS/CHATS) | ✅ All 3 tabs verified with various scenarios |
@@ -439,6 +493,12 @@ Tests the navigation contract — verifying method signatures, fragment types, a
 | Priority mapping (urgent toggle) | ✅ Both states verified |
 | Newest-first ordering | ✅ Multiple additions verified |
 | LiveData observer contract | ✅ Observer notification verified |
+| SHA-256 deduplication | ✅ Hash determinism, case-insensitivity, hour-bucket |
+| 200-row storage cap | ✅ Constant value + eviction order verified |
+| BULK→NORMAL eviction order | ✅ Phase 1 BULK, Phase 2 NORMAL, never ALERT |
+| Room persistence | ✅ In-memory Room DB with real DAO queries |
+| TTL progress bar calculation | ✅ Full/expired/zero/halfway/formatting |
+| MessageEntity enum helpers | ✅ All 6 scope+priority values round-trip |
 
 ---
 
@@ -451,11 +511,11 @@ Tests the navigation contract — verifying method signatures, fragment types, a
         │   UI / E2E      │  ← Not yet (requires device/emulator)
         │   (0 tests)     │
         ├─────────────────┤
-        │  Integration    │  ← Robolectric resource tests + LiveData
-        │  (65 tests)     │
+        │  Integration    │  ← Robolectric resource tests + Room + LiveData
+        │  (88 tests)     │
         ├─────────────────┤
         │   Unit Tests    │  ← Pure JUnit, fast, deterministic
-        │   (86 tests)    │
+        │   (103 tests)   │
         └─────────────────┘
 ```
 

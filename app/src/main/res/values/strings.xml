@@ -99,4 +99,16 @@
     <string name="content_add">Add post</string>
     <string name="content_search">Search</string>
     <string name="content_sync">Nearby devices</string>
+
+    <!-- Message Detail (Iteration 2) -->
+    <string name="detail_title">Message</string>
+    <string name="detail_got_it">Got it</string>
+    <string name="detail_ttl_expires_in">Expires in %1$s</string>
+    <string name="detail_created_at">Posted %1$s</string>
+    <string name="detail_visible_nearby">Visible to: People nearby</string>
+    <string name="detail_visible_area">Visible to: This area</string>
+    <string name="detail_visible_event">Visible to: This event</string>
+
+    <!-- Dedup (Iteration 2) -->
+    <string name="post_dedup_snackbar">You already posted something very similar</string>
 </resources>
