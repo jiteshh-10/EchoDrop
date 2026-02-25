@@ -1,9 +1,9 @@
 # EchoDrop — Test Report
 
-> **Iterations 0-1 + 2 + 3 + 4 + 5: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery**  
+> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery + Payload Transfer**  
 > **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
 > **Execution Date:** 2026  
-> **Result:** ✅ **319 tests — 0 failures — 100% pass rate**
+> **Result:** ✅ **361 tests — 0 failures — 100% pass rate**
 
 ---
 
@@ -31,6 +31,10 @@
   - [3.17 BleAdvertiserTest (18 tests)](#317-bleadvertisertest-18-tests)
   - [3.18 BleScannerTest (8 tests)](#318-blescannertest-8-tests)
   - [3.19 EchoServiceTest (6 tests)](#319-echoservicetest-6-tests)
+  - [3.20 TransferProtocolTest (29 tests)](#320-transferprotocoltest-29-tests)
+  - [3.21 BundleSenderTest (4 tests)](#321-bundlesendertest-4-tests)
+  - [3.22 WifiDirectManagerTest (4 tests)](#322-wifidirectmanagertest-4-tests)
+  - [3.23 BundleReceiverTest (5 tests)](#323-bundlereceivertest-5-tests)
 - [4. Bugs Found & Fixed During Testing](#4-bugs-found--fixed-during-testing)
 - [5. Test Coverage Matrix](#5-test-coverage-matrix)
 - [6. Testing Methodology](#6-testing-methodology)
@@ -42,13 +46,13 @@
 
 | Metric            | Value          |
 |-------------------|----------------|
-| **Total Tests**   | 319            |
-| **Passed**        | 319            |
+| **Total Tests**   | 361            |
+| **Passed**        | 361            |
 | **Failed**        | 0              |
 | **Ignored**       | 0              |
 | **Success Rate**  | 100%           |
-| **Test Classes**  | 19             |
-| **Packages Tested** | 12           |
+| **Test Classes**  | 23             |
+| **Packages Tested** | 13           |
 
 ### Package Results
 
@@ -66,6 +70,7 @@
 | `com.dev.echodrop.ble`            | 26    | 0        | 100%         |
 | `com.dev.echodrop.mesh`           | 30    | 0        | 100%         |
 | `com.dev.echodrop.service`        | 6     | 0        | 100%         |
+| `com.dev.echodrop.transfer`       | 42    | 0        | 100%         |
 
 ---
 
@@ -486,6 +491,67 @@ Tests cover:
 
 ---
 
+### 3.20 TransferProtocolTest (29 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/transfer/TransferProtocolTest.java`  
+**Category:** Pure JUnit (byte stream I/O)
+
+Tests cover:
+- Serialize/deserialize round-trips (normal, empty string, unicode, long text)
+- Frame write/read I/O integrity
+- Session write/read with priority sorting (ALERT → NORMAL → BULK)
+- Empty session handling and invalid magic header rejection
+- Negative count handling
+- Checksum validation (valid, tampered text, tampered scope)
+- Transfer checksum determinism, uniqueness, and hex format
+- Priority ordinals (correct order, case-insensitive, unknown defaults to BULK)
+- Multi-frame session (10 messages)
+- Constants verification (PORT, MAGIC, MAX_FRAME_SIZE)
+- Deserialized messages have read=false
+- Session preserves all entity fields
+
+---
+
+### 3.21 BundleSenderTest (4 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/transfer/BundleSenderTest.java`  
+**Category:** Robolectric (android.util.Log dependency)
+
+Tests cover:
+- Sender creation and basic lifecycle
+- Expired message filtering (CountDownLatch verification of onSendComplete(0))
+- Connection failure on unreachable address (192.0.2.1 — RFC 5737 TEST-NET)
+- Shutdown cleanup (no exceptions)
+
+---
+
+### 3.22 WifiDirectManagerTest (4 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/transfer/WifiDirectManagerTest.java`  
+**Category:** Pure JUnit (interface contract)
+
+Tests cover:
+- Class existence verification
+- Initial empty peers list contract
+- PORT constant value (9876)
+- ConnectionCallback interface implementation (onConnected, onDisconnected, onPeersAvailable)
+
+---
+
+### 3.23 BundleReceiverTest (5 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/transfer/BundleReceiverTest.java`  
+**Category:** Pure JUnit (callback contract)
+
+Tests cover:
+- ReceiveCallback interface existence (all 4 methods)
+- onReceiveComplete callback with count parameter
+- onReceiveFailed callback with error string
+- Transfer start/end paired lifecycle
+- PORT constant cross-reference with TransferProtocol
+
+---
+
 ## 4. Bugs Found & Fixed During Testing
 
 ### Bug #1: Downloadable Font Crash (`font_certs.xml` / Google Play Services)
@@ -536,7 +602,7 @@ Tests cover:
 | `HomeInboxFragment` | Fragment | 14 | ✅ Filter logic extracted | ❌ Fragment lifecycle | ❌ UI interactions |
 | `PostComposerSheet` | BottomSheet | 27 | ✅ Logic + entity construction | ❌ Sheet lifecycle | ❌ UI interactions |
 | `MainActivity` | Activity | 15 | ✅ Contract verified | ❌ Navigation flow** | ❌ Layout inflation |
-| Design System | Resources | 46 | N/A | ✅ Resource integrity | N/A |
+| Design System | Resources | 46 | N/A | ✅ Resource integrity | N/A |\n| `TransferProtocol` | Wire Protocol | 29 | ✅ Full (serialize, frames, sessions, checksums) | ✅ Stream I/O | N/A |\n| `BundleSender` | TCP Sender | 4 | ✅ Lifecycle, filtering | ✅ Robolectric | N/A |\n| `WifiDirectManager` | Wi-Fi P2P | 4 | ✅ Contract (interfaces) | ❌ Requires device | N/A |\n| `BundleReceiver` | TCP Receiver | 5 | ✅ Callback contract | ❌ ServerSocket | N/A |
 
 \* View binding tests require instrumented tests for full validation  
 \** Navigation flow tests require instrumented tests on device/emulator

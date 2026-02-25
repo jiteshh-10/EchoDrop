@@ -111,3 +111,45 @@ Context: Android 14 requires foreground service type declarations. Options: `con
 Decided: `foregroundServiceType="connectedDevice"` — matches BLE advertising and scanning operations.
 Why: Most accurate type for what the service does (BLE device discovery). Android requires at least one of the associated permissions to be granted.
 Impact: Requires at least one of BLUETOOTH_ADVERTISE/CONNECT/SCAN to be granted at runtime before `startForeground()` is called.
+
+## Decision: TCP port 9876 for Wi-Fi Direct transfer — iter-6
+Context: BundleReceiver needs a fixed port for the ServerSocket. Options: (a) well-known port, (b) ephemeral port with discovery, (c) fixed application port.
+Decided: Fixed port 9876. Defined as `TransferProtocol.PORT` constant shared by sender and receiver.
+Why: Simple, no port negotiation needed. Port 9876 is not assigned by IANA for any common service. Both peers know the port at compile time.
+Impact: Two EchoDrop instances on the same device would conflict; acceptable since Wi-Fi Direct connects two separate physical devices.
+
+## Decision: "ED06" magic header for wire format — iter-6
+Context: Need to validate incoming TCP streams are actual EchoDrop transfer sessions, not stray connections.
+Decided: 4-byte ASCII magic "ED06" at the start of every session. Reader validates before parsing.
+Why: Prevents cross-version incompatibility and rejects garbage connections immediately. "ED" = EchoDrop, "06" = iteration 6 protocol version.
+Impact: Future protocol changes can bump the version suffix (e.g., "ED07") for backward-incompatible changes.
+
+## Decision: Priority-sorted session writes — iter-6
+Context: TCP sessions may be interrupted mid-transfer. Which messages should arrive first?
+Decided: `writeSession()` sorts messages ALERT → NORMAL → BULK before writing frames.
+Why: If the connection drops mid-transfer, the highest-priority messages have already been sent and received. ALERT messages are most time-sensitive.
+Impact: Receiver inserts messages in priority order. Partial transfers still deliver the most valuable content.
+
+## Decision: Checksum validation on receive, not send — iter-6
+Context: How to detect message corruption during transfer.
+Decided: Receiver recomputes `MessageEntity.computeHash()` and compares with the transferred `contentHash`. Mismatched messages are silently discarded.
+Why: Sender may have valid data but bit flips during transfer could corrupt content. Receiver-side validation is the last line of defense before DB insertion.
+Impact: Corrupted messages are dropped rather than stored. No retransmission protocol — DTN will eventually re-receive the message from another peer.
+
+## Decision: Partial transfer discard (no resume) — iter-6
+Context: If a TCP connection drops mid-session, should we resume?
+Decided: No resume. Already-inserted messages remain; remaining messages are lost for this transfer.
+Why: DTN store-carry-forward means the same messages will be offered again by other peers. Resume protocol adds significant complexity for minimal benefit.
+Impact: A dropped connection means some messages may need to be re-transferred, but deduplication prevents double-insertion.
+
+## Decision: fitsSystemWindows on root layout — iter-6
+Context: Screenshot showed settings gear icon overlapping with the system status bar on some devices.
+Decided: Added `android:fitsSystemWindows="true"` to the root `FrameLayout` in `activity_main.xml`.
+Why: Single-point fix that propagates system window insets (status bar, navigation bar) to all child fragments. No need to add it to every individual layout file.
+Impact: All toolbar content is now pushed below the status bar on every device form factor, resolving the overlap issue.
+
+## Decision: Transfer-aware sync pulse speed — iter-6
+Context: UI should indicate when a data transfer is actively happening.
+Decided: Sync dot pulse speed changes from 2000ms (idle) to 500ms (active transfer) via `EchoService.TransferStateListener`.
+Why: Faster pulse gives users visual feedback that data is being received without requiring a new UI element. Reuses existing sync dot infrastructure.
+Impact: Static interface avoids service binding complexity. Listener set/cleared in fragment lifecycle to prevent leaks.

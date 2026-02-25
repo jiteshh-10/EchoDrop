@@ -20,6 +20,8 @@
 - [12. Room Persistence Layer (Iteration 2)](#12-room-persistence-layer-iteration-2)
 - [13. Priority Handling (Iteration 3)](#13-priority-handling-iteration-3)
 - [14. Private Chat System (Iteration 4)](#14-private-chat-system-iteration-4)
+- [15. BLE Discovery Layer (Iteration 5)](#15-ble-discovery-layer-iteration-5)
+- [16. Transfer Layer (Iteration 6)](#16-transfer-layer-iteration-6)
 
 ---
 
@@ -917,3 +919,92 @@ SettingsFragment
     ├── Battery guide → BatteryGuideFragment (collapsible OEM sections)
     └── 7-tap version → DiscoveryStatusFragment (dev debug screen)
 ```
+
+---
+
+## 16. Transfer Layer (Iteration 6)
+
+The transfer layer implements the **data plane** for DTN message propagation over Wi-Fi Direct. It complements the control plane (BLE manifest exchange) from Iteration 5.
+
+### Components
+
+| Class              | Responsibility                                                 |
+|--------------------|---------------------------------------------------------------|
+| `TransferProtocol` | Wire format: framed TCP sessions with magic header "ED06"      |
+| `WifiDirectManager`| Wi-Fi P2P lifecycle: discover, connect, disconnect, teardown   |
+| `BundleSender`     | Outbound TCP transfer with expired message filtering            |
+| `BundleReceiver`   | Inbound TCP server on port 9876, dedup, notification posting   |
+
+### Wire Protocol
+
+```
+Session Format:
+  "ED06"           (4 bytes — magic)
+  message_count    (4 bytes — int)
+  frame[0..N-1]    (variable — serialized messages)
+
+Frame Format:
+  payload_length   (4 bytes — int, max 512KB)
+  payload          (variable — serialized MessageEntity fields)
+
+Field Serialization:
+  Each string field: 2-byte length prefix + UTF-8 bytes
+  Long fields: 8 bytes (DataOutputStream.writeLong)
+  Fields: id, text, scope, priority, createdAt, expiresAt, contentHash
+```
+
+### Transfer Flow
+
+```
+BLE Discovery (iter-5)
+    → Manifest exchange identifies missing messages
+        → WifiDirectManager.discoverPeers()
+            → WifiDirectManager.connect(device)
+                → onConnected(groupOwnerAddress, isGroupOwner)
+                    ├── Group Owner: BundleReceiver.start() (ServerSocket on 9876)
+                    └── Client: BundleSender.send(address, messages, callback)
+
+BundleSender:
+    filter expired → sort by priority → writeSession() → TCP → callback
+
+BundleReceiver:
+    accept() → readSession() → for each message:
+        skip expired → validateChecksum() → isDuplicateSync() → dao.insert()
+        → post notification → ReceiveCallback
+```
+
+### Priority Ordering
+
+Sessions are written with messages sorted by priority:
+1. **ALERT** (ordinal 0) — sent first, never evicted
+2. **NORMAL** (ordinal 1) — standard messages
+3. **BULK** (ordinal 2) — lowest priority, evicted first
+
+### Checksum Validation
+
+Received messages are validated using `MessageEntity.computeHash()`:
+- `SHA-256(lowercase(text) + "|" + scope + "|" + hour_bucket)`
+- Mismatched checksums cause the message to be silently discarded
+
+### EchoService Integration
+
+```
+EchoService (Foreground Service)
+    ├── BleAdvertiser (iter-5)
+    ├── BleScanner (iter-5)
+    ├── WifiDirectManager (iter-6) — initialized in onStartCommand
+    └── BundleReceiver (iter-6) — started in onStartCommand, stopped in onDestroy
+```
+
+`TransferStateListener` (static interface) enables `HomeInboxFragment` to adjust the sync dot pulse speed: 500ms during active transfer, 2000ms otherwise.
+
+### Permissions (Wi-Fi Direct)
+
+| Permission                       | Purpose                           |
+|----------------------------------|-----------------------------------|
+| `ACCESS_WIFI_STATE`              | Query Wi-Fi P2P state             |
+| `CHANGE_WIFI_STATE`              | Enable Wi-Fi P2P                  |
+| `INTERNET`                       | TCP socket communication          |
+| `CHANGE_NETWORK_STATE`           | Network state management          |
+| `ACCESS_NETWORK_STATE`           | Check network connectivity        |
+| `NEARBY_WIFI_DEVICES` (API 33+)  | Wi-Fi Direct device discovery     |

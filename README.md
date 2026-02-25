@@ -31,6 +31,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 - [12. Iteration 3 Completion Status](#12-iteration-3-completion-status)
 - [13. Iteration 4 Completion Status](#13-iteration-4-completion-status)
 - [14. Iteration 5 Completion Status](#14-iteration-5-completion-status)
+- [15. Iteration 6 Completion Status](#15-iteration-6-completion-status)
 
 ---
 
@@ -44,7 +45,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 | **Compile SDK**  | 35                                           |
 | **Language**     | Java 11                                      |
 | **Theme**        | Material 3 — Dark Only                       |
-| **Branch**       | `main` (latest: `iteration-5`)               |
+| **Branch**       | `main` (latest: `iteration-6`)               |
 
 ### Concept
 
@@ -54,6 +55,8 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 - **Iteration 2** added Room persistence, SHA-256 deduplication, storage cap enforcement, WorkManager TTL cleanup, and a message detail screen.
 - **Iteration 3** added priority-aware inbox ordering (ALERT > NORMAL > BULK), visual priority treatment, urgent banner in detail screen, reactive alert count badge, and Post button color transition on urgent toggle.
 - **Iteration 4** added private chat: local-only encrypted 1:1 messaging with AES-256-GCM, PBKDF2 key derivation from shareable 8-char codes, QR code generation, chat list, conversation screen, and full Room persistence.
+- **Iteration 5** added BLE offline discovery with foreground service, manifest exchange, settings, battery guide, and discovery status developer screen.
+- **Iteration 6** added Wi-Fi Direct payload transfer (data plane): TCP socket transfer protocol, bundle sender/receiver, checksum validation, priority-sorted sessions, transfer-aware sync pulse, and fitsSystemWindows fix.
 
 ---
 
@@ -71,6 +74,7 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 | QR Code Generation    | ZXing Core 3.5.3                                  |
 | Encryption            | AES-256-GCM + PBKDF2WithHmacSHA256 (javax.crypto) |
 | BLE Discovery         | `android.bluetooth.le` (BLE advertise + scan)  |
+| Wi-Fi Direct Transfer | `android.net.wifi.p2p` (P2P + TCP sockets)     |
 | Layout Constraint     | ConstraintLayout (via `libs.versions.toml`)        |
 | Typography            | System fonts (`sans-serif` / `monospace`)           |
 | Build System          | Gradle 8.x with Kotlin DSL catalog                 |
@@ -115,13 +119,12 @@ EchoDrop/
 │   ├── README.md                     ← This file (project overview)
 │   ├── ARCHITECTURE.md               ← Architecture deep-dive
 │   ├── DECISIONS.md                  ← Architectural decisions log
-│   ├── TEST_REPORT.md                ← Test report (319 tests)
+│   ├── TEST_REPORT.md                ← Test report (361 tests)
 │   ├── CHANGELOG_ITERATION_01.md     ← Iteration 0-1 changelog
 │   ├── CHANGELOG_ITERATION_02.md     ← Iteration 2 changelog
 │   ├── CHANGELOG_ITERATION_03.md     ← Iteration 3 changelog
 │   ├── CHANGELOG_ITERATION_04.md     ← Iteration 4 changelog
-│   └── CHANGELOG_ITERATION_05.md     ← Iteration 5 changelog
-│
+│   └── CHANGELOG_ITERATION_05.md     ← Iteration 5 changelog│   └── CHANGELOG_ITERATION_06.md     ← Iteration 6 changelog│
 ├── app/
 │   ├── build.gradle                  ← Module build config
 │   └── src/main/
@@ -137,8 +140,13 @@ EchoDrop/
 │       │   │   └── BleScanner.java           ← BLE scanning, 10s/20s duty (iter-5)
 │       │   ├── mesh/
 │       │   │   └── ManifestManager.java      ← Binary manifest build/parse (iter-5)
+│       │   ├── transfer/
+│       │   │   ├── TransferProtocol.java      ← Wire protocol: framed TCP sessions (iter-6)
+│       │   │   ├── WifiDirectManager.java     ← Wi-Fi P2P lifecycle (iter-6)
+│       │   │   ├── BundleSender.java          ← Outbound TCP sender (iter-6)
+│       │   │   └── BundleReceiver.java        ← Inbound TCP receiver (iter-6)
 │       │   ├── service/
-│       │   │   ├── EchoService.java          ← Foreground service (iter-5)
+│       │   │   ├── EchoService.java          ← Foreground service (iter-5, updated iter-6)
 │       │   │   └── BootReceiver.java         ← Boot restart receiver (iter-5)
 │       │   ├── db/
 │       │   │   ├── MessageEntity.java       ← Room entity (messages)
@@ -987,4 +995,33 @@ android {
 - [x] Discovery Status dev screen (7-tap easter egg) with live stats grid, connection status, peer list
 - [x] Settings gear icon in Home Inbox toolbar
 - [x] 11 new manifest permissions (BLE, location, foreground service, boot, notifications)
+
+---
+
+## 15. Iteration 6 Completion Status
+
+> Payload Transfer — Data Plane (Wi-Fi Direct)
+
+### Summary
+
+| Category                  | Items | Status |
+|---------------------------|-------|--------|
+| New Production Files      | 4     | ✅ Complete |
+| Updated Production Files  | 4     | ✅ Complete |
+| New Test Files            | 4     | ✅ Complete |
+| Build Verification        | —     | ✅ `BUILD SUCCESSFUL` |
+| Unit Tests                | 361   | ✅ 0 failures (100% pass rate) |
+
+### Key Features
+
+- [x] `TransferProtocol` wire format: 4-byte framed TCP sessions with "ED06" magic header
+- [x] Priority-sorted session writes (ALERT → NORMAL → BULK)
+- [x] SHA-256 checksum validation on received messages
+- [x] `WifiDirectManager` — Wi-Fi P2P lifecycle (discover, connect, disconnect, teardown)
+- [x] `BundleSender` — outbound TCP transfer with expired message filtering and 5s connect timeout
+- [x] `BundleReceiver` — inbound TCP server on port 9876, dedup via `isDuplicateSync()`, notification posting
+- [x] `EchoService` integration — WifiDirectManager + BundleReceiver initialized in foreground service
+- [x] Transfer-aware sync pulse: 500ms during active transfer, 2000ms normal
+- [x] 6 new Wi-Fi Direct permissions + `android.hardware.wifi.direct` feature
+- [x] `fitsSystemWindows="true"` fix on root layout — toolbar/status bar overlap resolved on all devices
 
