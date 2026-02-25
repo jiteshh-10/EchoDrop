@@ -19,6 +19,7 @@
     <!-- Text -->
     <color name="echo_text_primary">#D8DFE8</color>
     <color name="echo_text_secondary">#7E8896</color>
+    <color name="echo_text_muted">#555D69</color>
     <color name="echo_muted_disabled">#3D4451</color>
 
     <!-- Structural -->

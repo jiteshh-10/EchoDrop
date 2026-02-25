@@ -29,6 +29,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 - [10. Iteration 0-1 Completion Status](#10-iteration-0-1-completion-status)
 - [11. Iteration 2 Completion Status](#11-iteration-2-completion-status)
 - [12. Iteration 3 Completion Status](#12-iteration-3-completion-status)
+- [13. Iteration 4 Completion Status](#13-iteration-4-completion-status)
 
 ---
 
@@ -42,7 +43,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 | **Compile SDK**  | 35                                           |
 | **Language**     | Java 11                                      |
 | **Theme**        | Material 3 — Dark Only                       |
-| **Branch**       | `main` (latest: `iteration-3`)               |
+| **Branch**       | `main` (latest: `iteration-4`)               |
 
 ### Concept
 
@@ -51,6 +52,7 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 - **Iteration 0-1** established the complete visual foundation and UI scaffold.
 - **Iteration 2** added Room persistence, SHA-256 deduplication, storage cap enforcement, WorkManager TTL cleanup, and a message detail screen.
 - **Iteration 3** added priority-aware inbox ordering (ALERT > NORMAL > BULK), visual priority treatment, urgent banner in detail screen, reactive alert count badge, and Post button color transition on urgent toggle.
+- **Iteration 4** added private chat: local-only encrypted 1:1 messaging with AES-256-GCM, PBKDF2 key derivation from shareable 8-char codes, QR code generation, chat list, conversation screen, and full Room persistence.
 
 ---
 
@@ -65,6 +67,8 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 | Architecture          | ViewModel + LiveData (`lifecycle-viewmodel-ktx:2.7.0`) |
 | Persistence           | Room 2.6.1 (SQLite ORM)                           |
 | Background Work       | WorkManager 2.9.0 (TTL cleanup)                   |
+| QR Code Generation    | ZXing Core 3.5.3                                  |
+| Encryption            | AES-256-GCM + PBKDF2WithHmacSHA256 (javax.crypto) |
 | Layout Constraint     | ConstraintLayout (via `libs.versions.toml`)        |
 | Typography            | System fonts (`sans-serif` / `monospace`)           |
 | Build System          | Gradle 8.x with Kotlin DSL catalog                 |
@@ -83,6 +87,7 @@ dependencies {
     implementation 'androidx.room:room-runtime:2.6.1'
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
     implementation 'androidx.work:work-runtime:2.9.0'
+    implementation 'com.google.zxing:core:3.5.3'
     // Testing
     testImplementation libs.junit
     testImplementation 'org.mockito:mockito-core:5.11.0'
@@ -107,8 +112,12 @@ EchoDrop/
 ├── doc/                              ← You are here
 │   ├── README.md                     ← This file (project overview)
 │   ├── ARCHITECTURE.md               ← Architecture deep-dive
+│   ├── DECISIONS.md                  ← Architectural decisions log
+│   ├── TEST_REPORT.md                ← Test report (257 tests)
 │   ├── CHANGELOG_ITERATION_01.md     ← Iteration 0-1 changelog
-│   └── CHANGELOG_ITERATION_02.md     ← Iteration 2 changelog
+│   ├── CHANGELOG_ITERATION_02.md     ← Iteration 2 changelog
+│   ├── CHANGELOG_ITERATION_03.md     ← Iteration 3 changelog
+│   └── CHANGELOG_ITERATION_04.md     ← Iteration 4 changelog
 │
 ├── app/
 │   ├── build.gradle                  ← Module build config
@@ -118,24 +127,36 @@ EchoDrop/
 │       │   ├── MainActivity.java           ← Single Activity host
 │       │   ├── models/
 │       │   │   └── Message.java            ← Legacy data model (POJO)
+│       │   ├── crypto/
+│       │   │   └── ChatCrypto.java          ← AES-256-GCM + PBKDF2 (iter-4)
 │       │   ├── db/
-│       │   │   ├── MessageEntity.java       ← Room entity (primary data class)
-│       │   │   ├── MessageDao.java          ← Room DAO
-│       │   │   └── AppDatabase.java         ← Room database singleton
+│       │   │   ├── MessageEntity.java       ← Room entity (messages)
+│       │   │   ├── MessageDao.java          ← Room DAO (messages)
+│       │   │   ├── ChatEntity.java          ← Room entity (chats) (iter-4)
+│       │   │   ├── ChatMessageEntity.java   ← Room entity (chat messages) (iter-4)
+│       │   │   ├── ChatDao.java             ← Room DAO (chats) (iter-4)
+│       │   │   └── AppDatabase.java         ← Room database singleton (v2)
 │       │   ├── repository/
-│       │   │   └── MessageRepo.java         ← Repository (dedup + cap + cleanup)
+│       │   │   ├── MessageRepo.java         ← Repository (dedup + cap + cleanup)
+│       │   │   └── ChatRepo.java            ← Chat repository (iter-4)
 │       │   ├── workers/
 │       │   │   └── TtlCleanupWorker.java     ← WorkManager TTL cleanup
 │       │   ├── viewmodels/
-│       │   │   └── MessageViewModel.java   ← LiveData ViewModel
+│       │   │   ├── MessageViewModel.java   ← LiveData ViewModel (messages)
+│       │   │   └── ChatViewModel.java      ← LiveData ViewModel (chats) (iter-4)
 │       │   ├── adapters/
-│       │   │   └── MessageAdapter.java     ← DiffUtil ListAdapter
+│       │   │   ├── MessageAdapter.java     ← DiffUtil ListAdapter (messages)
+│       │   │   ├── ChatListAdapter.java    ← DiffUtil ListAdapter (chats) (iter-4)
+│       │   │   └── ChatMessageAdapter.java ← DiffUtil ListAdapter (chat msgs) (iter-4)
 │       │   ├── screens/
 │       │   │   ├── OnboardingConsentFragment.java
 │       │   │   ├── PermissionsFragment.java
 │       │   │   ├── HowItWorksFragment.java
 │       │   │   ├── HomeInboxFragment.java
-│       │   │   └── MessageDetailFragment.java  ← Message detail + TTL progress
+│       │   │   ├── MessageDetailFragment.java      ← Message detail + TTL progress
+│       │   │   ├── PrivateChatListFragment.java     ← Chat list screen (iter-4)
+│       │   │   ├── CreateChatFragment.java          ← Create chat screen (iter-4)
+│       │   │   └── ChatConversationFragment.java    ← Conversation screen (iter-4)
 │       │   └── components/
 │       │       └── PostComposerSheet.java  ← BottomSheet dialog
 │       │
@@ -152,16 +173,31 @@ EchoDrop/
 │           │   ├── bg_badge_alert.xml
 │           │   ├── bg_badge_positive.xml
 │           │   ├── bg_urgent_banner.xml    ← Urgent banner drawable (iter-3)
+│           │   ├── bg_bubble_outgoing.xml  ← Chat bubble outgoing (iter-4)
+│           │   ├── bg_bubble_incoming.xml  ← Chat bubble incoming (iter-4)
+│           │   ├── bg_chat_input.xml       ← Chat input pill shape (iter-4)
+│           │   ├── bg_info_note.xml        ← Info note with accent border (iter-4)
+│           │   ├── bg_send_button.xml      ← Send button oval (iter-4)
 │           │   ├── bg_circle.xml
 │           │   ├── bg_icon_holder.xml
-│           │   └── ic_wifi.xml
+│           │   ├── ic_wifi.xml
+│           │   ├── ic_back.xml             ← Back arrow vector (iter-4)
+│           │   ├── ic_send.xml             ← Send arrow vector (iter-4)
+│           │   ├── ic_tick.xml             ← Sync tick indicator (iter-4)
+│           │   └── ic_double_tick.xml      ← Sync double tick (iter-4)
 │           ├── layout/                     ← Screen layouts
 │           │   ├── activity_main.xml
 │           │   ├── screen_onboarding_consent.xml
 │           │   ├── screen_permissions.xml
 │           │   ├── screen_how_it_works.xml
 │           │   ├── screen_home_inbox.xml
+│           │   ├── screen_chat_list.xml          ← Chat list (iter-4)
+│           │   ├── screen_create_chat.xml         ← Create chat (iter-4)
+│           │   ├── screen_chat_conversation.xml   ← Conversation (iter-4)
 │           │   ├── item_message_card.xml
+│           │   ├── item_chat_list.xml             ← Chat list item (iter-4)
+│           │   ├── item_chat_message_outgoing.xml ← Outgoing bubble (iter-4)
+│           │   ├── item_chat_message_incoming.xml ← Incoming bubble (iter-4)
 │           │   ├── fragment_post_composer.xml
 │           │   └── fragment_message_detail.xml  ← Message detail layout
 │           ├── menu/
@@ -194,13 +230,14 @@ EchoDrop/
 
 | Pattern                | Implementation                                               |
 |------------------------|--------------------------------------------------------------|
-| **MVVM**               | `MessageViewModel` + `LiveData` observed by `HomeInboxFragment` |
+| **MVVM**               | `MessageViewModel` + `ChatViewModel` + `LiveData` observed by fragments |
 | **Single Activity**    | `MainActivity` hosts all fragments via `FragmentContainerView` |
 | **Fragment Navigation**| Manual `FragmentTransaction` with custom animations            |
 | **ViewBinding**        | All fragments and activity use generated binding classes        |
-| **DiffUtil**           | `MessageAdapter` extends `ListAdapter` for efficient updates   |
-| **Callback Pattern**   | `PostComposerSheet.OnPostListener` interface                   |
+| **DiffUtil**           | `MessageAdapter`, `ChatListAdapter`, `ChatMessageAdapter` extend `ListAdapter` |
+| **Callback Pattern**   | `PostComposerSheet.OnPostListener`, `ChatRepo.JoinCallback`   |
 | **BottomSheet**        | `BottomSheetDialogFragment` with themed rounded corners        |
+| **Encryption**         | AES-256-GCM + PBKDF2 key derivation in `ChatCrypto`           |
 
 ### Navigation Flow
 
@@ -218,7 +255,13 @@ HowItWorks
     └── "Get Started" → HomeInbox
 
 HomeInbox
-    └── FAB / Menu  → PostComposerSheet (BottomSheet overlay)
+    ├── FAB / Menu     → PostComposerSheet (BottomSheet overlay)
+    ├── Message Item   → MessageDetailFragment
+    └── Chats Tab/FAB  → PrivateChatListFragment
+                            ├── FAB          → CreateChatFragment
+                            │                    └── "Create" → ChatConversationFragment
+                            ├── "Join"       → Join Dialog → ChatConversationFragment
+                            └── Chat Item    → ChatConversationFragment
 ```
 
 All forward transitions use `addToBackStack(null)` except the final `HomeInbox` navigation, which replaces the stack to prevent back-navigation to onboarding.
@@ -778,7 +821,7 @@ android {
 ---
 
 *Documentation for EchoDrop Iteration 0-1 (Foundations + Visual Baseline)*  
-*Last updated: 2025*
+*Last updated: 2026*
 
 ---
 
@@ -843,3 +886,36 @@ android {
 - [x] `getAlertCount()` LiveData in DAO, Repo, and ViewModel
 - [x] Priority immutable after creation — no UI to change priority
 - [x] BULK not user-selectable (reserved for system/forwarded messages)
+
+---
+
+## 13. Iteration 4 Completion Status
+
+> Private Chat — Local Only, Encrypted, No Sync
+
+### Summary
+
+| Category                  | Items | Status |
+|---------------------------|-------|--------|
+| New Production Files      | 17    | ✅ Complete |
+| Updated Production Files  | 7     | ✅ Complete |
+| New Drawables             | 7     | ✅ Complete |
+| New Layouts               | 6     | ✅ Complete |
+| New Test Files            | 3     | ✅ Complete |
+| Build Verification        | —     | ✅ `BUILD SUCCESSFUL` |
+| Unit Tests                | 257   | ✅ 0 failures (100% pass rate) |
+
+### Key Features
+
+- [x] Private 1:1 chat with local-only encrypted storage
+- [x] AES-256-GCM encryption with PBKDF2 key derivation (10,000 iterations, 256-bit key)
+- [x] 8-character shareable codes (unambiguous charset, XXXX-XXXX display format)
+- [x] QR code generation via ZXing for code sharing
+- [x] Room persistence: ChatEntity + ChatMessageEntity with FK cascade
+- [x] Chat list screen with FAB, join dialog, empty state
+- [x] Create chat screen with code generation, copy, QR toggle, name input
+- [x] Conversation screen with encrypted message bubbles, send button, empty state
+- [x] Outgoing/incoming message bubble styles (right-aligned / left-aligned with accent border)
+- [x] Sync state indicators: pending, sent (tick), synced (double tick)
+- [x] Chats tab in inbox navigates to dedicated Private Chat List screen
+- [x] Dark theme dialog style for join chat dialog

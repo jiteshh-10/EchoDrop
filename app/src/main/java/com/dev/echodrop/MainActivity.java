@@ -4,11 +4,14 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.dev.echodrop.screens.ChatConversationFragment;
+import com.dev.echodrop.screens.CreateChatFragment;
 import com.dev.echodrop.screens.HomeInboxFragment;
 import com.dev.echodrop.screens.HowItWorksFragment;
 import com.dev.echodrop.screens.MessageDetailFragment;
 import com.dev.echodrop.screens.OnboardingConsentFragment;
 import com.dev.echodrop.screens.PermissionsFragment;
+import com.dev.echodrop.screens.PrivateChatListFragment;
 import com.dev.echodrop.workers.TtlCleanupWorker;
 
 /**
@@ -90,6 +93,49 @@ public class MainActivity extends AppCompatActivity {
                         R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
                 .replace(R.id.fragment_container, MessageDetailFragment.newInstance(messageId))
                 .addToBackStack("detail")
+                .commit();
+    }
+
+    /**
+     * Navigate to the private chat list screen.
+     */
+    public void showChatList() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new PrivateChatListFragment())
+                .addToBackStack("chatList")
+                .commit();
+    }
+
+    /**
+     * Navigate to the create chat screen.
+     */
+    public void showCreateChat() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new CreateChatFragment())
+                .addToBackStack("createChat")
+                .commit();
+    }
+
+    /**
+     * Navigate to a chat conversation screen.
+     */
+    public void showChatConversation(String chatId, String chatCode, String chatName) {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container,
+                        ChatConversationFragment.newInstance(chatId, chatCode, chatName))
+                .addToBackStack("conversation")
                 .commit();
     }
 }

@@ -13,7 +13,11 @@ import androidx.room.RoomDatabase;
  * Uses destructive migration for now (pre-release); will add proper migrations
  * when the schema stabilizes.</p>
  */
-@Database(entities = {MessageEntity.class}, version = 1, exportSchema = false)
+@Database(
+        entities = {MessageEntity.class, ChatEntity.class, ChatMessageEntity.class},
+        version = 2,
+        exportSchema = false
+)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static final String DATABASE_NAME = "echodrop_db";
@@ -21,6 +25,8 @@ public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
 
     public abstract MessageDao messageDao();
+
+    public abstract ChatDao chatDao();
 
     /**
      * Returns the singleton database instance.

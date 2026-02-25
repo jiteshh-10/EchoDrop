@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Double tick (synced) indicator. Tint via android:tint on ImageView. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="12dp"
+    android:viewportWidth="30"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,13.5l4.5,4.5L18,7.5l-1.4,-1.4L7.5,16.7L4.4,13.6z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M11,13.5l4.5,4.5L26,7.5l-1.4,-1.4L15.5,16.7L12.4,13.6z" />
+</vector>

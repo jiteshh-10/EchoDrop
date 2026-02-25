@@ -13,6 +13,8 @@ import android.view.ViewGroup;
 import android.view.animation.OvershootInterpolator;
 
 import androidx.annotation.NonNull;
+
+import com.dev.echodrop.MainActivity;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -161,14 +163,14 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     private void setupTabs() {
         binding.tabAllContainer.setOnClickListener(v -> selectTab(Tab.ALL));
         binding.tabAlertsContainer.setOnClickListener(v -> selectTab(Tab.ALERTS));
-        binding.tabChatsContainer.setOnClickListener(v -> selectTab(Tab.CHATS));
+        binding.tabChatsContainer.setOnClickListener(v -> navigateToChatList());
         selectTab(Tab.ALL);
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private void setupFabs() {
         binding.fabPost.setOnClickListener(v -> openPostComposer());
-        binding.fabChats.setOnClickListener(v -> selectTab(Tab.CHATS));
+        binding.fabChats.setOnClickListener(v -> navigateToChatList());
 
         // FAB press scale animation (scale to 0.95 over 40ms)
         addFabPressAnimation(binding.fabPost);
@@ -378,5 +380,12 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             syncDotAnimator = null;
         }
         binding = null;
+    }
+
+    /** Navigate to the Private Chat list screen. */
+    private void navigateToChatList() {
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showChatList();
+        }
     }
 }
