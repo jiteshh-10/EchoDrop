@@ -209,4 +209,12 @@
     <string name="content_battery_icon">Battery</string>
     <string name="content_chevron">Navigate</string>
     <string name="content_status_dot">Connection status</string>
+
+    <!-- Transfer / Wi-Fi Direct (Iteration 6) -->
+    <string name="transfer_channel_name">New Messages</string>
+    <string name="transfer_notification_title">New message nearby</string>
+    <string name="transfer_notification_body">%1$s</string>
+    <string name="transfer_error_checksum">Received a corrupted message, discarded</string>
+    <string name="transfer_error_socket">Transfer interrupted, will retry later</string>
+    <string name="transfer_complete">%1$d new messages received</string>
 </resources>

@@ -11,9 +11,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
@@ -22,13 +25,19 @@ import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
 import com.dev.echodrop.ble.BleAdvertiser;
 import com.dev.echodrop.ble.BleScanner;
+import com.dev.echodrop.transfer.BundleReceiver;
+import com.dev.echodrop.transfer.WifiDirectManager;
+
+import java.net.InetAddress;
 
 /**
- * Foreground service that keeps BLE discovery running in the background.
+ * Foreground service that keeps BLE discovery and Wi-Fi Direct transfer running.
  *
  * <p>Creates a persistent low-importance notification so the OS does not
- * kill the process. Starts BLE advertising and scanning when launched,
- * stops both when destroyed.</p>
+ * kill the process. Starts BLE advertising, scanning, and Wi-Fi Direct
+ * receiver when launched; stops all when destroyed.</p>
+ *
+ * <p>Updated in Iteration 6: added WifiDirectManager and BundleReceiver.</p>
  */
 public class EchoService extends Service {
 
@@ -40,6 +49,23 @@ public class EchoService extends Service {
 
     private BleAdvertiser advertiser;
     private BleScanner scanner;
+    private WifiDirectManager wifiDirectManager;
+    private BundleReceiver bundleReceiver;
+    private boolean transferInProgress;
+
+    /** Listener for transfer state changes (used by UI for pulse animation). */
+    private static TransferStateListener transferStateListener;
+
+    /** Interface for observing transfer state from UI. */
+    public interface TransferStateListener {
+        /** Called when a transfer starts or ends. */
+        void onTransferStateChanged(boolean inProgress);
+    }
+
+    /** Sets the global transfer state listener (from UI). */
+    public static void setTransferStateListener(@Nullable final TransferStateListener listener) {
+        transferStateListener = listener;
+    }
 
     @Override
     public void onCreate() {
@@ -47,6 +73,33 @@ public class EchoService extends Service {
         createNotificationChannel();
         advertiser = new BleAdvertiser(this);
         scanner = new BleScanner(this);
+        wifiDirectManager = new WifiDirectManager(this);
+        bundleReceiver = new BundleReceiver(this);
+
+        // Wire up bundle receiver callbacks for transfer state
+        bundleReceiver.setReceiveCallback(new BundleReceiver.ReceiveCallback() {
+            @Override
+            public void onReceiveComplete(final int insertedCount) {
+                Log.i(TAG, "Transfer complete: " + insertedCount + " messages received");
+            }
+
+            @Override
+            public void onReceiveFailed(@NonNull final String error) {
+                Log.e(TAG, "Transfer failed: " + error);
+            }
+
+            @Override
+            public void onTransferStarted() {
+                transferInProgress = true;
+                notifyTransferState(true);
+            }
+
+            @Override
+            public void onTransferEnded() {
+                transferInProgress = false;
+                notifyTransferState(false);
+            }
+        });
     }
 
     @Override
@@ -54,7 +107,9 @@ public class EchoService extends Service {
         startForeground(NOTIFICATION_ID, buildNotification());
         advertiser.start();
         scanner.start();
-        Log.i(TAG, "EchoService started — advertising and scanning");
+        wifiDirectManager.initialize();
+        bundleReceiver.start();
+        Log.i(TAG, "EchoService started — BLE + Wi-Fi Direct active");
         return START_STICKY;
     }
 
@@ -63,6 +118,8 @@ public class EchoService extends Service {
         super.onDestroy();
         advertiser.stop();
         scanner.stop();
+        bundleReceiver.stop();
+        wifiDirectManager.teardown();
         Log.i(TAG, "EchoService destroyed");
     }
 
@@ -70,6 +127,46 @@ public class EchoService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    /** Returns whether a transfer is currently in progress. */
+    public boolean isTransferInProgress() {
+        return transferInProgress;
+    }
+
+    /** Returns the Wi-Fi Direct manager (for transfer coordination). */
+    @Nullable
+    public WifiDirectManager getWifiDirectManager() {
+        return wifiDirectManager;
+    }
+
+    /** Returns the bundle receiver (for transfer coordination). */
+    @Nullable
+    public BundleReceiver getBundleReceiver() {
+        return bundleReceiver;
+    }
+
+    /** Returns the BLE scanner (for peer info). */
+    @Nullable
+    public BleScanner getScanner() {
+        return scanner;
+    }
+
+    /** Returns the BLE advertiser. */
+    @Nullable
+    public BleAdvertiser getAdvertiser() {
+        return advertiser;
+    }
+
+    /** Notifies the transfer state listener on the main thread. */
+    private void notifyTransferState(final boolean inProgress) {
+        if (transferStateListener != null) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (transferStateListener != null) {
+                    transferStateListener.onTransferStateChanged(inProgress);
+                }
+            });
+        }
     }
 
     /** Builds the persistent foreground notification. */

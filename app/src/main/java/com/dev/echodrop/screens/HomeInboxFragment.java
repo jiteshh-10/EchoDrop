@@ -29,6 +29,7 @@ import com.dev.echodrop.components.PostComposerSheet;
 import com.dev.echodrop.databinding.ScreenHomeInboxBinding;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.MessageRepo;
+import com.dev.echodrop.service.EchoService;
 import com.dev.echodrop.viewmodels.MessageViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -65,6 +66,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     private String query = "";
     private List<MessageEntity> allMessages = new ArrayList<>();
     private ObjectAnimator syncDotAnimator;
+    private boolean transferActive;
 
     private enum Tab {
         ALL,
@@ -90,6 +92,13 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         setupViewModel();
         // Seed with simulated nearby devices for demo/static baseline
         updateSyncIndicator(3);
+
+        // Listen for transfer state → faster pulse
+        EchoService.setTransferStateListener(inProgress -> {
+            if (binding == null) return;
+            transferActive = inProgress;
+            restartSyncDotPulse();
+        });
     }
 
     private void setupToolbar() {
@@ -332,11 +341,20 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     }
 
     private void startSyncDotPulse() {
+        final long duration = transferActive ? 500 : 2000;
         syncDotAnimator = ObjectAnimator.ofFloat(binding.syncDot, "alpha", 1.0f, 0.3f, 1.0f);
-        syncDotAnimator.setDuration(2000);
+        syncDotAnimator.setDuration(duration);
         syncDotAnimator.setRepeatCount(ObjectAnimator.INFINITE);
         syncDotAnimator.setRepeatMode(ObjectAnimator.RESTART);
         syncDotAnimator.start();
+    }
+
+    /** Restarts the sync dot pulse with the correct duration for transfer state. */
+    private void restartSyncDotPulse() {
+        if (syncDotAnimator != null && syncDotAnimator.isRunning()) {
+            syncDotAnimator.cancel();
+            startSyncDotPulse();
+        }
     }
 
     private void openPostComposer() {
@@ -379,6 +397,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        EchoService.setTransferStateListener(null);
         if (syncDotAnimator != null) {
             syncDotAnimator.cancel();
             syncDotAnimator = null;
