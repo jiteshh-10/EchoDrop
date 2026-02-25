@@ -1,9 +1,9 @@
 # EchoDrop — Test Report
 
-> **Iterations 0-1 + 2 + 3 + 4: Foundations + Local Persistence + Priority Handling + Private Chat**  
+> **Iterations 0-1 + 2 + 3 + 4 + 5: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery**  
 > **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
 > **Execution Date:** 2026  
-> **Result:** ✅ **257 tests — 0 failures — 100% pass rate**
+> **Result:** ✅ **319 tests — 0 failures — 100% pass rate**
 
 ---
 
@@ -27,6 +27,10 @@
   - [3.13 ChatCryptoTest (12 tests)](#313-chatcryptotest-12-tests)
   - [3.14 ChatEntityTest (19 tests)](#314-chatentitytest-19-tests)
   - [3.15 ChatDaoTest (12 tests)](#315-chatdaotest-12-tests)
+  - [3.16 ManifestManagerTest (30 tests)](#316-manifestmanagertest-30-tests)
+  - [3.17 BleAdvertiserTest (18 tests)](#317-bleadvertisertest-18-tests)
+  - [3.18 BleScannerTest (8 tests)](#318-blescannertest-8-tests)
+  - [3.19 EchoServiceTest (6 tests)](#319-echoservicetest-6-tests)
 - [4. Bugs Found & Fixed During Testing](#4-bugs-found--fixed-during-testing)
 - [5. Test Coverage Matrix](#5-test-coverage-matrix)
 - [6. Testing Methodology](#6-testing-methodology)
@@ -38,13 +42,13 @@
 
 | Metric            | Value          |
 |-------------------|----------------|
-| **Total Tests**   | 257            |
-| **Passed**        | 257            |
+| **Total Tests**   | 319            |
+| **Passed**        | 319            |
 | **Failed**        | 0              |
 | **Ignored**       | 0              |
 | **Success Rate**  | 100%           |
-| **Test Classes**  | 15             |
-| **Packages Tested** | 9           |
+| **Test Classes**  | 19             |
+| **Packages Tested** | 12           |
 
 ### Package Results
 
@@ -59,6 +63,9 @@
 | `com.dev.echodrop.repository`     | 14    | 0        | 100%         |
 | `com.dev.echodrop.screens`        | 14    | 0        | 100%         |
 | `com.dev.echodrop.viewmodels`     | 10    | 0        | 100%         |
+| `com.dev.echodrop.ble`            | 26    | 0        | 100%         |
+| `com.dev.echodrop.mesh`           | 30    | 0        | 100%         |
+| `com.dev.echodrop.service`        | 6     | 0        | 100%         |
 
 ---
 
@@ -418,6 +425,64 @@ Tests the navigation contract — verifying method signatures, fragment types, a
 | # | Test Name | What It Verifies |
 |---|-----------|------------------|
 | 1 | `addition_isCorrect` | `2 + 2 == 4` (basic JVM sanity) |
+
+---
+
+### 3.16 ManifestManagerTest (30 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/mesh/ManifestManagerTest.java`  
+**Category:** Pure unit tests (no Android context needed)
+
+Tests cover:
+- Empty manifest generation and parsing
+- Single-entry and multi-entry round-trip (serialize → parse)
+- Wire format size correctness, header version byte, entry count
+- Max entries cap enforcement (18 entries max)
+- Priority encoding (ALERT=0, NORMAL=1, BULK=2) and case-insensitive parsing
+- UUID ↔ byte[] conversion (including non-UUID fallback)
+- Checksum determinism, 4-byte length, content sensitivity
+- `peekEntryCount` and `manifestSizeBytes` utility methods
+- Malformed input rejection (null, too short, wrong version, truncated)
+- `buildManifestFromMessages` with real `MessageEntity` objects
+
+### 3.17 BleAdvertiserTest (18 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/ble/BleAdvertiserTest.java`  
+**Category:** Robolectric (requires Android context for BT adapter)
+
+Tests cover:
+- Payload structure (6 bytes: 4 device_id + 2 manifest_size)
+- Big-endian byte order verification
+- Round-trip (build → parse) for various values (zero, max, negative device ID)
+- Manifest size clamping to 0xFFFF
+- Payload parse error handling (null, too short)
+- Service UUID constant correctness
+- Device ID getter/setter
+- Initial state (not running)
+
+### 3.18 BleScannerTest (8 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/ble/BleScannerTest.java`  
+**Category:** Robolectric (requires Android context)
+
+Tests cover:
+- Initial state (not running, no peers, empty list)
+- Duty cycle constants (10s scan, 20s pause)
+- PeerInfo construction and timestamp accuracy
+- Clear peers operation
+- Peer list immutability (unmodifiable list)
+
+### 3.19 EchoServiceTest (6 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/service/EchoServiceTest.java`  
+**Category:** Robolectric (SharedPreferences testing)
+
+Tests cover:
+- Background enabled preference defaults to true
+- Set/get round-trip for enabled and disabled states
+- Multiple toggle cycles
+- BootReceiver null intent and null action safety
+- SharedPreferences isolation (correct prefs name and key)
 
 ---
 

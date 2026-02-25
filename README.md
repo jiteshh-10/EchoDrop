@@ -30,6 +30,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 - [11. Iteration 2 Completion Status](#11-iteration-2-completion-status)
 - [12. Iteration 3 Completion Status](#12-iteration-3-completion-status)
 - [13. Iteration 4 Completion Status](#13-iteration-4-completion-status)
+- [14. Iteration 5 Completion Status](#14-iteration-5-completion-status)
 
 ---
 
@@ -43,7 +44,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 | **Compile SDK**  | 35                                           |
 | **Language**     | Java 11                                      |
 | **Theme**        | Material 3 — Dark Only                       |
-| **Branch**       | `main` (latest: `iteration-4`)               |
+| **Branch**       | `main` (latest: `iteration-5`)               |
 
 ### Concept
 
@@ -69,6 +70,7 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 | Background Work       | WorkManager 2.9.0 (TTL cleanup)                   |
 | QR Code Generation    | ZXing Core 3.5.3                                  |
 | Encryption            | AES-256-GCM + PBKDF2WithHmacSHA256 (javax.crypto) |
+| BLE Discovery         | `android.bluetooth.le` (BLE advertise + scan)  |
 | Layout Constraint     | ConstraintLayout (via `libs.versions.toml`)        |
 | Typography            | System fonts (`sans-serif` / `monospace`)           |
 | Build System          | Gradle 8.x with Kotlin DSL catalog                 |
@@ -113,11 +115,12 @@ EchoDrop/
 │   ├── README.md                     ← This file (project overview)
 │   ├── ARCHITECTURE.md               ← Architecture deep-dive
 │   ├── DECISIONS.md                  ← Architectural decisions log
-│   ├── TEST_REPORT.md                ← Test report (257 tests)
+│   ├── TEST_REPORT.md                ← Test report (319 tests)
 │   ├── CHANGELOG_ITERATION_01.md     ← Iteration 0-1 changelog
 │   ├── CHANGELOG_ITERATION_02.md     ← Iteration 2 changelog
 │   ├── CHANGELOG_ITERATION_03.md     ← Iteration 3 changelog
-│   └── CHANGELOG_ITERATION_04.md     ← Iteration 4 changelog
+│   ├── CHANGELOG_ITERATION_04.md     ← Iteration 4 changelog
+│   └── CHANGELOG_ITERATION_05.md     ← Iteration 5 changelog
 │
 ├── app/
 │   ├── build.gradle                  ← Module build config
@@ -129,6 +132,14 @@ EchoDrop/
 │       │   │   └── Message.java            ← Legacy data model (POJO)
 │       │   ├── crypto/
 │       │   │   └── ChatCrypto.java          ← AES-256-GCM + PBKDF2 (iter-4)
+│       │   ├── ble/
+│       │   │   ├── BleAdvertiser.java        ← BLE advertising (iter-5)
+│       │   │   └── BleScanner.java           ← BLE scanning, 10s/20s duty (iter-5)
+│       │   ├── mesh/
+│       │   │   └── ManifestManager.java      ← Binary manifest build/parse (iter-5)
+│       │   ├── service/
+│       │   │   ├── EchoService.java          ← Foreground service (iter-5)
+│       │   │   └── BootReceiver.java         ← Boot restart receiver (iter-5)
 │       │   ├── db/
 │       │   │   ├── MessageEntity.java       ← Room entity (messages)
 │       │   │   ├── MessageDao.java          ← Room DAO (messages)
@@ -157,6 +168,9 @@ EchoDrop/
 │       │   │   ├── PrivateChatListFragment.java     ← Chat list screen (iter-4)
 │       │   │   ├── CreateChatFragment.java          ← Create chat screen (iter-4)
 │       │   │   └── ChatConversationFragment.java    ← Conversation screen (iter-4)
+│       │   │   ├── SettingsFragment.java             ← Settings + toggle (iter-5)
+│       │   │   ├── BatteryGuideFragment.java         ← Battery OEM guide (iter-5)
+│       │   │   └── DiscoveryStatusFragment.java      ← BLE debug screen (iter-5)
 │       │   └── components/
 │       │       └── PostComposerSheet.java  ← BottomSheet dialog
 │       │
@@ -173,6 +187,10 @@ EchoDrop/
 │           │   ├── bg_badge_alert.xml
 │           │   ├── bg_badge_positive.xml
 │           │   ├── bg_urgent_banner.xml    ← Urgent banner drawable (iter-3)
+│           │   ├── bg_dev_badge.xml        ← Dev badge background (iter-5)
+│           │   ├── bg_status_dot.xml       ← Status dot oval (iter-5)
+│           │   ├── bg_stat_card.xml        ← Stat card background (iter-5)
+│           │   ├── bg_oem_card.xml         ← OEM card background (iter-5)
 │           │   ├── bg_bubble_outgoing.xml  ← Chat bubble outgoing (iter-4)
 │           │   ├── bg_bubble_incoming.xml  ← Chat bubble incoming (iter-4)
 │           │   ├── bg_chat_input.xml       ← Chat input pill shape (iter-4)
@@ -185,6 +203,14 @@ EchoDrop/
 │           │   ├── ic_send.xml             ← Send arrow vector (iter-4)
 │           │   ├── ic_tick.xml             ← Sync tick indicator (iter-4)
 │           │   └── ic_double_tick.xml      ← Sync double tick (iter-4)
+│           │   ├── ic_settings.xml         ← Settings gear icon (iter-5)
+│           │   ├── ic_chevron_right.xml    ← Chevron right arrow (iter-5)
+│           │   ├── ic_bluetooth.xml        ← Bluetooth icon (iter-5)
+│           │   ├── ic_clock.xml            ← Clock icon (iter-5)
+│           │   ├── ic_database.xml         ← Database icon (iter-5)
+│           │   ├── ic_activity.xml         ← Activity pulse icon (iter-5)
+│           │   ├── ic_battery.xml          ← Battery icon (iter-5)
+│           │   └── ic_expand.xml           ← Expand chevron icon (iter-5)
 │           ├── layout/                     ← Screen layouts
 │           │   ├── activity_main.xml
 │           │   ├── screen_onboarding_consent.xml
@@ -199,7 +225,10 @@ EchoDrop/
 │           │   ├── item_chat_message_outgoing.xml ← Outgoing bubble (iter-4)
 │           │   ├── item_chat_message_incoming.xml ← Incoming bubble (iter-4)
 │           │   ├── fragment_post_composer.xml
-│           │   └── fragment_message_detail.xml  ← Message detail layout
+│           │   ├── fragment_message_detail.xml  ← Message detail layout
+│           │   ├── screen_settings.xml            ← Settings screen (iter-5)
+│           │   ├── screen_battery_guide.xml       ← Battery guide screen (iter-5)
+│           │   └── screen_discovery_status.xml    ← Discovery debug screen (iter-5)
 │           ├── menu/
 │           │   └── home_menu.xml
 │           └── values/
@@ -238,6 +267,9 @@ EchoDrop/
 | **Callback Pattern**   | `PostComposerSheet.OnPostListener`, `ChatRepo.JoinCallback`   |
 | **BottomSheet**        | `BottomSheetDialogFragment` with themed rounded corners        |
 | **Encryption**         | AES-256-GCM + PBKDF2 key derivation in `ChatCrypto`           |
+| **BLE Discovery**      | `BleAdvertiser` + `BleScanner` with 10s/20s duty cycle         |
+| **Foreground Service** | `EchoService` with persistent notification for BLE ops         |
+| **Manifest Exchange**  | `ManifestManager` compact binary wire format (28 bytes/entry)  |
 
 ### Navigation Flow
 
@@ -256,6 +288,9 @@ HowItWorks
 
 HomeInbox
     ├── FAB / Menu     → PostComposerSheet (BottomSheet overlay)
+    ├── Settings icon  → SettingsFragment
+    │                      ├── Battery Guide → BatteryGuideFragment
+    │                      └── 7-tap version → DiscoveryStatusFragment (dev)
     ├── Message Item   → MessageDetailFragment
     └── Chats Tab/FAB  → PrivateChatListFragment
                             ├── FAB          → CreateChatFragment
@@ -919,3 +954,37 @@ android {
 - [x] Sync state indicators: pending, sent (tick), synced (double tick)
 - [x] Chats tab in inbox navigates to dedicated Private Chat List screen
 - [x] Dark theme dialog style for join chat dialog
+
+---
+
+## 14. Iteration 5 Completion Status
+
+> Offline Discovery + Manifest Exchange — Control Plane Only
+
+### Summary
+
+| Category                  | Items | Status |
+|---------------------------|-------|--------|
+| New Production Files      | 8     | ✅ Complete |
+| Updated Production Files  | 4     | ✅ Complete |
+| New Drawables             | 12    | ✅ Complete |
+| New Layouts               | 3     | ✅ Complete |
+| New Test Files            | 4     | ✅ Complete |
+| Build Verification        | —     | ✅ `BUILD SUCCESSFUL` |
+| Unit Tests                | 319   | ✅ 0 failures (100% pass rate) |
+
+### Key Features
+
+- [x] BLE advertising with custom EchoDrop Service UUID and compact payload (device_id + manifest_size)
+- [x] BLE scanning with 10s scan / 20s pause duty cycle for battery efficiency
+- [x] Foreground service (`EchoService`) with persistent low-priority notification
+- [x] Boot receiver restarts service after device reboot (when enabled)
+- [x] Runtime BLE permission handling (API 31+) with `ActivityResultLauncher`
+- [x] Compact binary manifest format: 28 bytes/entry (UUID + checksum + priority + expires_at)
+- [x] Manifest build from Room database, parse with version validation
+- [x] Settings screen with background sharing toggle and confirmation dialog
+- [x] Battery optimisation guide with collapsible OEM-specific sections (Samsung, Xiaomi, OnePlus, Stock)
+- [x] Discovery Status dev screen (7-tap easter egg) with live stats grid, connection status, peer list
+- [x] Settings gear icon in Home Inbox toolbar
+- [x] 11 new manifest permissions (BLE, location, foreground service, boot, notifications)
+

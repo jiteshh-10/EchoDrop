@@ -75,3 +75,39 @@ Context: Spec says "No Sync" — chat messages stay on-device. `syncState` field
 Decided: Messages default to `SYNC_SENT` (1). Sync bar shows "Messages stay on this device" hint. No WorkManager job for chat sync.
 Why: DTN relay (Iteration 6) will use syncState to track propagation. Adding the field now avoids a Room migration later.
 Impact: UI shows tick/double-tick icons keyed to syncState, but all messages stay at SENT until relay is implemented.
+
+## Decision: Custom Service UUID for BLE discovery — iter-5
+Context: BLE advertising requires a service UUID to filter scan results. Options: (a) use a standard profile UUID, (b) create a custom UUID.
+Decided: Custom UUID `ed000001-0000-1000-8000-00805f9b34fb` (EchoDrop-specific, reserved under Bluetooth SIG base).
+Why: No standard BLE profile matches our use case. Custom UUID ensures only EchoDrop devices respond to scan filters.
+Impact: All EchoDrop instances must use this exact UUID. Scanner filters exclusively for it.
+
+## Decision: Compact binary manifest format — iter-5
+Context: Manifests must fit within BLE GATT characteristic payloads (~512 bytes). Options: (a) JSON, (b) protobuf, (c) custom binary.
+Decided: Custom binary format: 3-byte header (version + entry_count) + 28 bytes per entry (16 UUID + 4 checksum + 1 priority + 3 reserved + 4 expires_at). Max 18 entries per manifest.
+Why: JSON is too verbose for BLE constraints. Protobuf adds a dependency. Custom binary gives precise control over byte layout with no overhead.
+Impact: 18 entries × 28 bytes + 3 header = 507 bytes max — fits within a single BLE characteristic. Forward-compatible via version byte.
+
+## Decision: 10s scan / 20s pause BLE duty cycle — iter-5
+Context: Continuous BLE scanning drains battery rapidly. Need a balance between discovery responsiveness and power consumption.
+Decided: Scan for 10 seconds, pause for 20 seconds, repeat. Stale peers pruned after 2 minutes of no re-detection.
+Why: 33% duty cycle is aggressive enough to detect nearby devices within 30 seconds while being much friendlier to battery life than continuous scanning.
+Impact: Peer list may have up to 20-second latency for new device detection. Acceptable for DTN where messages are not time-critical.
+
+## Decision: BLE permissions guarded at service start — iter-5
+Context: Android 14+ (targetSdk 35) requires granted BLE runtime permissions before starting a connectedDevice foreground service.
+Decided: `EchoService.startService()` checks `hasBlePermissions()` and silently returns if not granted. `SettingsFragment` requests permissions via `ActivityResultLauncher` before enabling the toggle.
+Why: Prevents `SecurityException` crash. Permissions must be requested from an Activity/Fragment context, not from EchoService directly.
+Impact: Service only starts after user grants at least one BLE permission. Boot receiver also safely skips start if permissions were revoked.
+
+## Decision: 7-tap easter egg for dev screen — iter-5
+Context: Discovery Status is a developer/debug screen. Should it be in the main nav?
+Decided: Hidden behind a 7-tap easter egg on the Settings version text (same pattern as Android's "Developer options").
+Why: Regular users don't need to see BLE debug info. Power users and developers can access it via the familiar tap pattern.
+Impact: No visual clutter in the main UI. Toast counting from 4th tap provides discoverability feedback.
+
+## Decision: Foreground service type connectedDevice — iter-5
+Context: Android 14 requires foreground service type declarations. Options: `connectedDevice`, `location`, `dataSync`.
+Decided: `foregroundServiceType="connectedDevice"` — matches BLE advertising and scanning operations.
+Why: Most accurate type for what the service does (BLE device discovery). Android requires at least one of the associated permissions to be granted.
+Impact: Requires at least one of BLUETOOTH_ADVERTISE/CONNECT/SCAN to be granted at runtime before `startForeground()` is called.

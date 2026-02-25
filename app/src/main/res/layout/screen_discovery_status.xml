@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Discovery Status debug screen layout (Iteration 5) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/echo_bg_main"
+    android:orientation="vertical">
+
+    <!-- Toolbar with DEV badge -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/app_bar_height"
+        android:background="@color/echo_elevated_surface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="4dp">
+
+        <ImageView
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/min_touch_target"
+            android:layout_height="@dimen/min_touch_target"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_back"
+            android:padding="10dp"
+            android:src="@drawable/ic_back" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_1"
+            android:layout_weight="1"
+            android:text="@string/discovery_title"
+            android:textColor="@color/echo_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_2"
+            android:background="@drawable/bg_dev_badge"
+            android:text="@string/discovery_dev_badge"
+            android:textColor="@color/echo_alert_accent"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/echo_divider" />
+
+    <!-- Developer warning banner -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/echo_alert_tint"
+        android:gravity="center"
+        android:paddingVertical="@dimen/spacing_1"
+        android:text="@string/discovery_dev_warning"
+        android:textColor="@color/echo_alert_accent"
+        android:textSize="12sp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_2">
+
+            <!-- 2×2 Stats Grid -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <!-- Nearby nodes -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/spacing_1"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_stat_card"
+                    android:gravity="center"
+                    android:minHeight="@dimen/stat_card_size"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_2">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/discovery_nearby_nodes"
+                        android:src="@drawable/ic_wifi" />
+
+                    <TextView
+                        android:id="@+id/stat_nearby_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_1"
+                        android:fontFamily="monospace"
+                        android:text="0"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/discovery_nearby_nodes"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Last exchange -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_stat_card"
+                    android:gravity="center"
+                    android:minHeight="@dimen/stat_card_size"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_2">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/discovery_last_exchange"
+                        android:src="@drawable/ic_clock" />
+
+                    <TextView
+                        android:id="@+id/stat_last_exchange"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_1"
+                        android:fontFamily="monospace"
+                        android:text="@string/discovery_never"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/discovery_last_exchange"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Second row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_2"
+                android:orientation="horizontal">
+
+                <!-- Manifest size -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/spacing_1"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_stat_card"
+                    android:gravity="center"
+                    android:minHeight="@dimen/stat_card_size"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_2">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/discovery_manifest_size"
+                        android:src="@drawable/ic_database" />
+
+                    <TextView
+                        android:id="@+id/stat_manifest_size"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_1"
+                        android:fontFamily="monospace"
+                        android:text="0 KB"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/discovery_manifest_size"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Messages stored -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_stat_card"
+                    android:gravity="center"
+                    android:minHeight="@dimen/stat_card_size"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_2">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/discovery_messages_stored"
+                        android:src="@drawable/ic_activity" />
+
+                    <TextView
+                        android:id="@+id/stat_message_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_1"
+                        android:fontFamily="monospace"
+                        android:text="0"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/discovery_messages_stored"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Connection status card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding">
+
+                <!-- BLE row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/min_touch_target"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/discovery_ble_label"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp" />
+
+                    <View
+                        android:id="@+id/ble_status_dot"
+                        android:layout_width="@dimen/status_dot_size"
+                        android:layout_height="@dimen/status_dot_size"
+                        android:layout_marginEnd="@dimen/spacing_1"
+                        android:background="@drawable/bg_status_dot"
+                        android:contentDescription="@string/content_status_dot" />
+
+                    <TextView
+                        android:id="@+id/ble_status_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/discovery_off"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <!-- Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/echo_divider" />
+
+                <!-- Wi-Fi Direct row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/min_touch_target"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/discovery_wifi_label"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp" />
+
+                    <View
+                        android:id="@+id/wifi_status_dot"
+                        android:layout_width="@dimen/status_dot_size"
+                        android:layout_height="@dimen/status_dot_size"
+                        android:layout_marginEnd="@dimen/spacing_1"
+                        android:background="@drawable/bg_status_dot"
+                        android:contentDescription="@string/content_status_dot" />
+
+                    <TextView
+                        android:id="@+id/wifi_status_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/discovery_off"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Peers list section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:text="@string/discovery_peers_title"
+                android:textColor="@color/echo_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/peer_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:nestedScrollingEnabled="false" />
+
+            <!-- Empty peers state -->
+            <TextView
+                android:id="@+id/empty_peers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:gravity="center"
+                android:paddingVertical="@dimen/spacing_4"
+                android:text="@string/discovery_no_peers"
+                android:textColor="@color/echo_text_secondary"
+                android:textSize="14sp" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

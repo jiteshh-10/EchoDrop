@@ -153,4 +153,60 @@
     <string name="content_chat_qr">QR code</string>
     <string name="content_copy_code">Copy code</string>
     <string name="content_new_code">New code</string>
+
+    <!-- Settings (Iteration 5) -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_nearby_header">NEARBY SHARING</string>
+    <string name="settings_bg_title">Run in background</string>
+    <string name="settings_bg_sub">Required to receive messages from nearby phones.</string>
+    <string name="settings_battery_title">Battery optimization guide</string>
+    <string name="settings_stop_title">Stop background sharing?</string>
+    <string name="settings_stop_body">EchoDrop won\'t receive messages when you\'re not using the app.</string>
+    <string name="settings_stop_confirm">Turn off</string>
+    <string name="settings_stop_cancel">Keep on</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_about_header">ABOUT</string>
+
+    <!-- Battery Guide (Iteration 5) -->
+    <string name="battery_title">Keep EchoDrop Running</string>
+    <string name="battery_intro">Some phones stop background apps to save battery. Follow the steps for your phone brand.</string>
+    <string name="battery_samsung">Samsung</string>
+    <string name="battery_samsung_step1">Settings → Apps → EchoDrop → Battery → \"Unrestricted\"</string>
+    <string name="battery_samsung_step2">Settings → Battery → Background usage limits → disable for EchoDrop</string>
+    <string name="battery_xiaomi">Xiaomi / MIUI</string>
+    <string name="battery_xiaomi_step1">Settings → Apps → Manage apps → EchoDrop → Battery saver → \"No restrictions\"</string>
+    <string name="battery_xiaomi_step2">Security app → Permissions → Autostart → enable EchoDrop</string>
+    <string name="battery_oneplus">OnePlus / OxygenOS</string>
+    <string name="battery_oneplus_step1">Settings → Battery → Battery Optimization → EchoDrop → \"Don\'t optimize\"</string>
+    <string name="battery_stock">Stock Android</string>
+    <string name="battery_stock_step1">Settings → Apps → EchoDrop → Battery → \"Unrestricted\"</string>
+    <string name="battery_done">Done</string>
+
+    <!-- Discovery Status (Iteration 5) -->
+    <string name="discovery_title">Network Debug</string>
+    <string name="discovery_dev_badge">DEV</string>
+    <string name="discovery_dev_warning">This screen is for development and testing only.</string>
+    <string name="discovery_nearby_nodes">Nearby Nodes</string>
+    <string name="discovery_last_exchange">Last Exchange</string>
+    <string name="discovery_manifest_size">Manifest Size</string>
+    <string name="discovery_messages_stored">Messages Stored</string>
+    <string name="discovery_ble_label">Bluetooth LE</string>
+    <string name="discovery_wifi_label">Wi-Fi Direct</string>
+    <string name="discovery_active">Active</string>
+    <string name="discovery_off">Off</string>
+    <string name="discovery_peers_title">Detected Peers</string>
+    <string name="discovery_no_peers">No peers detected</string>
+    <string name="discovery_bundles">%1$d bundles</string>
+    <string name="discovery_never">Never</string>
+
+    <!-- EchoService (Iteration 5) -->
+    <string name="service_channel_name">EchoDrop</string>
+    <string name="service_notification_text">Running in background</string>
+    <string name="service_notification_sub">Ready to share nearby messages</string>
+
+    <!-- Content descriptions (Iteration 5) -->
+    <string name="content_settings">Settings</string>
+    <string name="content_battery_icon">Battery</string>
+    <string name="content_chevron">Navigate</string>
+    <string name="content_status_dot">Connection status</string>
 </resources>

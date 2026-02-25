@@ -104,6 +104,10 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             openPostComposer();
             return true;
         }
+        if (item.getItemId() == R.id.action_settings) {
+            navigateToSettings();
+            return true;
+        }
         return false;
     }
 
@@ -380,6 +384,13 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             syncDotAnimator = null;
         }
         binding = null;
+    }
+
+    /** Navigate to the Settings screen. */
+    private void navigateToSettings() {
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showSettings();
+        }
     }
 
     /** Navigate to the Private Chat list screen. */

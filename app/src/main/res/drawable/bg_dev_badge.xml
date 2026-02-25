@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEV badge background for DiscoveryStatus screen (Iteration 5) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/echo_alert_tint" />
+    <corners android:radius="@dimen/dev_badge_corner" />
+    <padding
+        android:left="8dp"
+        android:top="2dp"
+        android:right="8dp"
+        android:bottom="2dp" />
+</shape>

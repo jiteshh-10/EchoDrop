@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OEM section background for BatteryGuide collapsible cards (Iteration 5) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/echo_card_surface" />
+    <corners android:radius="@dimen/card_corner_radius" />
+</shape>

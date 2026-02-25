@@ -826,3 +826,94 @@ ChatDao ← ChatRepo ← ChatViewModel → Fragment
 - `ChatViewModel` is scoped to the Activity (shared between chat fragments)
 - `ChatRepo` uses a single-thread `ExecutorService` for all writes
 - `ChatDao` exposes `LiveData<List<>>` for reactive updates
+
+---
+
+## 15. BLE Discovery Layer (Iteration 5)
+
+### Overview
+
+Iteration 5 introduces offline peer discovery via Bluetooth Low Energy (BLE). The BLE layer is a **control plane only** — it discovers nearby devices and exchanges manifests describing available messages. Actual message transfer is deferred to a future iteration.
+
+### Component Architecture
+
+```
+EchoService (ForegroundService)
+    ├── BleAdvertiser (advertise custom UUID + payload)
+    └── BleScanner (10s scan / 20s pause duty cycle)
+            └── peer map (ConcurrentHashMap<deviceId, PeerInfo>)
+
+ManifestManager
+    └── Room DB → MessageDao.getActiveMessagesDirect()
+            → serialize to compact binary (28 bytes/entry)
+```
+
+### BLE Advertising
+
+- **Service UUID:** `ed000001-0000-1000-8000-00805f9b34fb`
+- **Payload (6 bytes):** `device_id` (4 bytes, big-endian) + `manifest_size` (2 bytes, big-endian)
+- **Mode:** `ADVERTISE_MODE_LOW_POWER`, connectable, no timeout
+- **TX Power:** `ADVERTISE_TX_POWER_MEDIUM`
+
+### BLE Scanning
+
+- **Duty cycle:** 10 seconds scan, 20 seconds pause (33% duty)
+- **Filter:** Only EchoDrop Service UUID
+- **Peer timeout:** 2 minutes without re-detection → pruned
+- **Thread safety:** `ConcurrentHashMap` for peer storage; scan callbacks process on BLE thread
+
+### Manifest Wire Format
+
+Each manifest is a compact binary payload designed to fit within a single BLE GATT characteristic (~512 bytes):
+
+```
+Header (3 bytes):
+  version     : 1 byte  (0x01)
+  entry_count : 2 bytes (big-endian unsigned short)
+
+Entry (28 bytes each, max 18 entries):
+  bundle_id   : 16 bytes (UUID, big-endian)
+  checksum    :  4 bytes (first 4 bytes of SHA-256 of message text)
+  priority    :  1 byte  (0=ALERT, 1=NORMAL, 2=BULK)
+  reserved    :  3 bytes (alignment padding)
+  expires_at  :  4 bytes (Unix epoch seconds, big-endian)
+```
+
+Maximum manifest size: 3 + 18 × 28 = **507 bytes**.
+
+### Foreground Service Lifecycle
+
+```
+Boot / User Toggle ON
+    → BootReceiver / SettingsFragment
+        → EchoService.startService(context)
+            → hasBlePermissions() check
+                → startForeground(notification)
+                    → BleAdvertiser.start()
+                    → BleScanner.start()
+
+User Toggle OFF / Service Destroyed
+    → BleAdvertiser.stop()
+    → BleScanner.stop()
+```
+
+### Permission Model (API 31+)
+
+The `connectedDevice` foreground service type requires at least one of:
+- `BLUETOOTH_ADVERTISE`
+- `BLUETOOTH_CONNECT`
+- `BLUETOOTH_SCAN`
+
+Permissions are requested via `ActivityResultLauncher<String[]>` in `SettingsFragment` before the service is started. `EchoService.startService()` silently returns if permissions are not granted.
+
+### Navigation Flow
+
+```
+HomeInboxFragment (Settings icon)
+    │
+    ▼
+SettingsFragment
+    ├── Background toggle → EchoService start/stop
+    ├── Battery guide → BatteryGuideFragment (collapsible OEM sections)
+    └── 7-tap version → DiscoveryStatusFragment (dev debug screen)
+```
