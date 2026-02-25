@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Create Chat screen: name input, code display, QR, info note, create button. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/echo_bg_main"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Toolbar -->
+        <LinearLayout
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/app_bar_height"
+            android:background="@color/echo_elevated_surface"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_2">
+
+            <ImageView
+                android:id="@+id/btn_back"
+                android:layout_width="@dimen/min_touch_target"
+                android:layout_height="@dimen/min_touch_target"
+                android:padding="10dp"
+                android:src="@drawable/ic_back"
+                android:contentDescription="@string/content_back"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="@dimen/spacing_1"
+                android:text="@string/chat_create_title"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/echo_text_primary"
+                android:textSize="18sp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/echo_divider" />
+
+        <!-- Content area -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_2">
+
+            <!-- Chat name input -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chat_create_name_label"
+                android:fontFamily="sans-serif"
+                android:textColor="@color/echo_text_secondary"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/input_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_chat_input"
+                android:hint="@string/chat_create_name_hint"
+                android:textColorHint="@color/echo_text_muted"
+                android:fontFamily="sans-serif"
+                android:textColor="@color/echo_text_primary"
+                android:textSize="15sp"
+                android:padding="@dimen/spacing_2"
+                android:inputType="textCapWords"
+                android:maxLines="1"
+                android:importantForAutofill="no" />
+
+            <!-- Code card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:orientation="vertical"
+                android:background="@color/echo_elevated_surface"
+                android:padding="@dimen/spacing_2">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/chat_code_label"
+                    android:fontFamily="sans-serif"
+                    android:textColor="@color/echo_text_secondary"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/code_display"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1"
+                    android:fontFamily="monospace"
+                    android:textColor="@color/echo_text_primary"
+                    android:textSize="28sp"
+                    android:gravity="center"
+                    android:letterSpacing="0.15"
+                    tools:text="XKBQ-T7NR" />
+
+                <!-- Action buttons row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_2"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/btn_copy"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/min_touch_target"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="@string/chat_code_copy"
+                        android:fontFamily="sans-serif-medium"
+                        android:textColor="@color/echo_primary_accent"
+                        android:textSize="13sp"
+                        android:background="?attr/selectableItemBackground"
+                        android:contentDescription="@string/content_copy_code" />
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="20dp"
+                        android:background="@color/echo_divider" />
+
+                    <TextView
+                        android:id="@+id/btn_qr"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/min_touch_target"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="@string/chat_code_qr"
+                        android:fontFamily="sans-serif-medium"
+                        android:textColor="@color/echo_primary_accent"
+                        android:textSize="13sp"
+                        android:background="?attr/selectableItemBackground"
+                        android:contentDescription="@string/content_chat_qr" />
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="20dp"
+                        android:background="@color/echo_divider" />
+
+                    <TextView
+                        android:id="@+id/btn_new_code"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/min_touch_target"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="@string/chat_code_new"
+                        android:fontFamily="sans-serif-medium"
+                        android:textColor="@color/echo_primary_accent"
+                        android:textSize="13sp"
+                        android:background="?attr/selectableItemBackground"
+                        android:contentDescription="@string/content_new_code" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- QR container (initially gone, toggles on "Show QR") -->
+            <FrameLayout
+                android:id="@+id/qr_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_2"
+                android:gravity="center"
+                android:visibility="gone"
+                android:padding="@dimen/spacing_2"
+                android:background="@android:color/white"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/qr_image"
+                    android:layout_width="@dimen/qr_size"
+                    android:layout_height="@dimen/qr_size"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/content_chat_qr" />
+            </FrameLayout>
+
+            <!-- Info note -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:background="@drawable/bg_info_note"
+                android:orientation="horizontal"
+                android:padding="@dimen/spacing_2"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/chat_create_info"
+                    android:fontFamily="sans-serif"
+                    android:textColor="@color/echo_text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingMultiplier="1.3" />
+            </LinearLayout>
+
+            <!-- Spacer pushes button to bottom -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Create Chat button -->
+            <TextView
+                android:id="@+id/btn_create"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/fab_size"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:background="@drawable/bg_chat_avatar"
+                android:gravity="center"
+                android:text="@string/chat_create_button"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/echo_bg_main"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

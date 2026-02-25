@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chat list item: avatar circle + name/code + preview + timestamp + unread badge. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/chat_item_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_2"
+    android:paddingVertical="@dimen/list_item_padding_vertical"
+    android:gravity="center_vertical">
+
+    <!-- Avatar circle with initial -->
+    <FrameLayout
+        android:layout_width="@dimen/chat_avatar_size"
+        android:layout_height="@dimen/chat_avatar_size">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_chat_avatar"
+            android:contentDescription="@string/content_chat_avatar" />
+
+        <TextView
+            android:id="@+id/avatar_initial"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:fontFamily="sans-serif-medium"
+            android:textSize="@dimen/chat_avatar_text_size"
+            android:textColor="@color/echo_bg_main"
+            tools:text="S" />
+    </FrameLayout>
+
+    <!-- Name, code & preview -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="@dimen/spacing_1"
+        android:layout_marginEnd="@dimen/spacing_1">
+
+        <TextView
+            android:id="@+id/chat_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/echo_text_primary"
+            android:textSize="15sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="Study Group" />
+
+        <TextView
+            android:id="@+id/chat_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif"
+            android:textColor="@color/echo_text_secondary"
+            android:textSize="13sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="Hey, are we meeting today?" />
+    </LinearLayout>
+
+    <!-- Right column: timestamp + unread badge -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="end|center_vertical">
+
+        <TextView
+            android:id="@+id/chat_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif"
+            android:textColor="@color/echo_text_muted"
+            android:textSize="11sp"
+            tools:text="2m ago" />
+
+        <TextView
+            android:id="@+id/unread_badge"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_chat_avatar"
+            android:gravity="center"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/echo_bg_main"
+            android:textSize="10sp"
+            android:visibility="gone"
+            tools:text="3"
+            tools:visibility="visible" />
+    </LinearLayout>
+</LinearLayout>

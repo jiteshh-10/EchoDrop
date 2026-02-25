@@ -115,4 +115,42 @@
     <!-- Priority (Iteration 3) -->
     <string name="detail_urgent_banner">Urgent message</string>
     <string name="priority_badge_urgent">URGENT</string>
+
+    <!-- Private Chat (Iteration 4) -->
+    <string name="chat_list_title">Chats</string>
+    <string name="chat_empty_title">No chats yet</string>
+    <string name="chat_empty_sub">Create a chat and share the code with someone nearby.</string>
+    <string name="chat_fab_new">New chat</string>
+    <string name="chat_join_title">Join Chat</string>
+    <string name="chat_join_hint">Enter chat code</string>
+    <string name="chat_join_button">Join</string>
+    <string name="chat_join_invalid">Invalid chat code</string>
+    <string name="chat_joined">Joined chat</string>
+    <string name="chat_already_exists">You already have this chat</string>
+
+    <string name="chat_create_title">New Chat</string>
+    <string name="chat_create_name_label">Give this chat a name (optional)</string>
+    <string name="chat_create_name_hint">e.g. Study Group, Project Team</string>
+    <string name="chat_code_label">Your chat code</string>
+    <string name="chat_code_copy">Copy</string>
+    <string name="chat_code_qr">Show QR</string>
+    <string name="chat_code_new">New code</string>
+    <string name="chat_create_button">Create Chat</string>
+    <string name="chat_code_copied">Code copied</string>
+    <string name="chat_created">Chat created</string>
+    <string name="chat_create_info">Share this code with the person you want to chat with. Messages sync automatically when your phones are nearby.</string>
+
+    <string name="chat_sync_hint">Messages sync when nearby</string>
+    <string name="chat_conv_empty">Start the conversation.</string>
+    <string name="chat_input_hint">Message</string>
+    <string name="chat_send">Send message</string>
+    <string name="chat_delete_title">Delete Chat</string>
+    <string name="chat_delete_confirm">Delete this chat and all its messages?</string>
+    <string name="chat_deleted">Chat deleted</string>
+
+    <string name="content_chat_avatar">Chat avatar</string>
+    <string name="content_send">Send message</string>
+    <string name="content_chat_qr">QR code</string>
+    <string name="content_copy_code">Copy code</string>
+    <string name="content_new_code">New code</string>
 </resources>

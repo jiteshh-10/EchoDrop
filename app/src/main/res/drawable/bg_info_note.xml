@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Info note background with 3dp left accent border. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Accent left border -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/echo_primary_accent" />
+            <corners android:radius="@dimen/priority_banner_corner" />
+        </shape>
+    </item>
+    <!-- Main fill — offset left by border width -->
+    <item android:left="@dimen/info_note_border">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/echo_elevated_surface" />
+            <corners android:radius="@dimen/priority_banner_corner" />
+        </shape>
+    </item>
+</layer-list>

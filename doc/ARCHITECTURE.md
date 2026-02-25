@@ -19,6 +19,7 @@
 - [11. Known Limitations & Future Work](#11-known-limitations--future-work)
 - [12. Room Persistence Layer (Iteration 2)](#12-room-persistence-layer-iteration-2)
 - [13. Priority Handling (Iteration 3)](#13-priority-handling-iteration-3)
+- [14. Private Chat System (Iteration 4)](#14-private-chat-system-iteration-4)
 
 ---
 
@@ -735,3 +736,93 @@ When storage cap (200 rows) is reached:
 1. Delete oldest BULK messages first
 2. If still over cap, delete oldest NORMAL messages
 3. ALERT messages are **never evicted** before their TTL expires
+
+---
+
+## 14. Private Chat System (Iteration 4)
+
+### Overview
+
+Private Chat adds local-only, encrypted 1:1 messaging. Chats are identified by shareable 8-character codes. All message payloads are encrypted with AES-256-GCM before storage; the key is derived from the chat code and never persisted.
+
+### Database Schema
+
+**ChatEntity** (`chats` table):
+
+| Column               | Type    | Notes                     |
+|----------------------|---------|---------------------------|
+| `id`                 | TEXT PK | UUID                      |
+| `code`               | TEXT    | UNIQUE, 8-char code       |
+| `name`               | TEXT    | Nullable display name     |
+| `created_at`         | INTEGER | Epoch millis              |
+| `last_message_preview`| TEXT   | Plaintext snippet (≤50 chars) |
+| `last_message_time`  | INTEGER | For sort ordering         |
+| `unread_count`       | INTEGER | 0 by default              |
+
+**ChatMessageEntity** (`chat_messages` table):
+
+| Column      | Type    | Notes                        |
+|-------------|---------|------------------------------|
+| `id`        | TEXT PK | UUID                         |
+| `chat_id`   | TEXT FK | References `chats.id`, CASCADE |
+| `text`      | TEXT    | Base64(IV ‖ ciphertext ‖ tag) |
+| `is_outgoing`| INTEGER| 0 = incoming, 1 = outgoing   |
+| `created_at`| INTEGER | Epoch millis                 |
+| `sync_state`| INTEGER | 0=PENDING, 1=SENT, 2=SYNCED  |
+
+### Encryption Pipeline
+
+```
+Chat Code (8 chars)
+    │
+    ▼
+PBKDF2WithHmacSHA256
+  salt: "EchoDrop-ChatKey-v1"
+  iterations: 10,000
+  key length: 256 bits
+    │
+    ▼
+AES-256-GCM
+  IV: 96-bit random (prepended)
+  tag: 128-bit
+    │
+    ▼
+Base64.NO_WRAP → stored in `text` column
+```
+
+- Key derivation happens once per fragment lifecycle (`ChatConversationFragment.onViewCreated`)
+- Key is cleared on `onDestroyView` (set to null)
+- Key is never written to disk or SharedPreferences
+
+### Code Generation
+
+Character set: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (30 chars, excludes O/0/I/1 for visual clarity)
+
+- 8 characters → ~$30^8$ (≈6.56 × 10¹¹) possible codes
+- Generated via `SecureRandom`
+- Displayed as `XXXX-XXXX` format
+- QR code generated via ZXing `QRCodeWriter`
+
+### Navigation Flow
+
+```
+HomeInboxFragment (Chats tab / FAB)
+    │
+    ▼
+PrivateChatListFragment
+    ├── FAB → CreateChatFragment
+    ├── Join button → AlertDialog
+    └── Chat item click → ChatConversationFragment
+```
+
+### MVVM Layer
+
+```
+ChatDao ← ChatRepo ← ChatViewModel → Fragment
+                                      ├── ChatListAdapter
+                                      └── ChatMessageAdapter
+```
+
+- `ChatViewModel` is scoped to the Activity (shared between chat fragments)
+- `ChatRepo` uses a single-thread `ExecutorService` for all writes
+- `ChatDao` exposes `LiveData<List<>>` for reactive updates

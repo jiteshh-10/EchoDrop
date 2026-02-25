@@ -1,9 +1,9 @@
 # EchoDrop — Test Report
 
-> **Iterations 0-1 + 2 + 3: Foundations + Local Persistence + Priority Handling**  
+> **Iterations 0-1 + 2 + 3 + 4: Foundations + Local Persistence + Priority Handling + Private Chat**  
 > **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
 > **Execution Date:** 2026  
-> **Result:** ✅ **214 tests — 0 failures — 100% pass rate**
+> **Result:** ✅ **257 tests — 0 failures — 100% pass rate**
 
 ---
 
@@ -24,6 +24,9 @@
   - [3.10 ExampleUnitTest (1 test)](#310-exampleunittest-1-test)
   - [3.11 PriorityDaoTest (13 tests)](#311-prioritydaotest-13-tests)
   - [3.12 PriorityRenderingTest (10 tests)](#312-priorityrenderingtest-10-tests)
+  - [3.13 ChatCryptoTest (12 tests)](#313-chatcryptotest-12-tests)
+  - [3.14 ChatEntityTest (19 tests)](#314-chatentitytest-19-tests)
+  - [3.15 ChatDaoTest (12 tests)](#315-chatdaotest-12-tests)
 - [4. Bugs Found & Fixed During Testing](#4-bugs-found--fixed-during-testing)
 - [5. Test Coverage Matrix](#5-test-coverage-matrix)
 - [6. Testing Methodology](#6-testing-methodology)
@@ -35,13 +38,13 @@
 
 | Metric            | Value          |
 |-------------------|----------------|
-| **Total Tests**   | 214            |
-| **Passed**        | 214            |
+| **Total Tests**   | 257            |
+| **Passed**        | 257            |
 | **Failed**        | 0              |
 | **Ignored**       | 0              |
 | **Success Rate**  | 100%           |
-| **Test Classes**  | 12             |
-| **Packages Tested** | 8           |
+| **Test Classes**  | 15             |
+| **Packages Tested** | 9           |
 
 ### Package Results
 
@@ -50,7 +53,8 @@
 | `com.dev.echodrop`                | 62    | 0        | 100%         |
 | `com.dev.echodrop.adapters`       | 26    | 0        | 100%         |
 | `com.dev.echodrop.components`     | 27    | 0        | 100%         |
-| `com.dev.echodrop.db`             | 41    | 0        | 100%         |
+| `com.dev.echodrop.crypto`         | 12    | 0        | 100%         |
+| `com.dev.echodrop.db`             | 72    | 0        | 100%         |
 | `com.dev.echodrop.models`         | 20    | 0        | 100%         |
 | `com.dev.echodrop.repository`     | 14    | 0        | 100%         |
 | `com.dev.echodrop.screens`        | 14    | 0        | 100%         |
@@ -638,3 +642,79 @@ Test report generated at:
 | `bulkShouldNotShowPriorityLabel` | BULK does not trigger label |
 | `priorityEnumValuesMatchSpec` | Ordinal: ALERT < NORMAL < BULK |
 | `allThreePriorityTiersExist` | Exactly 3 enum values |
+
+---
+
+### 3.13 ChatCryptoTest (12 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/crypto/ChatCryptoTest.java`  
+**Runner:** Robolectric (`@Config(sdk = 33)`)  
+**Purpose:** Validates AES-256-GCM encryption, PBKDF2 key derivation, and round-trip fidelity
+
+| Test | Validates |
+|------|-----------|
+| `deriveKey_sameCode_returnsSameKey` | Same chat code produces identical key bytes |
+| `deriveKey_differentCodes_returnDifferentKeys` | Different codes derive distinct keys |
+| `deriveKey_keyIs256Bits` | Key length is exactly 32 bytes (256-bit) |
+| `deriveKey_algorithmIsAES` | SecretKeySpec algorithm is "AES" |
+| `encryptDecrypt_roundTrip_preservesPlaintext` | Encrypt → decrypt returns original text |
+| `encryptDecrypt_emptyString_roundTrip` | Empty string survives round-trip |
+| `encryptDecrypt_unicodeText_roundTrip` | Unicode and emoji survive round-trip |
+| `encryptDecrypt_longMessage_roundTrip` | 3 KB+ message survives round-trip |
+| `encrypt_samePlaintext_differentCiphertext` | Random IV guarantees different ciphertexts |
+| `decrypt_wrongKey_throwsException` | Decryption with wrong key throws RuntimeException |
+| `encrypt_outputIsBase64` | Ciphertext is valid Base64, no newlines, > 12 bytes decoded |
+| `salt_isExpectedValue` | PBKDF2 salt matches "EchoDrop-ChatKey-v1" |
+
+---
+
+### 3.14 ChatEntityTest (19 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/db/ChatEntityTest.java`  
+**Runner:** Pure JUnit  
+**Purpose:** Validates ChatEntity code generation, formatting, factory defaults, display logic, and ChatMessageEntity sync state
+
+| Test | Validates |
+|------|-----------|
+| `generateCode_returns8Characters` | Code length is exactly 8 |
+| `generateCode_usesOnlyValidCharacters` | All chars in allowed charset (50 runs) |
+| `generateCode_excludesAmbiguousCharacters` | No O, 0, I, or 1 in output (50 runs) |
+| `generateCode_codesAreStatisticallyUnique` | 100 codes produce > 90 unique values |
+| `formatCode_insertsHyphen` | "ABCDEFGH" → "ABCD-EFGH" |
+| `formatCode_shortCode_returnsUnchanged` | Short codes pass through unchanged |
+| `stripCode_removesDash` | "ABCD-EFGH" → "ABCDEFGH" |
+| `stripCode_uppercasesAndTrims` | Trims whitespace and uppercases input |
+| `create_setsdefaults` | Factory populates id, code, name, timestamps, zero unread |
+| `create_nullName_allowed` | Null name is stored without exception |
+| `create_generatesUniqueIds` | Two creates produce distinct UUIDs |
+| `getDisplayName_withName_returnsName` | Returns name when set |
+| `getDisplayName_withoutName_returnsFormattedCode` | Returns XXXX-XXXX when name is null |
+| `getDisplayName_emptyName_returnsFormattedCode` | Returns formatted code for blank name |
+| `getInitial_withName_returnsFirstCharUppercase` | First letter of name, uppercased |
+| `getInitial_withoutName_returnsFirstCodeChar` | Falls back to first code character |
+| `createOutgoing_setsCorrectDefaults` | ChatMessageEntity factory: outgoing, SYNC_SENT |
+| `createOutgoing_generatesUniqueIds` | Message IDs are distinct |
+| `syncStateConstants_haveCorrectValues` | PENDING=0, SENT=1, SYNCED=2 |
+
+---
+
+### 3.15 ChatDaoTest (12 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/db/ChatDaoTest.java`  
+**Runner:** Robolectric (`@Config(sdk = 33)`) + Room in-memory DB  
+**Purpose:** Validates Room DAO operations for chats and chat messages
+
+| Test | Validates |
+|------|-----------|
+| `insertAndRetrieve_chatById` | Insert chat → retrieve by ID returns correct entity |
+| `getChatByCode_findsCorrectChat` | Lookup by unique code returns matching chat |
+| `getChatByCode_unknownCode_returnsNull` | Unknown code returns null, not crash |
+| `deleteChat_removesChat` | Delete removes chat from DB |
+| `deleteChat_cascadesToMessages` | Foreign key CASCADE deletes child messages |
+| `insertAndRetrieve_messages_orderedByTimeAsc` | Messages returned in created_at ASC order |
+| `getMessageCount_returnsCorrectCount` | Count query returns correct message count |
+| `updateLastMessage_updatesPreviewAndTime` | Preview text and timestamp update correctly |
+| `incrementUnread_incrementsByOne` | Unread count increments by 1 per call |
+| `clearUnread_resetsToZero` | Clears unread count back to 0 |
+| `getAllChats_orderedByActivity` | Chats ordered by MAX(last_message_time, created_at) DESC |
+| `insertChat_replaceOnConflict_updatesExisting` | REPLACE strategy updates existing row on conflict |

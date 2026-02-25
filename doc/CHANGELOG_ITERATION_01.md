@@ -392,4 +392,4 @@ Verified via `./gradlew assembleDebug` with zero errors and zero warnings.
 ---
 
 *Changelog for EchoDrop Iteration 0-1 (Foundations + Visual Baseline)*  
-*Last updated: 2025*
+*Last updated: 2026*
