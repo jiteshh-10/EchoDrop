@@ -153,3 +153,33 @@ Context: UI should indicate when a data transfer is actively happening.
 Decided: Sync dot pulse speed changes from 2000ms (idle) to 500ms (active transfer) via `EchoService.TransferStateListener`.
 Why: Faster pulse gives users visual feedback that data is being received without requiring a new UI element. Reuses existing sync dot infrastructure.
 Impact: Static interface avoids service binding complexity. Listener set/cleared in fragment lifecycle to prevent leaks.
+
+## Decision: ActivityResultLauncher for permissions — hotfix-01
+Context: PermissionsFragment was cosmetic — "Allow" button navigated home without requesting permissions. Need a reliable runtime permission mechanism.
+Decided: Use `ActivityResultLauncher<String[]>` with `RequestMultiplePermissions` contract. Request all needed permissions (BLE, location, Wi-Fi, notifications) in a single batch.
+Why: Modern AndroidX API replaces deprecated `requestPermissions()`/`onRequestPermissionsResult()`. Single launcher handles the entire permission flow. Works correctly across API levels.
+Impact: One permission dialog covers all needs. On grant → service auto-starts immediately. On deny → user can enable later in Settings.
+
+## Decision: BLE → Wi-Fi Direct auto-connect pipeline — hotfix-01
+Context: BLE scanner, WifiDirectManager, and BundleSender/Receiver existed as isolated components. No code connected them into a working pipeline.
+Decided: Wire the pipeline in `EchoService.onCreate()`: BLE peer detection → `discoverPeers()` → auto-connect first peer → client sends via `sendAllMessages()`, owner receives via `BundleReceiver`.
+Why: Simplest orchestration that achieves end-to-end transfer. Auto-connect to first peer is acceptable for a mesh network where any peer is a valid target.
+Impact: Transfer happens automatically without user interaction. Disconnect after transfer allows re-discovery on next BLE cycle.
+
+## Decision: hasBlePermissions uses AND not OR — hotfix-01
+Context: `hasBlePermissions()` checked ADVERTISE || CONNECT || SCAN, allowing service start with only 1 of 3 permissions.
+Decided: Changed to ADVERTISE && CONNECT && SCAN — all 3 must be granted.
+Why: The service uses all three BLE operations. Starting with partial permissions causes crashes or silent failures in the missing operations.
+Impact: Service will not start until all BLE permissions are granted. More restrictive but correct.
+
+## Decision: Auto-start service in MainActivity.onCreate — hotfix-01
+Context: EchoService only started from SettingsFragment toggle. After onboarding, if the user killed the app and reopened it, the service would not restart.
+Decided: Added `EchoService.startService(this)` in `MainActivity.onCreate()` if permissions are granted and background sharing is enabled.
+Why: Service must survive app restarts. `START_STICKY` handles OS restarts, but cold launches need explicit start.
+Impact: Service is always running when the app is open and permissions are granted. No user action required after initial onboarding.
+
+## Decision: Real peer count via PeerCountListener — hotfix-01
+Context: `HomeInboxFragment` hardcoded `updateSyncIndicator(3)` — fake peer count.
+Decided: New static `PeerCountListener` interface on EchoService. BLE scanner's `setPeerUpdateListener` feeds real count → `notifyPeerCount()` → UI. Fragment registers in `onViewCreated`, clears in `onDestroyView`.
+Why: Same static-listener pattern as `TransferStateListener`. Consistent, no service binding needed, lifecycle-safe.
+Impact: Sync indicator now shows actual nearby peer count (0 when alone, N when peers detected).

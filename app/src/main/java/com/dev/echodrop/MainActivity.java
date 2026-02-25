@@ -15,6 +15,7 @@ import com.dev.echodrop.screens.OnboardingConsentFragment;
 import com.dev.echodrop.screens.PermissionsFragment;
 import com.dev.echodrop.screens.PrivateChatListFragment;
 import com.dev.echodrop.screens.SettingsFragment;
+import com.dev.echodrop.service.EchoService;
 import com.dev.echodrop.workers.TtlCleanupWorker;
 
 /**
@@ -37,6 +38,11 @@ public class MainActivity extends AppCompatActivity {
 
         // Schedule periodic TTL cleanup (every 15 minutes)
         TtlCleanupWorker.schedule(this);
+
+        // Auto-start the mesh service if permissions were previously granted
+        if (EchoService.hasBlePermissions(this) && EchoService.isBackgroundEnabled(this)) {
+            EchoService.startService(this);
+        }
 
         if (savedInstanceState == null) {
             getSupportFragmentManager()

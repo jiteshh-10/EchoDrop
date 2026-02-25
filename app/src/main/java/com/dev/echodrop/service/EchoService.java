@@ -25,10 +25,15 @@ import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
 import com.dev.echodrop.ble.BleAdvertiser;
 import com.dev.echodrop.ble.BleScanner;
+import com.dev.echodrop.db.AppDatabase;
+import com.dev.echodrop.db.MessageDao;
+import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.transfer.BundleReceiver;
+import com.dev.echodrop.transfer.BundleSender;
 import com.dev.echodrop.transfer.WifiDirectManager;
 
 import java.net.InetAddress;
+import java.util.List;
 
 /**
  * Foreground service that keeps BLE discovery and Wi-Fi Direct transfer running.
@@ -51,10 +56,15 @@ public class EchoService extends Service {
     private BleScanner scanner;
     private WifiDirectManager wifiDirectManager;
     private BundleReceiver bundleReceiver;
+    private BundleSender bundleSender;
     private boolean transferInProgress;
+    private boolean wifiDirectConnected;
 
     /** Listener for transfer state changes (used by UI for pulse animation). */
     private static TransferStateListener transferStateListener;
+
+    /** Listener for peer count changes (used by UI for sync indicator). */
+    private static PeerCountListener peerCountListener;
 
     /** Interface for observing transfer state from UI. */
     public interface TransferStateListener {
@@ -62,9 +72,20 @@ public class EchoService extends Service {
         void onTransferStateChanged(boolean inProgress);
     }
 
+    /** Interface for observing peer count from UI. */
+    public interface PeerCountListener {
+        /** Called when the number of nearby peers changes. */
+        void onPeerCountChanged(int count);
+    }
+
     /** Sets the global transfer state listener (from UI). */
     public static void setTransferStateListener(@Nullable final TransferStateListener listener) {
         transferStateListener = listener;
+    }
+
+    /** Sets the global peer count listener (from UI). */
+    public static void setPeerCountListener(@Nullable final PeerCountListener listener) {
+        peerCountListener = listener;
     }
 
     @Override
@@ -75,6 +96,7 @@ public class EchoService extends Service {
         scanner = new BleScanner(this);
         wifiDirectManager = new WifiDirectManager(this);
         bundleReceiver = new BundleReceiver(this);
+        bundleSender = new BundleSender();
 
         // Wire up bundle receiver callbacks for transfer state
         bundleReceiver.setReceiveCallback(new BundleReceiver.ReceiveCallback() {
@@ -100,6 +122,82 @@ public class EchoService extends Service {
                 notifyTransferState(false);
             }
         });
+
+        // --- BLE → Wi-Fi Direct → Transfer orchestration ---
+
+        // When BLE scanner discovers peers, start Wi-Fi Direct peer discovery
+        scanner.setPeerUpdateListener(peers -> {
+            if (!peers.isEmpty() && !wifiDirectConnected) {
+                Log.i(TAG, "BLE found " + peers.size() + " peers — starting Wi-Fi Direct discovery");
+                wifiDirectManager.discoverPeers();
+            }
+            // Notify UI about real peer count
+            notifyPeerCount(peers.size());
+        });
+
+        // When Wi-Fi Direct connects, send our messages to the peer (or receive)
+        wifiDirectManager.setConnectionCallback(new WifiDirectManager.ConnectionCallback() {
+            @Override
+            public void onConnected(@NonNull final InetAddress groupOwnerAddress,
+                                    final boolean isGroupOwner) {
+                wifiDirectConnected = true;
+                Log.i(TAG, "Wi-Fi Direct connected — groupOwner=" + isGroupOwner
+                        + " addr=" + groupOwnerAddress);
+
+                if (!isGroupOwner) {
+                    // Client side: send our messages to the group owner
+                    sendAllMessages(groupOwnerAddress);
+                }
+                // Group owner side: BundleReceiver is already listening on port 9876
+            }
+
+            @Override
+            public void onDisconnected() {
+                wifiDirectConnected = false;
+                Log.i(TAG, "Wi-Fi Direct disconnected");
+            }
+
+            @Override
+            public void onPeersAvailable(@NonNull final List<android.net.wifi.p2p.WifiP2pDevice> peers) {
+                Log.i(TAG, "Wi-Fi Direct found " + peers.size() + " peers");
+                // Auto-connect to first available peer if not already connected
+                if (!peers.isEmpty() && !wifiDirectConnected) {
+                    final android.net.wifi.p2p.WifiP2pDevice peer = peers.get(0);
+                    Log.i(TAG, "Auto-connecting to peer: " + peer.deviceName);
+                    wifiDirectManager.connect(peer);
+                }
+            }
+        });
+    }
+
+    /**
+     * Sends all active messages to the given peer address.
+     * Runs on background thread via BundleSender.
+     */
+    private void sendAllMessages(@NonNull final InetAddress address) {
+        final MessageDao dao = AppDatabase.getInstance(this).messageDao();
+        new Thread(() -> {
+            final List<MessageEntity> messages = dao.getActiveMessagesDirect(System.currentTimeMillis());
+            if (messages.isEmpty()) {
+                Log.i(TAG, "No messages to send");
+                return;
+            }
+            Log.i(TAG, "Sending " + messages.size() + " messages to " + address);
+            bundleSender.send(address, messages, new BundleSender.SendCallback() {
+                @Override
+                public void onSendComplete(final int count) {
+                    Log.i(TAG, "Sent " + count + " messages successfully");
+                    // Disconnect after transfer to allow re-discovery
+                    wifiDirectManager.disconnect();
+                }
+
+                @Override
+                public void onSendFailed(@NonNull final String error) {
+                    Log.e(TAG, "Send failed: " + error);
+                    wifiDirectManager.disconnect();
+                }
+            });
+        }, "SendMessages").start();
     }
 
     @Override
@@ -119,6 +217,7 @@ public class EchoService extends Service {
         advertiser.stop();
         scanner.stop();
         bundleReceiver.stop();
+        bundleSender.shutdown();
         wifiDirectManager.teardown();
         Log.i(TAG, "EchoService destroyed");
     }
@@ -164,6 +263,17 @@ public class EchoService extends Service {
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (transferStateListener != null) {
                     transferStateListener.onTransferStateChanged(inProgress);
+                }
+            });
+        }
+    }
+
+    /** Notifies the peer count listener on the main thread. */
+    private void notifyPeerCount(final int count) {
+        if (peerCountListener != null) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (peerCountListener != null) {
+                    peerCountListener.onPeerCountChanged(count);
                 }
             });
         }
@@ -237,9 +347,9 @@ public class EchoService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             return ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
-                    || ContextCompat.checkSelfPermission(context,
+                    && ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
-                    || ContextCompat.checkSelfPermission(context,
+                    && ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED;
         }
         // Pre-S: legacy BT permissions are normal (auto-granted)

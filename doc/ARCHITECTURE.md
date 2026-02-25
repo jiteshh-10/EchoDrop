@@ -991,12 +991,41 @@ Received messages are validated using `MessageEntity.computeHash()`:
 ```
 EchoService (Foreground Service)
     ├── BleAdvertiser (iter-5)
-    ├── BleScanner (iter-5)
-    ├── WifiDirectManager (iter-6) — initialized in onStartCommand
-    └── BundleReceiver (iter-6) — started in onStartCommand, stopped in onDestroy
+    ├── BleScanner (iter-5) ─── setPeerUpdateListener ──┐
+    ├── WifiDirectManager (iter-6) ◄────────────────────┘
+    │       ├── discoverPeers() triggered by BLE peer detection
+    │       ├── auto-connect to first available peer
+    │       └── onConnected → client: sendAllMessages() / owner: BundleReceiver
+    ├── BundleSender (hotfix-01) — outbound TCP transfer
+    └── BundleReceiver (iter-6) — inbound TCP server on port 9876
 ```
 
-`TransferStateListener` (static interface) enables `HomeInboxFragment` to adjust the sync dot pulse speed: 500ms during active transfer, 2000ms otherwise.
+#### End-to-End Orchestration Pipeline (Hotfix 01)
+
+The full discovery → connection → transfer pipeline is wired in `EchoService.onCreate()`:
+
+```
+BLE Scanner detects peers
+    → notifyPeerCount() → HomeInboxFragment sync indicator
+    → WifiDirectManager.discoverPeers() (if not connected)
+        → onPeersAvailable → auto-connect to first peer
+            → onConnected(address, isGroupOwner):
+                ├── Client: sendAllMessages(groupOwnerAddress)
+                │   └── queries DAO → BundleSender.send() → disconnect
+                └── Group Owner: BundleReceiver already listening on :9876
+            → onDisconnected: reset flag, await next BLE cycle
+```
+
+#### Auto-Start Behavior (Hotfix 01)
+
+The service starts automatically in two scenarios:
+1. **Onboarding:** `PermissionsFragment` calls `EchoService.startService()` immediately after permissions are granted
+2. **App relaunch:** `MainActivity.onCreate()` calls `EchoService.startService()` if `hasBlePermissions() && isBackgroundEnabled()`
+
+#### UI Observers
+
+- `TransferStateListener` (static interface) enables `HomeInboxFragment` to adjust the sync dot pulse speed: 500ms during active transfer, 2000ms otherwise.
+- `PeerCountListener` (static interface) enables `HomeInboxFragment` to display the real BLE peer count in the sync indicator.
 
 ### Permissions (Wi-Fi Direct)
 

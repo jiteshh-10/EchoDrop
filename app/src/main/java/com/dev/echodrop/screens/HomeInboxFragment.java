@@ -90,14 +90,20 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         setupTabs();
         setupFabs();
         setupViewModel();
-        // Seed with simulated nearby devices for demo/static baseline
-        updateSyncIndicator(3);
+        // Start with 0 peers — real count will come from EchoService
+        updateSyncIndicator(0);
 
         // Listen for transfer state → faster pulse
         EchoService.setTransferStateListener(inProgress -> {
             if (binding == null) return;
             transferActive = inProgress;
             restartSyncDotPulse();
+        });
+
+        // Listen for real peer count from BLE scanner
+        EchoService.setPeerCountListener(count -> {
+            if (binding == null) return;
+            updateSyncIndicator(count);
         });
     }
 
@@ -398,6 +404,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     public void onDestroyView() {
         super.onDestroyView();
         EchoService.setTransferStateListener(null);
+        EchoService.setPeerCountListener(null);
         if (syncDotAnimator != null) {
             syncDotAnimator.cancel();
             syncDotAnimator = null;
