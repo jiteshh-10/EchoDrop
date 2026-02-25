@@ -68,10 +68,17 @@ public class MessageRepo {
     // ──────────────────── Read Operations ────────────────────
 
     /**
-     * Returns all active (non-expired) messages as LiveData, ordered by newest first.
+     * Returns all active (non-expired) messages as LiveData, ordered by priority then newest.
      */
     public LiveData<List<MessageEntity>> getActiveMessages() {
         return dao.getActiveMessages(System.currentTimeMillis());
+    }
+
+    /**
+     * Returns a reactive count of non-expired ALERT messages.
+     */
+    public LiveData<Integer> getAlertCount() {
+        return dao.getAlertCount(System.currentTimeMillis());
     }
 
     /**

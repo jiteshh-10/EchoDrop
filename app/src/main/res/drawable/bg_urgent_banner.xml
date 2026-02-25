@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Left border -->
+    <item android:width="@dimen/priority_banner_border">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/echo_alert_accent" />
+            <corners
+                android:topLeftRadius="@dimen/priority_banner_corner"
+                android:bottomLeftRadius="@dimen/priority_banner_corner" />
+        </shape>
+    </item>
+    <!-- Background fill -->
+    <item android:left="@dimen/priority_banner_border">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/echo_alert_tint" />
+            <corners
+                android:topRightRadius="@dimen/priority_banner_corner"
+                android:bottomRightRadius="@dimen/priority_banner_corner" />
+        </shape>
+    </item>
+</layer-list>

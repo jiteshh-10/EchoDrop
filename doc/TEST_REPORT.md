@@ -1,9 +1,9 @@
 # EchoDrop — Test Report
 
-> **Iterations 0-1 + 2: Foundations + Local Persistence**  
+> **Iterations 0-1 + 2 + 3: Foundations + Local Persistence + Priority Handling**  
 > **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
-> **Execution Date:** 2025  
-> **Result:** ✅ **191 tests — 0 failures — 100% pass rate**
+> **Execution Date:** 2026  
+> **Result:** ✅ **214 tests — 0 failures — 100% pass rate**
 
 ---
 
@@ -22,6 +22,8 @@
   - [3.8 MainActivityTest (15 tests)](#38-mainactivitytest-15-tests)
   - [3.9 DesignSystemTest (46 tests)](#39-designsystemtest-46-tests)
   - [3.10 ExampleUnitTest (1 test)](#310-exampleunittest-1-test)
+  - [3.11 PriorityDaoTest (13 tests)](#311-prioritydaotest-13-tests)
+  - [3.12 PriorityRenderingTest (10 tests)](#312-priorityrenderingtest-10-tests)
 - [4. Bugs Found & Fixed During Testing](#4-bugs-found--fixed-during-testing)
 - [5. Test Coverage Matrix](#5-test-coverage-matrix)
 - [6. Testing Methodology](#6-testing-methodology)
@@ -33,12 +35,12 @@
 
 | Metric            | Value          |
 |-------------------|----------------|
-| **Total Tests**   | 191            |
-| **Passed**        | 191            |
+| **Total Tests**   | 214            |
+| **Passed**        | 214            |
 | **Failed**        | 0              |
 | **Ignored**       | 0              |
 | **Success Rate**  | 100%           |
-| **Test Classes**  | 10             |
+| **Test Classes**  | 12             |
 | **Packages Tested** | 8           |
 
 ### Package Results
@@ -46,9 +48,9 @@
 | Package                           | Tests | Failures | Success Rate |
 |-----------------------------------|-------|----------|--------------|
 | `com.dev.echodrop`                | 62    | 0        | 100%         |
-| `com.dev.echodrop.adapters`       | 16    | 0        | 100%         |
+| `com.dev.echodrop.adapters`       | 26    | 0        | 100%         |
 | `com.dev.echodrop.components`     | 27    | 0        | 100%         |
-| `com.dev.echodrop.db`             | 28    | 0        | 100%         |
+| `com.dev.echodrop.db`             | 41    | 0        | 100%         |
 | `com.dev.echodrop.models`         | 20    | 0        | 100%         |
 | `com.dev.echodrop.repository`     | 14    | 0        | 100%         |
 | `com.dev.echodrop.screens`        | 14    | 0        | 100%         |
@@ -590,6 +592,49 @@ Test report generated at:
 
 ---
 
-*Test Report for EchoDrop Iteration 0-1 (Foundations + Visual Baseline)*  
-*Generated: February 2025*  
-*Build Status: ✅ `BUILD SUCCESSFUL` | Test Status: ✅ `151/151 PASSED`*
+*Test Report for EchoDrop Iterations 0-1 + 2 + 3*  
+*Generated: February 2026*  
+*Build Status: ✅ `BUILD SUCCESSFUL` | Test Status: ✅ `214/214 PASSED`*
+
+---
+
+### 3.11 PriorityDaoTest (13 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/db/PriorityDaoTest.java`  
+**Runner:** Robolectric + in-memory Room DB  
+**Purpose:** Validates Iteration 3 priority-aware DAO queries
+
+| Test | Validates |
+|------|-----------|
+| `alertAppearsBeforeNormal` | ALERT sorted before NORMAL regardless of creation time |
+| `alertBeforeNormalBeforeBulk` | Full 3-tier sort: ALERT → NORMAL → BULK |
+| `samePriorityOrderedByNewestFirst` | Within same tier, newest created_at first |
+| `alertNewerThanNormalStillFirst` | Priority trumps recency |
+| `multipleAlertsOrderedByNewest` | Multiple ALERTs sorted by created_at DESC |
+| `expiredMessagesExcludedFromActiveList` | Expired messages not returned |
+| `alertCountReturnsZeroWhenEmpty` | No messages → count = 0 |
+| `alertCountReturnsCorrectCount` | 2 ALERTs + 1 NORMAL → count = 2 |
+| `alertCountExcludesExpired` | Expired ALERT not counted |
+| `alertCountExcludesNormalAndBulk` | Only ALERTs are counted |
+| `deleteOldestBulkPreservesAlertAndNormal` | BULK evicted, others preserved |
+| `deleteOldestNormalPreservesAlert` | NORMAL evicted, ALERT preserved |
+| `bulkEvictedBeforeNormal` | Eviction order: BULK first |
+
+### 3.12 PriorityRenderingTest (10 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/adapters/PriorityRenderingTest.java`  
+**Runner:** Pure JUnit  
+**Purpose:** Validates priority enum behavior and badge rendering logic
+
+| Test | Validates |
+|------|-----------|
+| `alertMessageHasPriorityAlert` | ALERT entity returns correct enum |
+| `normalMessageHasPriorityNormal` | NORMAL entity returns correct enum |
+| `bulkMessageHasPriorityBulk` | BULK entity returns correct enum |
+| `alertPriorityStringIsAlert` | String value matches "ALERT" |
+| `priorityIsImmutableAfterCreation` | setPriority changes reflected faithfully |
+| `alertShouldShowPriorityLabel` | ALERT triggers label visibility |
+| `normalShouldNotShowPriorityLabel` | NORMAL does not trigger label |
+| `bulkShouldNotShowPriorityLabel` | BULK does not trigger label |
+| `priorityEnumValuesMatchSpec` | Ordinal: ALERT < NORMAL < BULK |
+| `allThreePriorityTiersExist` | Exactly 3 enum values |

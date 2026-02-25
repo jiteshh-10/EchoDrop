@@ -26,11 +26,19 @@ public interface MessageDao {
     // ──────────────────── Live Queries ────────────────────
 
     /**
-     * Returns all non-expired messages ordered by creation time (newest first).
-     * Observed as LiveData so the UI updates automatically.
+     * Returns all non-expired messages ordered by priority then creation time.
+     * ALERT (0) → NORMAL (1) → BULK (2), newest first within each tier.
      */
-    @Query("SELECT * FROM messages WHERE expires_at > :now ORDER BY created_at DESC")
+    @Query("SELECT * FROM messages WHERE expires_at > :now " +
+            "ORDER BY CASE priority WHEN 'ALERT' THEN 0 WHEN 'NORMAL' THEN 1 ELSE 2 END ASC, " +
+            "created_at DESC")
     LiveData<List<MessageEntity>> getActiveMessages(long now);
+
+    /**
+     * Returns count of non-expired ALERT messages.
+     */
+    @Query("SELECT COUNT(*) FROM messages WHERE priority = 'ALERT' AND expires_at > :now")
+    LiveData<Integer> getAlertCount(long now);
 
     /**
      * Returns all messages regardless of expiry, ordered by creation time (newest first).

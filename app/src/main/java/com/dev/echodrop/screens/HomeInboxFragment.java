@@ -46,6 +46,13 @@ import java.util.Locale;
  *   <li>Post composer inserts via MessageRepo with dedup</li>
  * </ul>
  * </p>
+ *
+ * <p>Updated in Iteration 3:
+ * <ul>
+ *   <li>Reactive alert count badge on Alerts tab (fade animation)</li>
+ *   <li>DAO sort by priority (ALERT &gt; NORMAL &gt; BULK) then created_at</li>
+ * </ul>
+ * </p>
  */
 public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnPostListener {
 
@@ -202,6 +209,8 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             allMessages = messages == null ? new ArrayList<>() : new ArrayList<>(messages);
             applyFilters();
         });
+        // Reactive alert count badge
+        viewModel.getAlertCount().observe(getViewLifecycleOwner(), this::updateAlertBadge);
     }
 
     private void selectTab(Tab tab) {
@@ -224,11 +233,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     private void applyFilters() {
         List<MessageEntity> filtered = new ArrayList<>();
         String normalized = query.toLowerCase(Locale.US).trim();
-        int alertCount = 0;
         for (MessageEntity message : allMessages) {
-            if (message.getPriorityEnum() == MessageEntity.Priority.ALERT) {
-                alertCount++;
-            }
             if (activeTab == Tab.ALERTS && message.getPriorityEnum() != MessageEntity.Priority.ALERT) {
                 continue;
             }
@@ -242,12 +247,29 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         }
         adapter.submitList(filtered);
         updateEmptyState(filtered.isEmpty());
-        updateTabBadges(alertCount);
     }
 
-    private void updateTabBadges(int alertCount) {
+    /**
+     * Update the Alerts tab badge with fade animation.
+     * Badge fades in over 180ms when count > 0, fades out when count drops to 0.
+     */
+    private void updateAlertBadge(int alertCount) {
         if (alertCount > 0) {
-            binding.tabAlerts.setText(getString(R.string.tab_alerts) + " (" + alertCount + ")");
+            final String label = getString(R.string.tab_alerts) + " (" + alertCount + ")";
+            if (binding.tabAlerts.getVisibility() == View.VISIBLE
+                    && binding.tabAlerts.getAlpha() == 1f) {
+                // Crossfade the text update
+                binding.tabAlerts.animate().alpha(0f).setDuration(90).withEndAction(() -> {
+                    if (binding != null) {
+                        binding.tabAlerts.setText(label);
+                        binding.tabAlerts.animate().alpha(1f).setDuration(90).start();
+                    }
+                }).start();
+            } else {
+                binding.tabAlerts.setText(label);
+                binding.tabAlerts.setAlpha(0f);
+                binding.tabAlerts.animate().alpha(1f).setDuration(180).start();
+            }
         } else {
             binding.tabAlerts.setText(R.string.tab_alerts);
         }

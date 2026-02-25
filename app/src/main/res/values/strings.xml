@@ -111,4 +111,8 @@
 
     <!-- Dedup (Iteration 2) -->
     <string name="post_dedup_snackbar">You already posted something very similar</string>
+
+    <!-- Priority (Iteration 3) -->
+    <string name="detail_urgent_banner">Urgent message</string>
+    <string name="priority_badge_urgent">URGENT</string>
 </resources>

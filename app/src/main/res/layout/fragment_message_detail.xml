@@ -27,11 +27,49 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Urgent banner — visible only for ALERT messages -->
+    <LinearLayout
+        android:id="@+id/detail_urgent_banner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_2"
+        android:layout_marginEnd="@dimen/spacing_2"
+        android:layout_marginTop="@dimen/list_item_padding_vertical"
+        android:background="@drawable/bg_urgent_banner"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="@dimen/spacing_2"
+        android:paddingTop="@dimen/list_item_padding_vertical"
+        android:paddingRight="@dimen/spacing_2"
+        android:paddingBottom="@dimen/list_item_padding_vertical"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_divider">
+
+        <ImageView
+            android:layout_width="@dimen/priority_banner_icon_size"
+            android:layout_height="@dimen/priority_banner_icon_size"
+            android:contentDescription="@string/detail_urgent_banner"
+            android:src="@android:drawable/ic_dialog_alert"
+            android:tint="@color/echo_alert_accent" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_1"
+            android:fontFamily="sans-serif"
+            android:text="@string/detail_urgent_banner"
+            android:textColor="@color/echo_alert_accent"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
-        app:layout_constraintTop_toBottomOf="@id/toolbar_divider"
+        app:layout_constraintTop_toBottomOf="@id/detail_urgent_banner"
         app:layout_constraintBottom_toTopOf="@id/button_container"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
