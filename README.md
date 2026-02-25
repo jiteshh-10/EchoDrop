@@ -28,6 +28,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 - [9. Build & Setup](#9-build--setup)
 - [10. Iteration 0-1 Completion Status](#10-iteration-0-1-completion-status)
 - [11. Iteration 2 Completion Status](#11-iteration-2-completion-status)
+- [12. Iteration 3 Completion Status](#12-iteration-3-completion-status)
 
 ---
 
@@ -41,7 +42,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 | **Compile SDK**  | 35                                           |
 | **Language**     | Java 11                                      |
 | **Theme**        | Material 3 — Dark Only                       |
-| **Branch**       | `main` (latest: `iteration-2`)               |
+| **Branch**       | `main` (latest: `iteration-3`)               |
 
 ### Concept
 
@@ -49,6 +50,7 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 
 - **Iteration 0-1** established the complete visual foundation and UI scaffold.
 - **Iteration 2** added Room persistence, SHA-256 deduplication, storage cap enforcement, WorkManager TTL cleanup, and a message detail screen.
+- **Iteration 3** added priority-aware inbox ordering (ALERT > NORMAL > BULK), visual priority treatment, urgent banner in detail screen, reactive alert count badge, and Post button color transition on urgent toggle.
 
 ---
 
@@ -149,6 +151,7 @@ EchoDrop/
 │           │   ├── bg_badge_primary.xml
 │           │   ├── bg_badge_alert.xml
 │           │   ├── bg_badge_positive.xml
+│           │   ├── bg_urgent_banner.xml    ← Urgent banner drawable (iter-3)
 │           │   ├── bg_circle.xml
 │           │   ├── bg_icon_holder.xml
 │           │   └── ic_wifi.xml
@@ -809,5 +812,34 @@ android {
 
 ---
 
-*Documentation for EchoDrop — Iterations 0-1 + 2*  
-*Last updated: 2025*
+*Documentation for EchoDrop — Iterations 0-1 + 2 + 3*  
+*Last updated: 2026*
+
+---
+
+## 12. Iteration 3 Completion Status
+
+> Priority Handling + Inbox Semantics
+
+### Summary
+
+| Category                  | Items | Status |
+|---------------------------|-------|--------|
+| Updated Production Files  | 6     | ✅ Complete |
+| New Drawables             | 1     | ✅ Complete |
+| New Test Files            | 2     | ✅ Complete |
+| Build Verification        | —     | ✅ `BUILD SUCCESSFUL` |
+| Unit Tests                | 214   | ✅ 0 failures (100% pass rate) |
+
+### Key Features
+
+- [x] Priority-aware DAO query: `ORDER BY CASE priority WHEN 'ALERT' THEN 0 WHEN 'NORMAL' THEN 1 ELSE 2 END ASC, created_at DESC`
+- [x] URGENT messages: left border `echo_alert_accent` (3dp), URGENT badge with `bg_badge_alert` background
+- [x] NORMAL messages: left border `echo_primary_accent` when unread, no badge
+- [x] BULK messages: left border `echo_muted_disabled` when unread
+- [x] Reactive alert count badge on Alerts tab (fade animation 180ms)
+- [x] Urgent banner in MessageDetailFragment (fade in + slide down 4dp over 180ms)
+- [x] Post button color transitions from `echo_primary_accent` to `echo_alert_accent` when urgent toggle is ON (180ms ArgbEvaluator)
+- [x] `getAlertCount()` LiveData in DAO, Repo, and ViewModel
+- [x] Priority immutable after creation — no UI to change priority
+- [x] BULK not user-selectable (reserved for system/forwarded messages)

@@ -15,4 +15,10 @@
     <dimen name="card_corner_radius">10dp</dimen>
     <dimen name="badge_corner_radius">20dp</dimen>
     <dimen name="input_corner_radius">8dp</dimen>
+
+    <!-- Priority (Iteration 3) -->
+    <dimen name="priority_border_width">3dp</dimen>
+    <dimen name="priority_banner_corner">8dp</dimen>
+    <dimen name="priority_banner_border">4dp</dimen>
+    <dimen name="priority_banner_icon_size">20dp</dimen>
 </resources>

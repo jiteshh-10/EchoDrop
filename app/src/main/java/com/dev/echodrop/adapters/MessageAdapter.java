@@ -84,8 +84,9 @@ public class MessageAdapter extends ListAdapter<MessageEntity, MessageAdapter.Me
 
             if (message.getPriorityEnum() == MessageEntity.Priority.ALERT) {
                 binding.priorityLabel.setVisibility(View.VISIBLE);
-                binding.priorityLabel.setText(R.string.message_priority_urgent);
+                binding.priorityLabel.setText(R.string.priority_badge_urgent);
                 binding.priorityLabel.setTextColor(ContextCompat.getColor(context, R.color.echo_alert_accent));
+                binding.priorityLabel.setBackgroundResource(R.drawable.bg_badge_alert);
                 binding.priorityDot.setBackgroundTintList(ContextCompat.getColorStateList(context, R.color.echo_alert_accent));
                 binding.unreadBorder.setBackgroundTintList(ContextCompat.getColorStateList(context, R.color.echo_alert_accent));
             } else if (message.getPriorityEnum() == MessageEntity.Priority.BULK) {

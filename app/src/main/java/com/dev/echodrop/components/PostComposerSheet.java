@@ -1,5 +1,7 @@
 package com.dev.echodrop.components;
 
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
@@ -117,7 +119,27 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
         binding.urgentSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             binding.urgentLabel.setText(isChecked ? R.string.post_marked_urgent : R.string.post_mark_urgent);
             binding.urgentHint.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            animatePostButtonColor(isChecked);
         });
+    }
+
+    /**
+     * Transitions the Post button color between primary and alert accent over 180ms.
+     */
+    private void animatePostButtonColor(boolean urgent) {
+        final int fromColor = ContextCompat.getColor(requireContext(),
+                urgent ? R.color.echo_primary_accent : R.color.echo_alert_accent);
+        final int toColor = ContextCompat.getColor(requireContext(),
+                urgent ? R.color.echo_alert_accent : R.color.echo_primary_accent);
+        final ValueAnimator animator = ValueAnimator.ofObject(new ArgbEvaluator(), fromColor, toColor);
+        animator.setDuration(180);
+        animator.addUpdateListener(animation -> {
+            if (binding != null) {
+                int color = (int) animation.getAnimatedValue();
+                binding.postSubmit.setBackgroundTintList(ColorStateList.valueOf(color));
+            }
+        });
+        animator.start();
     }
 
     private void setupCharacterCounter() {

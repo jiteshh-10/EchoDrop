@@ -23,11 +23,13 @@ public class MessageViewModel extends AndroidViewModel {
 
     private final MessageRepo repo;
     private final LiveData<List<MessageEntity>> messages;
+    private final LiveData<Integer> alertCount;
 
     public MessageViewModel(@NonNull Application application) {
         super(application);
         repo = new MessageRepo(application);
         messages = repo.getActiveMessages();
+        alertCount = repo.getAlertCount();
     }
 
     /**
@@ -37,14 +39,22 @@ public class MessageViewModel extends AndroidViewModel {
         super(application);
         this.repo = repo;
         this.messages = repo.getActiveMessages();
+        this.alertCount = repo.getAlertCount();
     }
 
     /**
      * Returns LiveData of all active (non-expired) messages.
-     * Automatically updates when Room data changes.
+     * Ordered by priority (ALERT first), then newest.
      */
     public LiveData<List<MessageEntity>> getMessages() {
         return messages;
+    }
+
+    /**
+     * Returns reactive count of non-expired ALERT messages.
+     */
+    public LiveData<Integer> getAlertCount() {
+        return alertCount;
     }
 
     /**

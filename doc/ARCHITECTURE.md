@@ -18,6 +18,7 @@
 - [10. Design Decisions & Rationale](#10-design-decisions--rationale)
 - [11. Known Limitations & Future Work](#11-known-limitations--future-work)
 - [12. Room Persistence Layer (Iteration 2)](#12-room-persistence-layer-iteration-2)
+- [13. Priority Handling (Iteration 3)](#13-priority-handling-iteration-3)
 
 ---
 
@@ -678,5 +679,59 @@ When total message count exceeds 200:
 
 ---
 
-*Architecture document for EchoDrop — Iterations 0-1 + 2*  
-*Last updated: 2025*
+*Architecture document for EchoDrop — Iterations 0-1 + 2 + 3*  
+*Last updated: 2026*
+
+---
+
+## 13. Priority Handling (Iteration 3)
+
+### Priority Classes
+
+| Class   | Ordinal | DAO Sort | Eviction Order | User-Selectable |
+|---------|---------|----------|----------------|-----------------|
+| ALERT   | 0       | First    | Never evicted  | Yes (urgent toggle) |
+| NORMAL  | 1       | Second   | After BULK     | Yes (default)   |
+| BULK    | 2       | Last     | First evicted  | No (system/forward only) |
+
+### Priority-Aware DAO Query
+
+```sql
+SELECT * FROM messages
+WHERE expires_at > :now
+ORDER BY
+  CASE priority WHEN 'ALERT' THEN 0 WHEN 'NORMAL' THEN 1 ELSE 2 END ASC,
+  created_at DESC
+```
+
+This is the **single source of ordering truth** — the adapter never manually reorders.
+
+### Alert Count Query
+
+```sql
+SELECT COUNT(*) FROM messages WHERE priority = 'ALERT' AND expires_at > :now
+```
+
+Exposed as `LiveData<Integer>` through `MessageDao.getAlertCount()` → `MessageRepo.getAlertCount()` → `MessageViewModel.getAlertCount()`.
+
+### Visual Treatment
+
+| Priority | Left Border     | Badge              | Detail Banner |
+|----------|-----------------|--------------------|---------------|
+| ALERT    | 3dp `echo_alert_accent` | "URGENT" with `bg_badge_alert` | Fade+slide banner with AlertCircle icon |
+| NORMAL   | 3dp `echo_primary_accent` (unread) | None | None |
+| BULK     | 3dp `echo_muted_disabled` (unread) | None | None |
+
+### Post Composer Behavior
+
+- Users choose Normal (default) or Urgent only
+- BULK is not exposed in the Post Composer UI
+- When urgent toggle is ON, Post button transitions from `echo_primary_accent` → `echo_alert_accent` over 180ms using `ArgbEvaluator`
+- Priority is immutable after message creation
+
+### Retention Policy (unchanged from Iteration 2)
+
+When storage cap (200 rows) is reached:
+1. Delete oldest BULK messages first
+2. If still over cap, delete oldest NORMAL messages
+3. ALERT messages are **never evicted** before their TTL expires

@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.FragmentMessageDetailBinding;
@@ -163,10 +164,28 @@ public class MessageDetailFragment extends Fragment {
     private void bindPriorityBadge(@NonNull MessageEntity message) {
         if (message.getPriorityEnum() == MessageEntity.Priority.ALERT) {
             binding.detailPriorityBadge.setVisibility(View.VISIBLE);
-            binding.detailPriorityBadge.setText(R.string.message_priority_urgent);
+            binding.detailPriorityBadge.setText(R.string.priority_badge_urgent);
+            // Show urgent banner with animation
+            showUrgentBanner();
         } else {
             binding.detailPriorityBadge.setVisibility(View.GONE);
+            binding.detailUrgentBanner.setVisibility(View.GONE);
         }
+    }
+
+    /**
+     * Animate the urgent banner: fade in + slide down from 4dp over 180ms.
+     */
+    private void showUrgentBanner() {
+        binding.detailUrgentBanner.setAlpha(0f);
+        binding.detailUrgentBanner.setTranslationY(-4f * getResources().getDisplayMetrics().density);
+        binding.detailUrgentBanner.setVisibility(View.VISIBLE);
+        binding.detailUrgentBanner.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(180)
+                .setInterpolator(new FastOutSlowInInterpolator())
+                .start();
     }
 
     private String getVisibleToText(@NonNull MessageEntity message) {
