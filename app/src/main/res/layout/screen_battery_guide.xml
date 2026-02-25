@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Battery guide screen layout (Iteration 5) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/echo_bg_main"
+    android:orientation="vertical">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/battery_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/app_bar_height"
+        android:background="@color/echo_elevated_surface"
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationContentDescription="@string/content_back"
+        app:title="@string/battery_title"
+        app:titleTextColor="@color/echo_text_primary" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/echo_divider" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_2">
+
+            <!-- Intro card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_oem_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingMultiplier="1.5"
+                    android:text="@string/battery_intro"
+                    android:textColor="@color/echo_text_secondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- Samsung section -->
+            <LinearLayout
+                android:id="@+id/section_samsung"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_2"
+                android:background="@drawable/bg_oem_card"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/header_samsung"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/min_touch_target"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/oem_card_padding">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/battery_samsung"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/arrow_samsung"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/content_chevron"
+                        android:src="@drawable/ic_expand" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/body_samsung"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/oem_card_padding"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/step_indent"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="@string/battery_samsung_step1"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/step_indent"
+                        android:layout_marginTop="@dimen/spacing_1"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="@string/battery_samsung_step2"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="2dp"
+                android:background="@color/echo_divider" />
+
+            <!-- Xiaomi / MIUI section -->
+            <LinearLayout
+                android:id="@+id/section_xiaomi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_oem_card"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/header_xiaomi"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/min_touch_target"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/oem_card_padding">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/battery_xiaomi"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/arrow_xiaomi"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/content_chevron"
+                        android:src="@drawable/ic_expand" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/body_xiaomi"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/oem_card_padding"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/step_indent"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="@string/battery_xiaomi_step1"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/step_indent"
+                        android:layout_marginTop="@dimen/spacing_1"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="@string/battery_xiaomi_step2"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="2dp"
+                android:background="@color/echo_divider" />
+
+            <!-- OnePlus / OxygenOS section -->
+            <LinearLayout
+                android:id="@+id/section_oneplus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_oem_card"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/header_oneplus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/min_touch_target"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/oem_card_padding">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/battery_oneplus"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/arrow_oneplus"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/content_chevron"
+                        android:src="@drawable/ic_expand" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/body_oneplus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/oem_card_padding"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/step_indent"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="@string/battery_oneplus_step1"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="2dp"
+                android:background="@color/echo_divider" />
+
+            <!-- Stock Android section -->
+            <LinearLayout
+                android:id="@+id/section_stock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_oem_card"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/header_stock"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/min_touch_target"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/oem_card_padding">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/battery_stock"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/arrow_stock"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/content_chevron"
+                        android:src="@drawable/ic_expand" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/body_stock"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/oem_card_padding"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/step_indent"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="@string/battery_stock_step1"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Done button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_done"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/spacing_2"
+        android:minHeight="@dimen/min_touch_target"
+        android:text="@string/battery_done"
+        android:textColor="@color/echo_text_primary"
+        app:backgroundTint="@color/echo_primary_accent"
+        app:cornerRadius="@dimen/input_corner_radius" />
+</LinearLayout>

@@ -36,4 +36,12 @@
     <dimen name="info_note_border">3dp</dimen>
     <dimen name="sync_indicator_size">12dp</dimen>
     <dimen name="qr_size">200dp</dimen>
+
+    <!-- Discovery & Settings (Iteration 5) -->
+    <dimen name="stat_card_size">150dp</dimen>
+    <dimen name="status_dot_size">8dp</dimen>
+    <dimen name="dev_badge_corner">20dp</dimen>
+    <dimen name="section_header_spacing">32dp</dimen>
+    <dimen name="oem_card_padding">14dp</dimen>
+    <dimen name="step_indent">12dp</dimen>
 </resources>

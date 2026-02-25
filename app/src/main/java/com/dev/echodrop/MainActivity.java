@@ -4,14 +4,17 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.dev.echodrop.screens.BatteryGuideFragment;
 import com.dev.echodrop.screens.ChatConversationFragment;
 import com.dev.echodrop.screens.CreateChatFragment;
+import com.dev.echodrop.screens.DiscoveryStatusFragment;
 import com.dev.echodrop.screens.HomeInboxFragment;
 import com.dev.echodrop.screens.HowItWorksFragment;
 import com.dev.echodrop.screens.MessageDetailFragment;
 import com.dev.echodrop.screens.OnboardingConsentFragment;
 import com.dev.echodrop.screens.PermissionsFragment;
 import com.dev.echodrop.screens.PrivateChatListFragment;
+import com.dev.echodrop.screens.SettingsFragment;
 import com.dev.echodrop.workers.TtlCleanupWorker;
 
 /**
@@ -136,6 +139,39 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.fragment_container,
                         ChatConversationFragment.newInstance(chatId, chatCode, chatName))
                 .addToBackStack("conversation")
+                .commit();
+    }
+
+    public void showSettings() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new SettingsFragment())
+                .addToBackStack("settings")
+                .commit();
+    }
+
+    public void showBatteryGuide() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new BatteryGuideFragment())
+                .addToBackStack("batteryGuide")
+                .commit();
+    }
+
+    public void showDiscoveryStatus() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new DiscoveryStatusFragment())
+                .addToBackStack("discoveryStatus")
                 .commit();
     }
 }

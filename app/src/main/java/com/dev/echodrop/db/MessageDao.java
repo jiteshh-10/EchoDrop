@@ -41,6 +41,25 @@ public interface MessageDao {
     LiveData<Integer> getAlertCount(long now);
 
     /**
+     * Synchronous query returning all non-expired messages, ordered by priority
+     * then creation time. Used by ManifestManager for manifest building.
+     */
+    @Query("SELECT * FROM messages WHERE expires_at > :now " +
+            "ORDER BY CASE priority WHEN 'ALERT' THEN 0 WHEN 'NORMAL' THEN 1 ELSE 2 END ASC, " +
+            "created_at DESC")
+    List<MessageEntity> getActiveMessagesDirect(long now);
+
+    /**
+     * Synchronous query returning all non-expired messages (uses current time).
+     * Convenience wrapper for ManifestManager.
+     */
+    @Query("SELECT * FROM messages WHERE expires_at > " +
+            "(strftime('%s','now') * 1000) " +
+            "ORDER BY CASE priority WHEN 'ALERT' THEN 0 WHEN 'NORMAL' THEN 1 ELSE 2 END ASC, " +
+            "created_at DESC")
+    List<MessageEntity> getActiveMessagesDirect();
+
+    /**
      * Returns all messages regardless of expiry, ordered by creation time (newest first).
      * Used internally for storage cap calculations.
      */
