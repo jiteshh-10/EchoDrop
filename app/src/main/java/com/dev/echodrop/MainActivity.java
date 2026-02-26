@@ -102,6 +102,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showPermissions() {
+        // Mark onboarding done immediately — user tapped "Get Started",
+        // so even if the process dies during permission dialog, the
+        // onboarding screen will not reappear.
+        markOnboardingComplete();
         getSupportFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(
@@ -113,6 +117,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showHowItWorks() {
+        // Mark onboarding done — user has engaged with the onboarding screen
+        markOnboardingComplete();
         getSupportFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(
