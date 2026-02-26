@@ -110,6 +110,12 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             updateSyncIndicator(count);
         });
 
+        // Listen for BT/P2P prerequisite changes → show warning in sync indicator
+        EchoService.setPrerequisiteListener((btOn, p2pOn) -> {
+            if (binding == null) return;
+            updatePrerequisiteWarning(btOn, p2pOn);
+        });
+
         // Periodic TTL refresh so message card timestamps stay current
         startTtlRefresh();
     }
@@ -392,6 +398,33 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         }
     }
 
+    /**
+     * Shows a warning in the sync indicator when BT or P2P is off.
+     * Overrides the normal peer count display until prerequisites are met.
+     */
+    private void updatePrerequisiteWarning(boolean btOn, boolean p2pOn) {
+        if (btOn && p2pOn) {
+            // Prerequisites met — restore normal peer count display
+            // Let the next peer count callback handle it
+            return;
+        }
+        // Show warning
+        if (syncDotAnimator != null) {
+            syncDotAnimator.cancel();
+            syncDotAnimator = null;
+        }
+        binding.syncDot.setVisibility(View.VISIBLE);
+        binding.syncDot.setBackgroundTintList(
+                ContextCompat.getColorStateList(requireContext(), R.color.echo_amber_accent));
+        if (!btOn) {
+            binding.syncText.setText(R.string.sync_bt_off);
+        } else {
+            binding.syncText.setText(R.string.sync_wifi_off);
+        }
+        binding.syncText.setTextColor(
+                ContextCompat.getColor(requireContext(), R.color.echo_amber_accent));
+    }
+
     private void openPostComposer() {
         PostComposerSheet sheet = new PostComposerSheet();
         sheet.setOnPostListener(this);
@@ -434,6 +467,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         super.onDestroyView();
         EchoService.setTransferStateListener(null);
         EchoService.setPeerCountListener(null);
+        EchoService.setPrerequisiteListener(null);
         stopTtlRefresh();
         if (syncDotAnimator != null) {
             syncDotAnimator.cancel();

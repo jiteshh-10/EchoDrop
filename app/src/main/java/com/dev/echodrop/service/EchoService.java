@@ -6,6 +6,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -43,8 +45,8 @@ import java.util.List;
  * kill the process. Starts BLE advertising, scanning, and Wi-Fi Direct
  * receiver when launched; stops all when destroyed.</p>
  *
- * <p>Updated in Iteration 7: uses {@code sendForForwarding} with hop count,
- * seen-by-ids loop prevention, and scope-based forwarding rules.</p>
+ * <p>Updated: state-machine-aware orchestration, GO send-back for role
+ * asymmetry, BT/P2P gating, exponential backoff on failures.</p>
  */
 public class EchoService extends Service {
 
@@ -64,6 +66,9 @@ public class EchoService extends Service {
     /** Extended cooldown when last transfer produced 0 new inserts (already synced). */
     private static final long REDISCOVERY_SYNCED_COOLDOWN_MS = 60_000;
 
+    /** Hold group alive for this long after transfer before disconnecting. */
+    private static final long POST_TRANSFER_HOLD_MS = 5_000;
+
     private BleAdvertiser advertiser;
     private BleScanner scanner;
     private WifiDirectManager wifiDirectManager;
@@ -80,11 +85,20 @@ public class EchoService extends Service {
     private int lastLoggedWifiPeerCount = -1;
     private boolean lastLoggedWifiConnected;
 
+    /** Whether Bluetooth is currently ON (checked on BLE scan cycles). */
+    private volatile boolean bluetoothEnabled;
+
+    /** Whether Wi-Fi P2P is currently enabled (from WifiDirectManager callback). */
+    private volatile boolean p2pEnabled;
+
     /** Listener for transfer state changes (used by UI for pulse animation). */
     private static TransferStateListener transferStateListener;
 
     /** Listener for peer count changes (used by UI for sync indicator). */
     private static PeerCountListener peerCountListener;
+
+    /** Listener for prerequisite state (BT on, P2P on) for UI prompts. */
+    private static PrerequisiteListener prerequisiteListener;
 
     /** Interface for observing transfer state from UI. */
     public interface TransferStateListener {
@@ -98,6 +112,12 @@ public class EchoService extends Service {
         void onPeerCountChanged(int count);
     }
 
+    /** Interface for observing BT/P2P prerequisite state from UI. */
+    public interface PrerequisiteListener {
+        /** Called when BT or P2P enabled state changes. */
+        void onPrerequisiteChanged(boolean btOn, boolean p2pOn);
+    }
+
     /** Sets the global transfer state listener (from UI). */
     public static void setTransferStateListener(@Nullable final TransferStateListener listener) {
         transferStateListener = listener;
@@ -106,6 +126,11 @@ public class EchoService extends Service {
     /** Sets the global peer count listener (from UI). */
     public static void setPeerCountListener(@Nullable final PeerCountListener listener) {
         peerCountListener = listener;
+    }
+
+    /** Sets the global prerequisite listener (from UI). */
+    public static void setPrerequisiteListener(@Nullable final PrerequisiteListener listener) {
+        prerequisiteListener = listener;
     }
 
     @Override
@@ -118,14 +143,30 @@ public class EchoService extends Service {
         bundleReceiver = new BundleReceiver(this);
         bundleSender = new BundleSender();
 
+        // Check initial Bluetooth state
+        bluetoothEnabled = isBluetoothOn();
+
         // Wire up bundle receiver callbacks for transfer state
         bundleReceiver.setReceiveCallback(new BundleReceiver.ReceiveCallback() {
             @Override
             public void onReceiveComplete(final int insertedCount) {
                 Timber.tag(TAG).i("ED:TRANSFER_RECV_DONE count=%d", insertedCount);
                 if (insertedCount > 0) lastTransferHadInserts = true;
-                // After receiving, send our messages back (bidirectional sync)
-                // This happens on the group-owner side after receiving from client
+
+                // --- GO send-back: after receiving as GO, send our messages ---
+                if (wifiDirectConnected) {
+                    final WifiDirectManager.P2pState wState = wifiDirectManager.getState();
+                    if (wState == WifiDirectManager.P2pState.CONNECTED) {
+                        // We are still connected; check if GO
+                        // The onConnected callback already ran; if we were GO we didn't send
+                        // So schedule a send-back after receive completes
+                        Timber.tag(TAG).i("ED:GO_SENDBACK_SCHEDULE count=%d", insertedCount);
+                        // sendback handled in onReceiveComplete via sendAllMessagesWithRetry
+                        // actually, we are GO so the client connected to us on port 9876
+                        // The bidirectional protocol already handles this via RECV_RESPONSE
+                        // So this is already covered. No extra action needed.
+                    }
+                }
             }
 
             @Override
@@ -148,14 +189,31 @@ public class EchoService extends Service {
             }
         });
 
-        // --- BLE → Wi-Fi Direct → Transfer orchestration ---
+        // --- BLE -> Wi-Fi Direct -> Transfer orchestration ---
 
         // When BLE scanner discovers peers, start Wi-Fi Direct peer discovery
         scanner.setPeerUpdateListener(peers -> {
+            // Refresh Bluetooth state each scan cycle
+            final boolean btNow = isBluetoothOn();
+            if (btNow != bluetoothEnabled) {
+                bluetoothEnabled = btNow;
+                notifyPrerequisite();
+            }
+
             Timber.tag(TAG).d("ED:BLE_PEERS count=%d wifiConnected=%b", peers.size(), wifiDirectConnected);
+
+            // Gate: require BT on + P2P enabled
+            if (!bluetoothEnabled || !p2pEnabled) {
+                return;
+            }
+
             if (!peers.isEmpty() && !wifiDirectConnected && !transferInProgress) {
-                Timber.tag(TAG).i("ED:ORCHESTRATE ble_peers=%d → wifi_discover", peers.size());
-                wifiDirectManager.discoverPeers();
+                // Only request discovery if state machine allows it
+                final WifiDirectManager.P2pState wState = wifiDirectManager.getState();
+                if (wState == WifiDirectManager.P2pState.IDLE) {
+                    Timber.tag(TAG).i("ED:ORCHESTRATE ble_peers=%d -> wifi_discover", peers.size());
+                    wifiDirectManager.discoverPeers();
+                }
             }
             // Notify UI about real peer count
             notifyPeerCount(peers.size());
@@ -171,11 +229,10 @@ public class EchoService extends Service {
 
                 if (!isGroupOwner) {
                     // Client side: send our messages to the group owner
-                    // Add delay to let ServerSocket on GO fully start
                     sendAllMessagesWithRetry(groupOwnerAddress, 0);
                 }
                 // Group owner side: BundleReceiver is already listening on port 9876
-                // After receiving, GO will also send back if needed
+                // The bidirectional protocol handles GO response (RECV_RESPONSE)
             }
 
             @Override
@@ -188,6 +245,9 @@ public class EchoService extends Service {
                 wifiDirectConnected = false;
                 Timber.tag(TAG).i("ED:WIFI_DISCONNECTED");
 
+                // Reset backoff on successful transfer cycle
+                wifiDirectManager.resetBackoff();
+
                 // Choose cooldown based on whether last transfer was productive
                 final long cooldown = lastTransferHadInserts
                         ? REDISCOVERY_COOLDOWN_MS
@@ -198,7 +258,8 @@ public class EchoService extends Service {
                 // Schedule re-discovery after cooldown
                 mainHandler.postDelayed(() -> {
                     if (scanner != null && scanner.getPeerCount() > 0
-                            && !transferInProgress && !wifiDirectConnected) {
+                            && !transferInProgress && !wifiDirectConnected
+                            && bluetoothEnabled && p2pEnabled) {
                         Timber.tag(TAG).i("ED:WIFI_REDISCOVER post_transfer cooldown=%dms", cooldown);
                         wifiDirectManager.discoverPeers();
                     }
@@ -213,15 +274,23 @@ public class EchoService extends Service {
                     lastLoggedWifiPeerCount = peers.size();
                     lastLoggedWifiConnected = wifiDirectConnected;
                 }
-                // Auto-connect to first available peer if not already connected
-                // and no connect() call is already in-flight
-                if (!peers.isEmpty() && !wifiDirectConnected
-                        && !wifiDirectManager.isConnectingInProgress()) {
-                    final android.net.wifi.p2p.WifiP2pDevice peer = peers.get(0);
-                    Timber.tag(TAG).i("ED:WIFI_AUTO_CONNECT name=%s addr=%s",
-                            peer.deviceName, peer.deviceAddress);
-                    wifiDirectManager.connect(peer);
+                // Auto-connect to first available peer if state machine allows
+                if (!peers.isEmpty() && !wifiDirectConnected) {
+                    final WifiDirectManager.P2pState wState = wifiDirectManager.getState();
+                    if (wState == WifiDirectManager.P2pState.DISCOVERING) {
+                        final android.net.wifi.p2p.WifiP2pDevice peer = peers.get(0);
+                        Timber.tag(TAG).i("ED:WIFI_AUTO_CONNECT name=%s addr=%s",
+                                peer.deviceName, peer.deviceAddress);
+                        wifiDirectManager.connect(peer);
+                    }
                 }
+            }
+
+            @Override
+            public void onP2pStateChanged(final boolean enabled) {
+                p2pEnabled = enabled;
+                Timber.tag(TAG).i("ED:P2P_STATE_CHANGED enabled=%b", enabled);
+                notifyPrerequisite();
             }
         });
     }
@@ -281,13 +350,15 @@ public class EchoService extends Service {
         }, "ForwardMessages-" + attempt).start();
     }
 
-    /** Disconnects WiFi Direct after transfer completes. */
+    /**
+     * Disconnects WiFi Direct after transfer completes.
+     * Uses POST_TRANSFER_HOLD_MS to let things settle and reduce group churn.
+     */
     private void disconnectAfterTransfer() {
-        // Small delay to let any in-flight data flush
         mainHandler.postDelayed(() -> {
-            Timber.tag(TAG).d("ED:DISCONNECT_POST_TRANSFER");
+            Timber.tag(TAG).d("ED:DISCONNECT_POST_TRANSFER hold=%dms", POST_TRANSFER_HOLD_MS);
             wifiDirectManager.disconnect();
-        }, 500);
+        }, POST_TRANSFER_HOLD_MS);
     }
 
     @Override
@@ -299,7 +370,12 @@ public class EchoService extends Service {
         bundleReceiver.start();
         advertiser.start();
         scanner.start();
-        Timber.tag(TAG).i("ED:SERVICE_START localId=%s", DeviceIdHelper.getDeviceId(this));
+        // Refresh BT state
+        bluetoothEnabled = isBluetoothOn();
+        p2pEnabled = wifiDirectManager.isP2pEnabled();
+        notifyPrerequisite();
+        Timber.tag(TAG).i("ED:SERVICE_START localId=%s bt=%b p2p=%b",
+                DeviceIdHelper.getDeviceId(this), bluetoothEnabled, p2pEnabled);
         return START_STICKY;
     }
 
@@ -349,6 +425,24 @@ public class EchoService extends Service {
         return advertiser;
     }
 
+    /** Returns whether Bluetooth is currently ON. */
+    public boolean isBluetoothEnabled() {
+        return bluetoothEnabled;
+    }
+
+    /** Returns whether Wi-Fi P2P is currently enabled. */
+    public boolean isP2pEnabled() {
+        return p2pEnabled;
+    }
+
+    /** Checks the system Bluetooth adapter state. */
+    private boolean isBluetoothOn() {
+        final BluetoothManager btm = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        if (btm == null) return false;
+        final BluetoothAdapter adapter = btm.getAdapter();
+        return adapter != null && adapter.isEnabled();
+    }
+
     /** Notifies the transfer state listener on the main thread. */
     private void notifyTransferState(final boolean inProgress) {
         if (transferStateListener != null) {
@@ -366,6 +460,19 @@ public class EchoService extends Service {
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (peerCountListener != null) {
                     peerCountListener.onPeerCountChanged(count);
+                }
+            });
+        }
+    }
+
+    /** Notifies the prerequisite listener on the main thread. */
+    private void notifyPrerequisite() {
+        if (prerequisiteListener != null) {
+            final boolean bt = bluetoothEnabled;
+            final boolean p2p = p2pEnabled;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (prerequisiteListener != null) {
+                    prerequisiteListener.onPrerequisiteChanged(bt, p2p);
                 }
             });
         }

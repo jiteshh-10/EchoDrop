@@ -62,6 +62,8 @@
     <string name="sync_no_devices">No devices nearby</string>
     <string name="sync_one_device">1 device nearby</string>
     <string name="sync_many_devices">%1$d nearby</string>
+    <string name="sync_bt_off">Bluetooth off</string>
+    <string name="sync_wifi_off">Wi-Fi Direct off</string>
     <string name="empty_state_title">No messages nearby</string>
     <string name="empty_state_sub">Messages from nearby phones will appear here.</string>
     <string name="empty_state_search_title">No results</string>
