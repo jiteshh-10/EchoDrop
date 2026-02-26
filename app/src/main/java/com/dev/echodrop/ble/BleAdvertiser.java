@@ -9,9 +9,10 @@ import android.bluetooth.le.BluetoothLeAdvertiser;
 import android.content.Context;
 import android.os.Build;
 import android.os.ParcelUuid;
-import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
+
+import timber.log.Timber;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -32,7 +33,7 @@ import java.util.UUID;
  */
 public class BleAdvertiser {
 
-    private static final String TAG = "BleAdvertiser";
+    private static final String TAG = "ED:BleAdv";
 
     /** EchoDrop custom service UUID for BLE discovery. */
     public static final UUID SERVICE_UUID =
@@ -48,13 +49,13 @@ public class BleAdvertiser {
     private final AdvertiseCallback callback = new AdvertiseCallback() {
         @Override
         public void onStartSuccess(AdvertiseSettings settingsInEffect) {
-            Log.i(TAG, "Advertising started");
+            Timber.tag(TAG).i("ED:BLE_ADV_START deviceId=0x%08X manifest=%dB", deviceId, manifestSize);
             running = true;
         }
 
         @Override
         public void onStartFailure(int errorCode) {
-            Log.e(TAG, "Advertising failed with error: " + errorCode);
+            Timber.tag(TAG).e("ED:BLE_ADV_FAIL error=%d", errorCode);
             running = false;
         }
     };
@@ -71,19 +72,19 @@ public class BleAdvertiser {
 
         final BluetoothAdapter adapter = getBluetoothAdapter();
         if (adapter == null || !adapter.isEnabled()) {
-            Log.w(TAG, "Bluetooth not available or not enabled");
+            Timber.tag(TAG).w("ED:BLE_ADV_SKIP bt_off=true");
             return;
         }
 
         if (!adapter.isMultipleAdvertisementSupported()) {
-            Log.w(TAG, "BLE advertising not supported on this device");
+            Timber.tag(TAG).w("ED:BLE_ADV_SKIP multi_adv=false");
             return;
         }
 
         try {
             advertiser = adapter.getBluetoothLeAdvertiser();
             if (advertiser == null) {
-                Log.w(TAG, "BluetoothLeAdvertiser not available");
+                Timber.tag(TAG).w("ED:BLE_ADV_SKIP advertiser=null");
                 return;
             }
 
@@ -103,7 +104,7 @@ public class BleAdvertiser {
 
             advertiser.startAdvertising(settings, data, callback);
         } catch (SecurityException e) {
-            Log.e(TAG, "Missing BLE permissions", e);
+            Timber.tag(TAG).e(e, "ED:BLE_ADV_PERM missing permissions");
         }
     }
 
@@ -113,10 +114,10 @@ public class BleAdvertiser {
         try {
             advertiser.stopAdvertising(callback);
         } catch (SecurityException | IllegalStateException e) {
-            Log.w(TAG, "Error stopping advertising", e);
+            Timber.tag(TAG).w(e, "ED:BLE_ADV_STOP_ERR");
         }
         running = false;
-        Log.i(TAG, "Advertising stopped");
+        Timber.tag(TAG).i("ED:BLE_ADV_STOP");
     }
 
     /** Updates the manifest size in the advertised payload and restarts if running. */
@@ -178,7 +179,7 @@ public class BleAdvertiser {
                 }
             }
         } catch (SecurityException e) {
-            Log.w(TAG, "Cannot read BT address, using random ID");
+            Timber.tag(TAG).w("ED:BLE_ADV_ID fallback=random");
         }
         return UUID.randomUUID().hashCode();
     }

@@ -1,12 +1,12 @@
 package com.dev.echodrop.transfer;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.dev.echodrop.db.MessageEntity;
+
+import timber.log.Timber;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -52,7 +52,7 @@ import java.util.List;
  */
 public final class TransferProtocol {
 
-    private static final String TAG = "TransferProtocol";
+    private static final String TAG = "ED:Protocol";
 
     /** TCP port used for Wi-Fi Direct transfers. */
     public static final int PORT = 9876;
@@ -227,7 +227,7 @@ public final class TransferProtocol {
         for (int i = 0; i < count; i++) {
             final MessageEntity entity = readFrame(in);
             if (entity == null) {
-                Log.w(TAG, "Unexpected EOF after " + i + " of " + count + " messages");
+                Timber.tag(TAG).w("ED:PROTO_EOF_EARLY read=%d expected=%d", i, count);
                 break;
             }
             result.add(entity);

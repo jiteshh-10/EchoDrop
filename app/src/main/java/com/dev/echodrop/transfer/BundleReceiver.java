@@ -7,11 +7,12 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+
+import timber.log.Timber;
 
 import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
@@ -45,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class BundleReceiver {
 
-    private static final String TAG = "BundleReceiver";
+    private static final String TAG = "ED:Receiver";
     private static final String CHANNEL_ID = "new_messages";
     private static final int NOTIFICATION_ID_BASE = 2000;
 
@@ -130,7 +131,7 @@ public class BundleReceiver {
      */
     public void start() {
         if (running.getAndSet(true)) {
-            Log.w(TAG, "Already running");
+            Timber.tag(TAG).w("ED:RECV_SKIP already_running");
             return;
         }
 
@@ -138,7 +139,7 @@ public class BundleReceiver {
             try {
                 serverSocket = new ServerSocket(TransferProtocol.PORT);
                 serverSocket.setReuseAddress(true);
-                Log.i(TAG, "Listening on port " + TransferProtocol.PORT);
+                Timber.tag(TAG).i("ED:RECV_LISTEN port=%d", TransferProtocol.PORT);
 
                 while (running.get()) {
                     try {
@@ -146,12 +147,12 @@ public class BundleReceiver {
                         executor.execute(() -> handleClient(client));
                     } catch (IOException e) {
                         if (running.get()) {
-                            Log.e(TAG, "Accept failed: " + e.getMessage());
+                            Timber.tag(TAG).e(e, "ED:RECV_ACCEPT_FAIL");
                         }
                     }
                 }
             } catch (IOException e) {
-                Log.e(TAG, "Failed to start server: " + e.getMessage(), e);
+                Timber.tag(TAG).e(e, "ED:RECV_START_FAIL");
                 running.set(false);
             }
         });
@@ -164,10 +165,10 @@ public class BundleReceiver {
             try {
                 serverSocket.close();
             } catch (IOException e) {
-                Log.w(TAG, "Error closing server socket", e);
+                Timber.tag(TAG).w(e, "ED:RECV_SERVER_CLOSE_ERR");
             }
         }
-        Log.i(TAG, "Receiver stopped");
+        Timber.tag(TAG).i("ED:RECV_STOP");
     }
 
     /** Returns whether the receiver is currently running. */
@@ -191,20 +192,20 @@ public class BundleReceiver {
             for (final MessageEntity entity : messages) {
                 // Skip expired messages
                 if (entity.getExpiresAt() <= now) {
-                    Log.d(TAG, "Skipping expired message: " + entity.getId());
+                    Timber.tag(TAG).d("ED:RECV_SKIP_EXPIRED id=%s", entity.getId());
                     continue;
                 }
 
                 // Validate checksum (only for non-chat bundles; chat bundles
                 // use ciphertext which changes checksum semantics)
                 if (!entity.isChatBundle() && !TransferProtocol.validateChecksum(entity)) {
-                    Log.w(TAG, "Checksum mismatch for message: " + entity.getId());
+                    Timber.tag(TAG).w("ED:RECV_CHECKSUM_FAIL id=%s", entity.getId());
                     continue;
                 }
 
                 // Dedup check
                 if (repo.isDuplicateSync(entity.getContentHash())) {
-                    Log.d(TAG, "Duplicate message skipped: " + entity.getId());
+                    Timber.tag(TAG).d("ED:RECV_DEDUP id=%s", entity.getId());
                     continue;
                 }
 
@@ -216,9 +217,8 @@ public class BundleReceiver {
                 final long rowId = dao.insert(entity);
                 if (rowId != -1) {
                     insertedCount++;
-                    Log.i(TAG, "Inserted message: " + entity.getId()
-                            + " (hop=" + entity.getHopCount()
-                            + ", type=" + entity.getType() + ")");
+                    Timber.tag(TAG).i("ED:RECV_INSERT id=%s hop=%d type=%s",
+                            entity.getId(), entity.getHopCount(), entity.getType());
                 }
 
                 // Process chat bundles: decrypt and display if member (Iteration 8)
@@ -226,7 +226,7 @@ public class BundleReceiver {
                     final boolean processed = chatRepo.processIncomingChatBundle(entity);
                     if (processed) {
                         chatCount++;
-                        Log.i(TAG, "Chat bundle processed for code: " + entity.getScopeId());
+                        Timber.tag(TAG).i("ED:RECV_CHAT code=%s", entity.getScopeId());
                     }
                 }
             }
@@ -237,17 +237,16 @@ public class BundleReceiver {
 
             final int finalCount = insertedCount;
             callback.onReceiveComplete(finalCount);
-            Log.i(TAG, "Transfer session complete: " + insertedCount + " new messages"
-                    + (chatCount > 0 ? " (" + chatCount + " chat)" : ""));
+            Timber.tag(TAG).i("ED:RECV_DONE inserted=%d chat=%d", insertedCount, chatCount);
 
         } catch (IOException e) {
-            Log.e(TAG, "Transfer failed: " + e.getMessage(), e);
+            Timber.tag(TAG).e(e, "ED:RECV_FAIL");
             callback.onReceiveFailed(e.getMessage() != null ? e.getMessage() : "Unknown error");
         } finally {
             try {
                 client.close();
             } catch (IOException e) {
-                Log.w(TAG, "Error closing client socket", e);
+                Timber.tag(TAG).w(e, "ED:RECV_CLIENT_CLOSE_ERR");
             }
             callback.onTransferEnded();
         }

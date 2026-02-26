@@ -85,6 +85,7 @@ public class PermissionsFragment extends Fragment {
 
         // Location — required for BLE scanning on API < 31 and for Wi-Fi Direct
         perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        perms.add(Manifest.permission.ACCESS_COARSE_LOCATION);
 
         // Nearby Wi-Fi Devices (API 33+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

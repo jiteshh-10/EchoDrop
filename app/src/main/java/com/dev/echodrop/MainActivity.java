@@ -1,5 +1,6 @@
 package com.dev.echodrop;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.StrictMode;
 
@@ -33,6 +34,9 @@ import timber.log.Timber;
  * </p>
  */
 public class MainActivity extends AppCompatActivity {
+
+    private static final String PREFS_NAME = "echodrop_prefs";
+    private static final String PREF_ONBOARDING_COMPLETE = "onboarding_complete";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,10 +72,19 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, new OnboardingConsentFragment())
-                    .commit();
+            if (isOnboardingComplete()) {
+                getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, new HomeInboxFragment())
+                        .commit();
+                Timber.i("ED:NAV onboarding_complete=true → HomeInbox");
+            } else {
+                getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, new OnboardingConsentFragment())
+                        .commit();
+                Timber.i("ED:NAV onboarding_complete=false → Onboarding");
+            }
         }
     }
 
@@ -105,6 +118,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showHomeInbox() {
+        // Mark onboarding as complete when reaching home for the first time
+        markOnboardingComplete();
         getSupportFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(
@@ -202,5 +217,21 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.fragment_container, new DiscoveryStatusFragment())
                 .addToBackStack("discoveryStatus")
                 .commit();
+    }
+
+    // ──────────────────── Onboarding Persistence ────────────────────
+
+    /** Returns true if onboarding has been completed (user reached HomeInbox). */
+    private boolean isOnboardingComplete() {
+        return getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(PREF_ONBOARDING_COMPLETE, false);
+    }
+
+    /** Marks onboarding as complete. Called when user first reaches HomeInbox. */
+    public void markOnboardingComplete() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putBoolean(PREF_ONBOARDING_COMPLETE, true)
+                .apply();
     }
 }

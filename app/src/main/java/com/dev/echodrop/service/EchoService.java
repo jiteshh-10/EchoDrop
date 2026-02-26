@@ -48,10 +48,15 @@ import java.util.List;
  */
 public class EchoService extends Service {
 
-        private static final String CHANNEL_ID = "EchoDrop";
+    private static final String TAG = "ED:Service";
+    private static final String CHANNEL_ID = "EchoDrop";
     private static final int NOTIFICATION_ID = 1;
     private static final String PREFS_NAME = "echodrop_prefs";
     private static final String PREF_BG_ENABLED = "bg_enabled";
+
+    /** TCP connect retry: wait this long before retrying (peer ServerSocket startup). */
+    private static final long SEND_RETRY_DELAY_MS = 2_000;
+    private static final int SEND_MAX_RETRIES = 3;
 
     private BleAdvertiser advertiser;
     private BleScanner scanner;
@@ -103,24 +108,28 @@ public class EchoService extends Service {
         bundleReceiver.setReceiveCallback(new BundleReceiver.ReceiveCallback() {
             @Override
             public void onReceiveComplete(final int insertedCount) {
-                Timber.i("Transfer complete: " + insertedCount + " messages received");
+                Timber.tag(TAG).i("ED:TRANSFER_RECV_DONE count=%d", insertedCount);
+                // After receiving, send our messages back (bidirectional sync)
+                // This happens on the group-owner side after receiving from client
             }
 
             @Override
             public void onReceiveFailed(@NonNull final String error) {
-                Timber.e("Transfer failed: " + error);
+                Timber.tag(TAG).e("ED:TRANSFER_RECV_FAIL error=%s", error);
             }
 
             @Override
             public void onTransferStarted() {
                 transferInProgress = true;
                 notifyTransferState(true);
+                Timber.tag(TAG).d("ED:TRANSFER_STATE active=true");
             }
 
             @Override
             public void onTransferEnded() {
                 transferInProgress = false;
                 notifyTransferState(false);
+                Timber.tag(TAG).d("ED:TRANSFER_STATE active=false");
             }
         });
 
@@ -128,8 +137,9 @@ public class EchoService extends Service {
 
         // When BLE scanner discovers peers, start Wi-Fi Direct peer discovery
         scanner.setPeerUpdateListener(peers -> {
-            if (!peers.isEmpty() && !wifiDirectConnected) {
-                Timber.i("BLE found " + peers.size() + " peers — starting Wi-Fi Direct discovery");
+            Timber.tag(TAG).d("ED:BLE_PEERS count=%d wifiConnected=%b", peers.size(), wifiDirectConnected);
+            if (!peers.isEmpty() && !wifiDirectConnected && !transferInProgress) {
+                Timber.tag(TAG).i("ED:ORCHESTRATE ble_peers=%d → wifi_discover", peers.size());
                 wifiDirectManager.discoverPeers();
             }
             // Notify UI about real peer count
@@ -142,29 +152,31 @@ public class EchoService extends Service {
             public void onConnected(@NonNull final InetAddress groupOwnerAddress,
                                     final boolean isGroupOwner) {
                 wifiDirectConnected = true;
-                Timber.i("Wi-Fi Direct connected — groupOwner=" + isGroupOwner
-                        + " addr=" + groupOwnerAddress);
+                Timber.tag(TAG).i("ED:WIFI_CONNECTED go=%b addr=%s", isGroupOwner, groupOwnerAddress);
 
                 if (!isGroupOwner) {
                     // Client side: send our messages to the group owner
-                    sendAllMessages(groupOwnerAddress);
+                    // Add delay to let ServerSocket on GO fully start
+                    sendAllMessagesWithRetry(groupOwnerAddress, 0);
                 }
                 // Group owner side: BundleReceiver is already listening on port 9876
+                // After receiving, GO will also send back if needed
             }
 
             @Override
             public void onDisconnected() {
                 wifiDirectConnected = false;
-                Timber.i("Wi-Fi Direct disconnected");
+                Timber.tag(TAG).i("ED:WIFI_DISCONNECTED");
             }
 
             @Override
             public void onPeersAvailable(@NonNull final List<android.net.wifi.p2p.WifiP2pDevice> peers) {
-                Timber.i("Wi-Fi Direct found " + peers.size() + " peers");
+                Timber.tag(TAG).i("ED:WIFI_PEERS count=%d connected=%b", peers.size(), wifiDirectConnected);
                 // Auto-connect to first available peer if not already connected
                 if (!peers.isEmpty() && !wifiDirectConnected) {
                     final android.net.wifi.p2p.WifiP2pDevice peer = peers.get(0);
-                    Timber.i("Auto-connecting to peer: " + peer.deviceName);
+                    Timber.tag(TAG).i("ED:WIFI_AUTO_CONNECT name=%s addr=%s",
+                            peer.deviceName, peer.deviceAddress);
                     wifiDirectManager.connect(peer);
                 }
             }
@@ -172,37 +184,56 @@ public class EchoService extends Service {
     }
 
     /**
-     * Forwards all eligible messages to the given peer address.
-     * Uses hop count, seen-by-ids, and scope rules to filter.
+     * Sends all eligible messages with retry logic.
+     * The group owner's ServerSocket may not be ready immediately after WiFi Direct
+     * connection, so we retry up to SEND_MAX_RETRIES times with a delay.
      */
-    private void sendAllMessages(@NonNull final InetAddress address) {
+    private void sendAllMessagesWithRetry(@NonNull final InetAddress address, final int attempt) {
         final MessageDao dao = AppDatabase.getInstance(this).messageDao();
         final String localDeviceId = DeviceIdHelper.getDeviceId(this);
         new Thread(() -> {
             final List<MessageEntity> messages = dao.getActiveMessagesDirect(System.currentTimeMillis());
             if (messages.isEmpty()) {
-                Timber.i("No messages to forward");
+                Timber.tag(TAG).i("ED:FWD_SKIP no_messages");
+                disconnectAfterTransfer();
                 return;
             }
-            Timber.i("Forwarding " + messages.size() + " candidate messages to " + address);
-            // Use forwarding-aware send: filters by hop limit, seen-by, scope
-            // peerDeviceId is unknown here (Wi-Fi Direct doesn't expose it),
-            // so we pass "" — the peer will dedup via content hash
+            Timber.tag(TAG).i("ED:FWD_START attempt=%d count=%d addr=%s localId=%s",
+                    attempt, messages.size(), address, localDeviceId);
             bundleSender.sendForForwarding(address, messages, localDeviceId, "",
                     true, new BundleSender.SendCallback() {
                 @Override
                 public void onSendComplete(final int count) {
-                    Timber.i("Forwarded " + count + " messages successfully");
-                    wifiDirectManager.disconnect();
+                    Timber.tag(TAG).i("ED:FWD_OK count=%d attempt=%d", count, attempt);
+                    disconnectAfterTransfer();
                 }
 
                 @Override
                 public void onSendFailed(@NonNull final String error) {
-                    Timber.e("Forward failed: " + error);
-                    wifiDirectManager.disconnect();
+                    Timber.tag(TAG).e("ED:FWD_FAIL attempt=%d error=%s", attempt, error);
+                    if (attempt < SEND_MAX_RETRIES) {
+                        Timber.tag(TAG).i("ED:FWD_RETRY attempt=%d delay=%dms",
+                                attempt + 1, SEND_RETRY_DELAY_MS);
+                        try {
+                            Thread.sleep(SEND_RETRY_DELAY_MS);
+                        } catch (InterruptedException ignored) { }
+                        sendAllMessagesWithRetry(address, attempt + 1);
+                    } else {
+                        Timber.tag(TAG).e("ED:FWD_GIVE_UP after %d attempts", SEND_MAX_RETRIES);
+                        disconnectAfterTransfer();
+                    }
                 }
             });
-        }, "ForwardMessages").start();
+        }, "ForwardMessages-" + attempt).start();
+    }
+
+    /** Disconnects WiFi Direct after transfer completes. */
+    private void disconnectAfterTransfer() {
+        // Small delay to let any in-flight data flush
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            Timber.tag(TAG).d("ED:DISCONNECT_POST_TRANSFER");
+            wifiDirectManager.disconnect();
+        }, 500);
     }
 
     @Override
@@ -212,7 +243,7 @@ public class EchoService extends Service {
         scanner.start();
         wifiDirectManager.initialize();
         bundleReceiver.start();
-        Timber.i("EchoService started — BLE + Wi-Fi Direct active");
+        Timber.tag(TAG).i("ED:SERVICE_START localId=%s", DeviceIdHelper.getDeviceId(this));
         return START_STICKY;
     }
 
@@ -224,7 +255,7 @@ public class EchoService extends Service {
         bundleReceiver.stop();
         bundleSender.shutdown();
         wifiDirectManager.teardown();
-        Timber.i("EchoService destroyed");
+        Timber.tag(TAG).i("ED:SERVICE_STOP");
     }
 
     @Nullable
@@ -376,7 +407,7 @@ public class EchoService extends Service {
     /** Starts the foreground service if BLE permissions are granted. */
     public static void startService(Context context) {
         if (!hasBlePermissions(context)) {
-            Timber.w("Cannot start EchoService — BLE runtime permissions not granted");
+            Timber.tag(TAG).w("ED:SERVICE_SKIP_START perms=denied");
             return;
         }
         final Intent intent = new Intent(context, EchoService.class);

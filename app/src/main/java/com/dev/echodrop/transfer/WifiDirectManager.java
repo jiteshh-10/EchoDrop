@@ -13,10 +13,11 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Looper;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import timber.log.Timber;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -34,7 +35,7 @@ import java.util.List;
  */
 public class WifiDirectManager {
 
-    private static final String TAG = "WifiDirectManager";
+    private static final String TAG = "ED:WifiP2P";
 
     /** Callback for Wi-Fi Direct connection events. */
     public interface ConnectionCallback {
@@ -78,7 +79,7 @@ public class WifiDirectManager {
     public void initialize() {
         manager = (WifiP2pManager) context.getSystemService(Context.WIFI_P2P_SERVICE);
         if (manager == null) {
-            Log.e(TAG, "Wi-Fi P2P not supported on this device");
+            Timber.tag(TAG).e("ED:WIFI_INIT_FAIL p2p_not_supported");
             return;
         }
 
@@ -104,14 +105,14 @@ public class WifiDirectManager {
             context.registerReceiver(receiver, filter);
         }
         receiverRegistered = true;
-        Log.i(TAG, "Wi-Fi Direct initialized");
+        Timber.tag(TAG).i("ED:WIFI_INIT_OK");
     }
 
     /** Starts peer discovery. */
     @SuppressLint("MissingPermission")
     public void discoverPeers() {
         if (manager == null || channel == null) {
-            Log.w(TAG, "Not initialized");
+            Timber.tag(TAG).w("ED:WIFI_DISCOVER_SKIP not_init");
             return;
         }
         if (discovering) return;
@@ -121,17 +122,17 @@ public class WifiDirectManager {
                 @Override
                 public void onSuccess() {
                     discovering = true;
-                    Log.i(TAG, "Peer discovery started");
+                    Timber.tag(TAG).i("ED:WIFI_DISCOVER_START");
                 }
 
                 @Override
                 public void onFailure(final int reason) {
                     discovering = false;
-                    Log.e(TAG, "Peer discovery failed: " + reason);
+                    Timber.tag(TAG).e("ED:WIFI_DISCOVER_FAIL reason=%d", reason);
                 }
             });
         } catch (SecurityException e) {
-            Log.e(TAG, "Missing Wi-Fi Direct permission", e);
+            Timber.tag(TAG).e(e, "ED:WIFI_DISCOVER_PERM");
         }
     }
 
@@ -142,7 +143,7 @@ public class WifiDirectManager {
         try {
             manager.stopPeerDiscovery(channel, null);
         } catch (SecurityException | IllegalArgumentException e) {
-            Log.w(TAG, "Error stopping discovery", e);
+            Timber.tag(TAG).w(e, "ED:WIFI_DISCOVER_STOP_ERR");
         }
         discovering = false;
     }
@@ -155,7 +156,7 @@ public class WifiDirectManager {
     @SuppressLint("MissingPermission")
     public void connect(@NonNull final WifiP2pDevice device) {
         if (manager == null || channel == null) {
-            Log.w(TAG, "Not initialized");
+            Timber.tag(TAG).w("ED:WIFI_CONNECT_SKIP not_init");
             return;
         }
 
@@ -166,16 +167,16 @@ public class WifiDirectManager {
             manager.connect(channel, config, new WifiP2pManager.ActionListener() {
                 @Override
                 public void onSuccess() {
-                    Log.i(TAG, "Connection initiated to " + device.deviceAddress);
+                    Timber.tag(TAG).i("ED:WIFI_CONNECT_INIT addr=%s", device.deviceAddress);
                 }
 
                 @Override
                 public void onFailure(final int reason) {
-                    Log.e(TAG, "Connection failed to " + device.deviceAddress + " reason: " + reason);
+                    Timber.tag(TAG).e("ED:WIFI_CONNECT_FAIL addr=%s reason=%d", device.deviceAddress, reason);
                 }
             });
         } catch (SecurityException e) {
-            Log.e(TAG, "Missing permission for connect", e);
+            Timber.tag(TAG).e(e, "ED:WIFI_CONNECT_PERM");
         }
     }
 
@@ -185,12 +186,12 @@ public class WifiDirectManager {
         manager.removeGroup(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.i(TAG, "Disconnected from group");
+                Timber.tag(TAG).i("ED:WIFI_DISCONNECT_OK");
             }
 
             @Override
             public void onFailure(final int reason) {
-                Log.w(TAG, "Disconnect failed: " + reason);
+                Timber.tag(TAG).w("ED:WIFI_DISCONNECT_FAIL reason=%d", reason);
             }
         });
     }
@@ -213,7 +214,7 @@ public class WifiDirectManager {
             try {
                 context.unregisterReceiver(receiver);
             } catch (IllegalArgumentException e) {
-                Log.w(TAG, "Receiver already unregistered", e);
+                Timber.tag(TAG).w(e, "ED:WIFI_TEARDOWN receiver already unregistered");
             }
             receiverRegistered = false;
         }
@@ -222,7 +223,7 @@ public class WifiDirectManager {
         }
         channel = null;
         manager = null;
-        Log.i(TAG, "Wi-Fi Direct torn down");
+        Timber.tag(TAG).i("ED:WIFI_TEARDOWN_OK");
     }
 
     // ──────────────────── Broadcast Handling ────────────────────
@@ -237,7 +238,7 @@ public class WifiDirectManager {
                 final int state = intent.getIntExtra(
                         WifiP2pManager.EXTRA_WIFI_STATE, WifiP2pManager.WIFI_P2P_STATE_DISABLED);
                 if (state != WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
-                    Log.w(TAG, "Wi-Fi P2P is disabled");
+                    Timber.tag(TAG).w("ED:WIFI_P2P_DISABLED");
                 }
                 break;
 
@@ -246,7 +247,7 @@ public class WifiDirectManager {
                     try {
                         manager.requestPeers(channel, this::onPeersDiscovered);
                     } catch (SecurityException e) {
-                        Log.e(TAG, "Missing permission for requestPeers", e);
+                        Timber.tag(TAG).e(e, "ED:WIFI_PEERS_PERM");
                     }
                 }
                 break;
@@ -269,7 +270,7 @@ public class WifiDirectManager {
     private void onPeersDiscovered(@NonNull final WifiP2pDeviceList peerList) {
         currentPeers.clear();
         currentPeers.addAll(peerList.getDeviceList());
-        Log.i(TAG, "Discovered " + currentPeers.size() + " peers");
+        Timber.tag(TAG).i("ED:WIFI_PEERS_FOUND count=%d", currentPeers.size());
         if (callback != null) {
             callback.onPeersAvailable(getCurrentPeers());
         }
@@ -279,13 +280,12 @@ public class WifiDirectManager {
         if (info.groupFormed) {
             final InetAddress groupOwnerAddress = info.groupOwnerAddress;
             final boolean isGroupOwner = info.isGroupOwner;
-            Log.i(TAG, "Connected — group owner: " + isGroupOwner
-                    + " addr: " + groupOwnerAddress);
+            Timber.tag(TAG).i("ED:WIFI_CONNECTED go=%b addr=%s", isGroupOwner, groupOwnerAddress);
             if (callback != null && groupOwnerAddress != null) {
                 callback.onConnected(groupOwnerAddress, isGroupOwner);
             }
         } else {
-            Log.i(TAG, "Group dissolved");
+            Timber.tag(TAG).i("ED:WIFI_GROUP_DISSOLVED");
             if (callback != null) {
                 callback.onDisconnected();
             }
