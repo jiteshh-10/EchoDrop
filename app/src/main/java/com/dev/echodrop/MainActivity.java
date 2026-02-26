@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.StrictMode;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.splashscreen.SplashScreen;
 
 import com.dev.echodrop.screens.BatteryGuideFragment;
 import com.dev.echodrop.screens.ChatConversationFragment;
@@ -42,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -118,6 +120,18 @@ public class MainActivity extends AppCompatActivity {
                         R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
                 .replace(R.id.fragment_container, new HowItWorksFragment())
                 .addToBackStack(null)
+                .commit();
+    }
+
+    public void showHowItWorksFromSettings() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container,
+                        HowItWorksFragment.newInstance(true))
+                .addToBackStack("howItWorks")
                 .commit();
     }
 

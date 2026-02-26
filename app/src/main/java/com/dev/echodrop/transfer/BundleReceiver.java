@@ -235,6 +235,7 @@ public class BundleReceiver {
                     copy.addSeenBy(localDeviceId);
                     copy.setType(local.getType());
                     copy.setScopeId(local.getScopeId());
+                    copy.setSenderAlias(local.getSenderAlias());
                     response.add(copy);
                 }
 

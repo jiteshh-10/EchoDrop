@@ -46,6 +46,7 @@ import java.util.List;
  *   seen_by_ids : 2 bytes len + UTF-8 bytes
  *   type        : 2 bytes len + UTF-8 bytes (BROADCAST or CHAT)
  *   scope_id    : 2 bytes len + UTF-8 bytes (empty or chat_code)
+ *   sender_alias: 2 bytes len + UTF-8 bytes (optional chat/sender name)
  * </pre>
  *
  * <p>Messages are ordered by priority (ALERT first) before sending.</p>
@@ -90,6 +91,7 @@ public final class TransferProtocol {
         writeString(out, entity.getSeenByIds());
         writeString(out, entity.getType());
         writeString(out, entity.getScopeId());
+        writeString(out, entity.getSenderAlias());
 
         out.flush();
         return baos.toByteArray();
@@ -118,6 +120,7 @@ public final class TransferProtocol {
         final String seenByIds = readString(in);
         final String type = readString(in);
         final String scopeId = readString(in);
+        final String senderAlias = readString(in);
 
         final MessageEntity entity = new MessageEntity(id, text, scope, priority,
                 createdAt, expiresAt, false, contentHash);
@@ -125,6 +128,7 @@ public final class TransferProtocol {
         entity.setSeenByIds(seenByIds);
         entity.setType(type);
         entity.setScopeId(scopeId);
+        entity.setSenderAlias(senderAlias);
         return entity;
     }
 

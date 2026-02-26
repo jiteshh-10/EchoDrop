@@ -48,6 +48,7 @@
     <string name="how_it_works_use_case_emergency_title">Emergency</string>
     <string name="how_it_works_use_case_emergency_sub">When cell towers go down</string>
     <string name="how_it_works_use_case_emergency_icon">🚨</string>
+    <string name="how_it_works_got_it">Got it</string>
     <string name="how_it_works_use_case_events_title">Events</string>
     <string name="how_it_works_use_case_events_sub">Messages that only spread inside a venue</string>
     <string name="how_it_works_use_case_events_icon">🎤</string>
@@ -169,6 +170,7 @@
     <string name="settings_stop_cancel">Keep on</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_about_header">ABOUT</string>
+    <string name="settings_diagnostics_title">Diagnostics log</string>
 
     <!-- Battery Guide (Iteration 5) -->
     <string name="battery_title">Keep EchoDrop Running</string>

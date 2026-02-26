@@ -96,6 +96,11 @@ public class MessageEntity {
     @ColumnInfo(name = "seen_by_ids", defaultValue = "")
     private String seenByIds;
 
+    /** Optional sender/chat alias for display (chat name for CHAT bundles). */
+    @NonNull
+    @ColumnInfo(name = "sender_alias", defaultValue = "")
+    private String senderAlias;
+
     // ──────────────────── Constructors ────────────────────
 
     /** Maximum number of hops a message can travel before forwarding stops. */
@@ -119,6 +124,7 @@ public class MessageEntity {
         this.scopeId = "";
         this.hopCount = 0;
         this.seenByIds = "";
+        this.senderAlias = "";
     }
 
     // ──────────────────── Factory Methods ────────────────────
@@ -147,12 +153,30 @@ public class MessageEntity {
     public static MessageEntity createChatBundle(@NonNull String cipherText,
                                                   @NonNull String chatCode,
                                                   long createdAt, long expiresAt) {
+        return createChatBundle(cipherText, chatCode, createdAt, expiresAt, "");
+    }
+
+    /**
+     * Creates a chat bundle with an attached chat name for DTN propagation.
+     *
+     * @param cipherText Base64-encoded encrypted message text
+     * @param chatCode   the 8-char chat code used as scope_id
+     * @param createdAt  creation timestamp
+     * @param expiresAt  expiry timestamp
+     * @param chatName   human-readable chat name (propagated via senderAlias)
+     * @return MessageEntity with type=CHAT, scope=LOCAL, scopeId=chatCode
+     */
+    public static MessageEntity createChatBundle(@NonNull String cipherText,
+                                                  @NonNull String chatCode,
+                                                  long createdAt, long expiresAt,
+                                                  @NonNull String chatName) {
         String id = UUID.randomUUID().toString();
         String contentHash = computeHash(cipherText, "LOCAL", createdAt);
         MessageEntity entity = new MessageEntity(id, cipherText, Scope.LOCAL.name(),
                 Priority.NORMAL.name(), createdAt, expiresAt, false, contentHash);
         entity.setType(TYPE_CHAT);
         entity.setScopeId(chatCode);
+        entity.setSenderAlias(chatName);
         return entity;
     }
 
@@ -332,4 +356,11 @@ public class MessageEntity {
             seenByIds = seenByIds + "," + deviceId;
         }
     }
+
+    /** Returns the sender/chat alias (empty string if not set). */
+    @NonNull
+    public String getSenderAlias() { return senderAlias; }
+
+    /** Sets the sender/chat alias. */
+    public void setSenderAlias(@NonNull String senderAlias) { this.senderAlias = senderAlias; }
 }
