@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.dev.echodrop.screens.BatteryGuideFragment;
 import com.dev.echodrop.screens.ChatConversationFragment;
 import com.dev.echodrop.screens.CreateChatFragment;
+import com.dev.echodrop.screens.DiagnosticsFragment;
 import com.dev.echodrop.screens.DiscoveryStatusFragment;
 import com.dev.echodrop.screens.HomeInboxFragment;
 import com.dev.echodrop.screens.HowItWorksFragment;
@@ -18,6 +19,7 @@ import com.dev.echodrop.screens.PermissionsFragment;
 import com.dev.echodrop.screens.PrivateChatListFragment;
 import com.dev.echodrop.screens.SettingsFragment;
 import com.dev.echodrop.service.EchoService;
+import com.dev.echodrop.util.DiagnosticsLog;
 import com.dev.echodrop.workers.TtlCleanupWorker;
 
 import timber.log.Timber;
@@ -47,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
         if (BuildConfig.DEBUG) {
             Timber.plant(new Timber.DebugTree());
         }
+        // Always plant diagnostics tree for in-app log viewing
+        Timber.plant(new DiagnosticsLog.DiagTree());
 
         // StrictMode for debug builds — catch disk/network on main thread
         if (BuildConfig.DEBUG) {
@@ -216,6 +220,17 @@ public class MainActivity extends AppCompatActivity {
                         R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
                 .replace(R.id.fragment_container, new DiscoveryStatusFragment())
                 .addToBackStack("discoveryStatus")
+                .commit();
+    }
+
+    public void showDiagnostics() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new DiagnosticsFragment())
+                .addToBackStack("diagnostics")
                 .commit();
     }
 

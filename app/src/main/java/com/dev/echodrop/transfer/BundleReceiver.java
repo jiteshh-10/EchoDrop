@@ -25,9 +25,13 @@ import com.dev.echodrop.util.DeviceIdHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -189,46 +193,56 @@ public class BundleReceiver {
             final List<MessageEntity> messages = TransferProtocol.readSession(in);
             final long now = System.currentTimeMillis();
 
+            // Collect hashes of received messages for response filtering
+            final Set<String> receivedHashes = new HashSet<>();
+            for (final MessageEntity m : messages) {
+                receivedHashes.add(m.getContentHash());
+            }
+
+            // Process each received message
             for (final MessageEntity entity : messages) {
-                // Skip expired messages
-                if (entity.getExpiresAt() <= now) {
-                    Timber.tag(TAG).d("ED:RECV_SKIP_EXPIRED id=%s", entity.getId());
-                    continue;
-                }
-
-                // Validate checksum (only for non-chat bundles; chat bundles
-                // use ciphertext which changes checksum semantics)
-                if (!entity.isChatBundle() && !TransferProtocol.validateChecksum(entity)) {
-                    Timber.tag(TAG).w("ED:RECV_CHECKSUM_FAIL id=%s", entity.getId());
-                    continue;
-                }
-
-                // Dedup check
-                if (repo.isDuplicateSync(entity.getContentHash())) {
-                    Timber.tag(TAG).d("ED:RECV_DEDUP id=%s", entity.getId());
-                    continue;
-                }
-
-                // Stamp this device into the seen-by list
-                entity.addSeenBy(localDeviceId);
-
-                // Insert into messages table (for DTN forwarding)
-                final MessageDao dao = AppDatabase.getInstance(context).messageDao();
-                final long rowId = dao.insert(entity);
-                if (rowId != -1) {
+                if (processOneMessage(entity, localDeviceId, now)) {
                     insertedCount++;
-                    Timber.tag(TAG).i("ED:RECV_INSERT id=%s hop=%d type=%s",
-                            entity.getId(), entity.getHopCount(), entity.getType());
-                }
-
-                // Process chat bundles: decrypt and display if member (Iteration 8)
-                if (entity.isChatBundle() && chatRepo != null) {
-                    final boolean processed = chatRepo.processIncomingChatBundle(entity);
-                    if (processed) {
-                        chatCount++;
-                        Timber.tag(TAG).i("ED:RECV_CHAT code=%s", entity.getScopeId());
+                    if (entity.isChatBundle() && chatRepo != null) {
+                        final boolean processed = chatRepo.processIncomingChatBundle(entity);
+                        if (processed) {
+                            chatCount++;
+                            Timber.tag(TAG).i("ED:RECV_CHAT code=%s", entity.getScopeId());
+                        }
                     }
                 }
+            }
+
+            // ── Bidirectional response: send our messages back ──
+            try {
+                final OutputStream out = client.getOutputStream();
+                final MessageDao responseDao = AppDatabase.getInstance(context).messageDao();
+                final List<MessageEntity> localMessages = responseDao.getActiveMessagesDirect(now);
+
+                final List<MessageEntity> response = new ArrayList<>();
+                for (final MessageEntity local : localMessages) {
+                    if (local.isAtHopLimit()) continue;
+                    if (local.getExpiresAt() <= now) continue;
+                    // Don't send back what the peer just sent us
+                    if (receivedHashes.contains(local.getContentHash())) continue;
+
+                    // Create forwarding copy
+                    final MessageEntity copy = new MessageEntity(
+                            local.getId(), local.getText(), local.getScope(), local.getPriority(),
+                            local.getCreatedAt(), local.getExpiresAt(), false, local.getContentHash());
+                    copy.setHopCount(local.getHopCount() + 1);
+                    copy.setSeenByIds(local.getSeenByIds());
+                    copy.addSeenBy(localDeviceId);
+                    copy.setType(local.getType());
+                    copy.setScopeId(local.getScopeId());
+                    response.add(copy);
+                }
+
+                TransferProtocol.writeSession(out, response);
+                out.flush();
+                Timber.tag(TAG).i("ED:RECV_RESPONSE sent=%d", response.size());
+            } catch (IOException e) {
+                Timber.tag(TAG).w(e, "ED:RECV_RESPONSE_FAIL");
             }
 
             if (insertedCount > 0) {
@@ -250,6 +264,71 @@ public class BundleReceiver {
             }
             callback.onTransferEnded();
         }
+    }
+
+    /**
+     * Processes a single received message: validates, deduplicates, and inserts.
+     *
+     * @return true if the message was inserted (new message)
+     */
+    private boolean processOneMessage(@NonNull final MessageEntity entity,
+                                      @NonNull final String localDeviceId,
+                                      final long now) {
+        // Skip expired messages
+        if (entity.getExpiresAt() <= now) {
+            Timber.tag(TAG).d("ED:RECV_SKIP_EXPIRED id=%s", entity.getId());
+            return false;
+        }
+
+        // Validate checksum (only for non-chat bundles)
+        if (!entity.isChatBundle() && !TransferProtocol.validateChecksum(entity)) {
+            Timber.tag(TAG).w("ED:RECV_CHECKSUM_FAIL id=%s", entity.getId());
+            return false;
+        }
+
+        // Dedup check
+        if (repo.isDuplicateSync(entity.getContentHash())) {
+            Timber.tag(TAG).d("ED:RECV_DEDUP id=%s", entity.getId());
+            return false;
+        }
+
+        // Stamp this device into the seen-by list
+        entity.addSeenBy(localDeviceId);
+
+        // Insert into messages table (for DTN forwarding)
+        final MessageDao dao = AppDatabase.getInstance(context).messageDao();
+        final long rowId = dao.insert(entity);
+        if (rowId != -1) {
+            Timber.tag(TAG).i("ED:RECV_INSERT id=%s hop=%d type=%s",
+                    entity.getId(), entity.getHopCount(), entity.getType());
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Processes a list of received messages (used for bidirectional response
+     * messages received by the sender side).
+     *
+     * @param messages messages received from the peer's response
+     * @return number of messages inserted
+     */
+    public int processReceivedMessages(@NonNull final List<MessageEntity> messages) {
+        final String localDeviceId = DeviceIdHelper.getDeviceId(context);
+        final long now = System.currentTimeMillis();
+        int insertedCount = 0;
+
+        for (final MessageEntity entity : messages) {
+            if (processOneMessage(entity, localDeviceId, now)) {
+                insertedCount++;
+                if (entity.isChatBundle() && chatRepo != null) {
+                    chatRepo.processIncomingChatBundle(entity);
+                }
+            }
+        }
+
+        Timber.tag(TAG).i("ED:PROCESS_RESPONSE inserted=%d total=%d", insertedCount, messages.size());
+        return insertedCount;
     }
 
     // ──────────────────── Notifications ────────────────────

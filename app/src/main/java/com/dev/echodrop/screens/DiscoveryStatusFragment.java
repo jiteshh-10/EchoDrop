@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
 import com.dev.echodrop.ble.BleScanner;
 import com.dev.echodrop.databinding.ScreenDiscoveryStatusBinding;
@@ -68,6 +69,11 @@ public class DiscoveryStatusFragment extends Fragment {
 
     private void setupToolbar() {
         binding.btnBack.setOnClickListener(v -> navigateBack());
+        binding.btnDiagnostics.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).showDiagnostics();
+            }
+        });
     }
 
     private void setupViewModel() {

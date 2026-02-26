@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Diagnostics screen layout -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/echo_bg_main"
+    android:orientation="vertical">
+
+    <!-- Toolbar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/app_bar_height"
+        android:background="@color/echo_elevated_surface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="4dp">
+
+        <ImageView
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/min_touch_target"
+            android:layout_height="@dimen/min_touch_target"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/content_back"
+            android:padding="10dp"
+            android:src="@drawable/ic_back" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Diagnostics"
+            android:textColor="@color/echo_text_primary"
+            android:textSize="18sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/btn_copy"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/min_touch_target"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="Copy"
+            android:textColor="@color/echo_primary_accent"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:id="@+id/btn_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/min_touch_target"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="Clear"
+            android:textColor="@color/echo_amber_accent"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+
+    <!-- Entry count -->
+    <TextView
+        android:id="@+id/entry_count"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:textColor="@color/echo_text_muted"
+        android:textSize="12sp"
+        android:fontFamily="monospace" />
+
+    <!-- Log entries -->
+    <ScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <TextView
+            android:id="@+id/log_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:padding="12dp"
+            android:textColor="@color/echo_text_secondary"
+            android:textIsSelectable="true"
+            android:textSize="11sp" />
+    </ScrollView>
+
+</LinearLayout>

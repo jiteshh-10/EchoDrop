@@ -58,6 +58,9 @@ public class EchoService extends Service {
     private static final long SEND_RETRY_DELAY_MS = 2_000;
     private static final int SEND_MAX_RETRIES = 3;
 
+    /** Cooldown before re-discovering after a transfer completes. */
+    private static final long REDISCOVERY_COOLDOWN_MS = 15_000;
+
     private BleAdvertiser advertiser;
     private BleScanner scanner;
     private WifiDirectManager wifiDirectManager;
@@ -65,6 +68,7 @@ public class EchoService extends Service {
     private BundleSender bundleSender;
     private boolean transferInProgress;
     private boolean wifiDirectConnected;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     /** Listener for transfer state changes (used by UI for pulse animation). */
     private static TransferStateListener transferStateListener;
@@ -167,6 +171,14 @@ public class EchoService extends Service {
             public void onDisconnected() {
                 wifiDirectConnected = false;
                 Timber.tag(TAG).i("ED:WIFI_DISCONNECTED");
+                // Schedule re-discovery after cooldown
+                mainHandler.postDelayed(() -> {
+                    if (scanner != null && scanner.getPeerCount() > 0
+                            && !transferInProgress && !wifiDirectConnected) {
+                        Timber.tag(TAG).i("ED:WIFI_REDISCOVER post_transfer");
+                        wifiDirectManager.discoverPeers();
+                    }
+                }, REDISCOVERY_COOLDOWN_MS);
             }
 
             @Override
@@ -201,7 +213,7 @@ public class EchoService extends Service {
             Timber.tag(TAG).i("ED:FWD_START attempt=%d count=%d addr=%s localId=%s",
                     attempt, messages.size(), address, localDeviceId);
             bundleSender.sendForForwarding(address, messages, localDeviceId, "",
-                    true, new BundleSender.SendCallback() {
+                    true, new BundleSender.BidirectionalCallback() {
                 @Override
                 public void onSendComplete(final int count) {
                     Timber.tag(TAG).i("ED:FWD_OK count=%d attempt=%d", count, attempt);
@@ -223,6 +235,16 @@ public class EchoService extends Service {
                         disconnectAfterTransfer();
                     }
                 }
+
+                @Override
+                public void onResponseReceived(@NonNull final List<MessageEntity> responseMessages) {
+                    // Process messages received back from the peer (bidirectional sync)
+                    Timber.tag(TAG).i("ED:FWD_RESPONSE count=%d", responseMessages.size());
+                    if (bundleReceiver != null && !responseMessages.isEmpty()) {
+                        final int inserted = bundleReceiver.processReceivedMessages(responseMessages);
+                        Timber.tag(TAG).i("ED:FWD_RESPONSE_DONE inserted=%d", inserted);
+                    }
+                }
             });
         }, "ForwardMessages-" + attempt).start();
     }
@@ -230,7 +252,7 @@ public class EchoService extends Service {
     /** Disconnects WiFi Direct after transfer completes. */
     private void disconnectAfterTransfer() {
         // Small delay to let any in-flight data flush
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+        mainHandler.postDelayed(() -> {
             Timber.tag(TAG).d("ED:DISCONNECT_POST_TRANSFER");
             wifiDirectManager.disconnect();
         }, 500);
@@ -239,10 +261,12 @@ public class EchoService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(NOTIFICATION_ID, buildNotification());
-        advertiser.start();
-        scanner.start();
+        // Initialize Wi-Fi Direct BEFORE BLE scanner to avoid race condition
+        // where BLE callback triggers discoverPeers before WiFi Direct is ready
         wifiDirectManager.initialize();
         bundleReceiver.start();
+        advertiser.start();
+        scanner.start();
         Timber.tag(TAG).i("ED:SERVICE_START localId=%s", DeviceIdHelper.getDeviceId(this));
         return START_STICKY;
     }
@@ -374,26 +398,39 @@ public class EchoService extends Service {
     }
 
     /**
-     * Checks whether the required BLE runtime permissions are granted.
-     * On Android 12+ (API 31), BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, and
-     * BLUETOOTH_SCAN must be granted before starting a foreground service
-     * with type connectedDevice.
+     * Checks whether the required runtime permissions are granted.
+     * On Android 12+ (API 31): BLE permissions.
+     * On Android 13+ (API 33): also NEARBY_WIFI_DEVICES.
      */
     public static boolean hasBlePermissions(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            return ContextCompat.checkSelfPermission(context,
+            boolean granted = ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
                     && ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
                     && ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED;
+            // API 33+: also need NEARBY_WIFI_DEVICES for Wi-Fi Direct
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                granted = granted && ContextCompat.checkSelfPermission(context,
+                        Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED;
+            }
+            return granted;
         }
         // Pre-S: legacy BT permissions are normal (auto-granted)
         return true;
     }
 
-    /** Returns the BLE permissions required on API 31+. */
+    /** Returns the runtime permissions required on API 31+. */
     public static String[] getBlePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return new String[]{
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.NEARBY_WIFI_DEVICES
+            };
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             return new String[]{
                     Manifest.permission.BLUETOOTH_ADVERTISE,

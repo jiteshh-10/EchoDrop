@@ -12,6 +12,7 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.NonNull;
@@ -37,6 +38,11 @@ public class WifiDirectManager {
 
     private static final String TAG = "ED:WifiP2P";
 
+    /** Max retries when groupOwnerAddress is null after group formation. */
+    private static final int MAX_GO_ADDR_RETRIES = 3;
+    private static final long GO_ADDR_RETRY_DELAY_MS = 500;
+    private int goAddrRetryCount;
+
     /** Callback for Wi-Fi Direct connection events. */
     public interface ConnectionCallback {
         /** Called when a Wi-Fi Direct connection is established. */
@@ -50,6 +56,7 @@ public class WifiDirectManager {
     }
 
     private final Context context;
+    private final Handler handler;
     private WifiP2pManager manager;
     private WifiP2pManager.Channel channel;
     private BroadcastReceiver receiver;
@@ -64,6 +71,7 @@ public class WifiDirectManager {
 
     public WifiDirectManager(@NonNull final Context context) {
         this.context = context.getApplicationContext();
+        this.handler = new Handler(Looper.getMainLooper());
     }
 
     /** Sets the callback to receive connection events. */
@@ -115,7 +123,8 @@ public class WifiDirectManager {
             Timber.tag(TAG).w("ED:WIFI_DISCOVER_SKIP not_init");
             return;
         }
-        if (discovering) return;
+        // Don't guard on 'discovering' — system may have timed out discovery
+        // silently; always re-initiate when BLE triggers.
 
         try {
             manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
@@ -194,6 +203,11 @@ public class WifiDirectManager {
                 Timber.tag(TAG).w("ED:WIFI_DISCONNECT_FAIL reason=%d", reason);
             }
         });
+    }
+
+    /** Returns whether the Wi-Fi P2P manager is initialized. */
+    public boolean isInitialized() {
+        return manager != null && channel != null;
     }
 
     /** Returns whether peer discovery is active. */
@@ -280,11 +294,35 @@ public class WifiDirectManager {
         if (info.groupFormed) {
             final InetAddress groupOwnerAddress = info.groupOwnerAddress;
             final boolean isGroupOwner = info.isGroupOwner;
+
+            if (groupOwnerAddress == null) {
+                // Retry: groupOwnerAddress can be null transiently
+                if (goAddrRetryCount < MAX_GO_ADDR_RETRIES) {
+                    goAddrRetryCount++;
+                    Timber.tag(TAG).w("ED:WIFI_GO_ADDR_NULL retry=%d/%d",
+                            goAddrRetryCount, MAX_GO_ADDR_RETRIES);
+                    handler.postDelayed(() -> {
+                        if (manager != null && channel != null) {
+                            manager.requestConnectionInfo(channel,
+                                    this::onConnectionInfoAvailable);
+                        }
+                    }, GO_ADDR_RETRY_DELAY_MS);
+                    return;
+                } else {
+                    Timber.tag(TAG).e("ED:WIFI_GO_ADDR_NULL_GIVE_UP retries=%d", goAddrRetryCount);
+                    goAddrRetryCount = 0;
+                    disconnect();
+                    return;
+                }
+            }
+
+            goAddrRetryCount = 0;
             Timber.tag(TAG).i("ED:WIFI_CONNECTED go=%b addr=%s", isGroupOwner, groupOwnerAddress);
-            if (callback != null && groupOwnerAddress != null) {
+            if (callback != null) {
                 callback.onConnected(groupOwnerAddress, isGroupOwner);
             }
         } else {
+            goAddrRetryCount = 0;
             Timber.tag(TAG).i("ED:WIFI_GROUP_DISSOLVED");
             if (callback != null) {
                 callback.onDisconnected();

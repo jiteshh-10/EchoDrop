@@ -7,6 +7,7 @@ import com.dev.echodrop.db.MessageEntity;
 import timber.log.Timber;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -44,6 +45,16 @@ public class BundleSender {
 
         /** Called when the send fails. */
         void onSendFailed(@NonNull String error);
+    }
+
+    /**
+     * Extended callback for bidirectional sync.
+     * After sending our messages, the peer sends its messages back on the
+     * same TCP connection. This callback delivers those response messages.
+     */
+    public interface BidirectionalCallback extends SendCallback {
+        /** Called with messages received from the peer's response session. */
+        void onResponseReceived(@NonNull List<MessageEntity> messages);
     }
 
     private final ExecutorService executor;
@@ -189,6 +200,21 @@ public class BundleSender {
             out.flush();
 
             Timber.tag(TAG).i("ED:SEND_OK count=%d addr=%s", messages.size(), address);
+
+            // Bidirectional sync: read response session from the peer
+            if (callback instanceof BidirectionalCallback) {
+                try {
+                    socket.setSoTimeout(15_000); // 15s timeout for response
+                    final InputStream in = socket.getInputStream();
+                    final List<MessageEntity> response = TransferProtocol.readSession(in);
+                    Timber.tag(TAG).i("ED:SEND_RESP_OK count=%d addr=%s", response.size(), address);
+                    ((BidirectionalCallback) callback).onResponseReceived(response);
+                } catch (IOException e) {
+                    // Response reading is best-effort; the core send already succeeded
+                    Timber.tag(TAG).w(e, "ED:SEND_RESP_FAIL addr=%s", address);
+                }
+            }
+
             callback.onSendComplete(messages.size());
         } catch (IOException e) {
             Timber.tag(TAG).e(e, "ED:SEND_FAIL addr=%s", address);
