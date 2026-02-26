@@ -18,6 +18,7 @@ import com.dev.echodrop.db.AppDatabase;
 import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.MessageRepo;
+import com.dev.echodrop.util.DeviceIdHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -154,6 +155,7 @@ public class BundleReceiver {
     private void handleClient(@NonNull final Socket client) {
         callback.onTransferStarted();
         int insertedCount = 0;
+        final String localDeviceId = DeviceIdHelper.getDeviceId(context);
 
         try {
             final InputStream in = client.getInputStream();
@@ -179,12 +181,16 @@ public class BundleReceiver {
                     continue;
                 }
 
+                // Stamp this device into the seen-by list
+                entity.addSeenBy(localDeviceId);
+
                 // Insert into database
                 final MessageDao dao = AppDatabase.getInstance(context).messageDao();
                 final long rowId = dao.insert(entity);
                 if (rowId != -1) {
                     insertedCount++;
-                    Log.i(TAG, "Inserted message: " + entity.getId());
+                    Log.i(TAG, "Inserted message: " + entity.getId()
+                            + " (hop=" + entity.getHopCount() + ")");
                 }
             }
 

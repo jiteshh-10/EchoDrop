@@ -31,6 +31,7 @@ import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.transfer.BundleReceiver;
 import com.dev.echodrop.transfer.BundleSender;
 import com.dev.echodrop.transfer.WifiDirectManager;
+import com.dev.echodrop.util.DeviceIdHelper;
 
 import java.net.InetAddress;
 import java.util.List;
@@ -42,7 +43,8 @@ import java.util.List;
  * kill the process. Starts BLE advertising, scanning, and Wi-Fi Direct
  * receiver when launched; stops all when destroyed.</p>
  *
- * <p>Updated in Iteration 6: added WifiDirectManager and BundleReceiver.</p>
+ * <p>Updated in Iteration 7: uses {@code sendForForwarding} with hop count,
+ * seen-by-ids loop prevention, and scope-based forwarding rules.</p>
  */
 public class EchoService extends Service {
 
@@ -171,33 +173,37 @@ public class EchoService extends Service {
     }
 
     /**
-     * Sends all active messages to the given peer address.
-     * Runs on background thread via BundleSender.
+     * Forwards all eligible messages to the given peer address.
+     * Uses hop count, seen-by-ids, and scope rules to filter.
      */
     private void sendAllMessages(@NonNull final InetAddress address) {
         final MessageDao dao = AppDatabase.getInstance(this).messageDao();
+        final String localDeviceId = DeviceIdHelper.getDeviceId(this);
         new Thread(() -> {
             final List<MessageEntity> messages = dao.getActiveMessagesDirect(System.currentTimeMillis());
             if (messages.isEmpty()) {
-                Log.i(TAG, "No messages to send");
+                Log.i(TAG, "No messages to forward");
                 return;
             }
-            Log.i(TAG, "Sending " + messages.size() + " messages to " + address);
-            bundleSender.send(address, messages, new BundleSender.SendCallback() {
+            Log.i(TAG, "Forwarding " + messages.size() + " candidate messages to " + address);
+            // Use forwarding-aware send: filters by hop limit, seen-by, scope
+            // peerDeviceId is unknown here (Wi-Fi Direct doesn't expose it),
+            // so we pass "" — the peer will dedup via content hash
+            bundleSender.sendForForwarding(address, messages, localDeviceId, "",
+                    true, new BundleSender.SendCallback() {
                 @Override
                 public void onSendComplete(final int count) {
-                    Log.i(TAG, "Sent " + count + " messages successfully");
-                    // Disconnect after transfer to allow re-discovery
+                    Log.i(TAG, "Forwarded " + count + " messages successfully");
                     wifiDirectManager.disconnect();
                 }
 
                 @Override
                 public void onSendFailed(@NonNull final String error) {
-                    Log.e(TAG, "Send failed: " + error);
+                    Log.e(TAG, "Forward failed: " + error);
                     wifiDirectManager.disconnect();
                 }
             });
-        }, "SendMessages").start();
+        }, "ForwardMessages").start();
     }
 
     @Override

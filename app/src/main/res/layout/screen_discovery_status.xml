@@ -323,6 +323,85 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Multi-Hop Stats (Iteration 7) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:text="@string/discovery_hop_section_title"
+                android:textColor="@color/echo_text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:orientation="horizontal">
+
+                <!-- Average hops -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/spacing_1"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_stat_card"
+                    android:gravity="center"
+                    android:minHeight="@dimen/stat_card_size"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_2">
+
+                    <TextView
+                        android:id="@+id/stat_avg_hops"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:text="0.0"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/discovery_avg_hops"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Forwarded messages count -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_stat_card"
+                    android:gravity="center"
+                    android:minHeight="@dimen/stat_card_size"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_2">
+
+                    <TextView
+                        android:id="@+id/stat_forwarded_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:text="0"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/discovery_forwarded_count"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
             <!-- Peers list section -->
             <TextView
                 android:layout_width="wrap_content"

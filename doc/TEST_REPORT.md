@@ -1,9 +1,9 @@
 # EchoDrop — Test Report
 
-> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery + Payload Transfer**  
+> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6 + 7: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery + Payload Transfer + Multi-Hop DTN**  
 > **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
 > **Execution Date:** 2026  
-> **Result:** ✅ **361 tests — 0 failures — 100% pass rate**
+> **Result:** ✅ **405 tests — 0 failures — 100% pass rate**
 
 ---
 
@@ -35,6 +35,10 @@
   - [3.21 BundleSenderTest (4 tests)](#321-bundlesendertest-4-tests)
   - [3.22 WifiDirectManagerTest (4 tests)](#322-wifidirectmanagertest-4-tests)
   - [3.23 BundleReceiverTest (5 tests)](#323-bundlereceivertest-5-tests)
+  - [3.24 MessageEntityHopTest (30 tests)](#324-messageentityhoptest-30-tests)
+  - [3.25 TransferProtocolHopTest (11 tests)](#325-transferprotocolhoptest-11-tests)
+  - [3.26 BundleSenderForwardingTest (7 tests)](#326-bundlesenderforwardingtest-7-tests)
+  - [3.27 DeviceIdHelperTest (4 tests)](#327-deviceidhelpertest-4-tests)
 - [4. Bugs Found & Fixed During Testing](#4-bugs-found--fixed-during-testing)
 - [5. Test Coverage Matrix](#5-test-coverage-matrix)
 - [6. Testing Methodology](#6-testing-methodology)
@@ -46,13 +50,13 @@
 
 | Metric            | Value          |
 |-------------------|----------------|
-| **Total Tests**   | 361            |
-| **Passed**        | 361            |
+| **Total Tests**   | 405            |
+| **Passed**        | 405            |
 | **Failed**        | 0              |
 | **Ignored**       | 0              |
 | **Success Rate**  | 100%           |
-| **Test Classes**  | 23             |
-| **Packages Tested** | 13           |
+| **Test Classes**  | 27             |
+| **Packages Tested** | 14           |
 
 ### Package Results
 
@@ -62,7 +66,7 @@
 | `com.dev.echodrop.adapters`       | 26    | 0        | 100%         |
 | `com.dev.echodrop.components`     | 27    | 0        | 100%         |
 | `com.dev.echodrop.crypto`         | 12    | 0        | 100%         |
-| `com.dev.echodrop.db`             | 72    | 0        | 100%         |
+| `com.dev.echodrop.db`             | 102   | 0        | 100%         |
 | `com.dev.echodrop.models`         | 20    | 0        | 100%         |
 | `com.dev.echodrop.repository`     | 14    | 0        | 100%         |
 | `com.dev.echodrop.screens`        | 14    | 0        | 100%         |
@@ -70,7 +74,8 @@
 | `com.dev.echodrop.ble`            | 26    | 0        | 100%         |
 | `com.dev.echodrop.mesh`           | 30    | 0        | 100%         |
 | `com.dev.echodrop.service`        | 6     | 0        | 100%         |
-| `com.dev.echodrop.transfer`       | 42    | 0        | 100%         |
+| `com.dev.echodrop.transfer`       | 60    | 0        | 100%         |
+| `com.dev.echodrop.util`           | 4     | 0        | 100%         |
 
 ---
 
@@ -549,6 +554,75 @@ Tests cover:
 - onReceiveFailed callback with error string
 - Transfer start/end paired lifecycle
 - PORT constant cross-reference with TransferProtocol
+
+---
+
+### 3.24 MessageEntityHopTest (30 tests)
+
+**Scope:** Multi-hop fields (`hop_count`, `seen_by_ids`) on `MessageEntity`.
+
+| # | Test | Assertion |
+|---|------|-----------|
+| 1 | `maxHopCount_isFive` | `MAX_HOP_COUNT == 5` |
+| 2 | `hopCount_defaultIsZero` | Constructor sets hop_count to 0 |
+| 3 | `seenByIds_defaultIsEmpty` | Constructor sets seen_by_ids to "" |
+| 4 | `setHopCount_updatesValue` | Setter/getter round-trip |
+| 5 | `setHopCount_toMaxValue` | Accepts MAX_HOP_COUNT |
+| 6 | `setSeenByIds_updatesValue` | Setter/getter round-trip |
+| 7 | `isAtHopLimit_belowLimit_returnsFalse` | 0 < MAX → false |
+| 8 | `isAtHopLimit_oneBelowLimit_returnsFalse` | MAX-1 → false |
+| 9 | `isAtHopLimit_atLimit_returnsTrue` | MAX → true |
+| 10 | `isAtHopLimit_aboveLimit_returnsTrue` | MAX+1 → true |
+| 11-16 | `hasBeenSeenBy_*` | Empty, present, absent, single, empty ID, null seenByIds |
+| 17-22 | `addSeenBy_*` | To empty, append, dedup, chain, empty ID, null seenByIds |
+| 23-24 | `create_setsHopCount/SeenByIds` | Factory method defaults |
+
+---
+
+### 3.25 TransferProtocolHopTest (11 tests)
+
+**Scope:** Wire format round-trip for `hopCount` and `seenByIds` fields.
+
+| # | Test | Assertion |
+|---|------|-----------|
+| 1 | `serialize_defaultHopFields_roundTrips` | 0/""  survive serialize→deserialize |
+| 2 | `serialize_nonZeroHopCount_roundTrips` | hop=3 round-trips |
+| 3 | `serialize_seenByIds_roundTrips` | Comma-separated IDs round-trip |
+| 4 | `serialize_bothHopFields_roundTrip` | hop=5 + 5 IDs round-trip |
+| 5 | `serialize_maxHopCount_roundTrips` | MAX_HOP_COUNT survives |
+| 6 | `session_preservesHopFields` | Session write/read preserves hop data |
+| 7 | `frame_preservesHopFields` | Frame write/read preserves hop data |
+| 8 | `serialize_emptySeenByIds_roundTrips` | Empty string survives |
+| 9 | `serialize_longSeenByChain_roundTrips` | 5-device chain survives |
+
+---
+
+### 3.26 BundleSenderForwardingTest (7 tests)
+
+**Scope:** `sendForForwarding()` filtering rules.
+
+| # | Test | Assertion |
+|---|------|-----------|
+| 1 | `filtersExpiredMessages` | Expired → onSendComplete(0) |
+| 2 | `filtersAtHopLimit` | At MAX_HOP_COUNT → onSendComplete(0) |
+| 3 | `filtersSeenByPeer` | Peer in seen_by_ids → onSendComplete(0) |
+| 4 | `filtersLocalScopeWhenNotBle` | LOCAL + !isBle → onSendComplete(0) |
+| 5 | `emptyList_completesWithZero` | No messages → onSendComplete(0) |
+| 6 | `allFilteredOut_completesWithZero` | Mixed reasons → onSendComplete(0) |
+| 7 | `zoneScope_passesWhenNotBle` | ZONE + !isBle → attempts send (not filtered) |
+
+---
+
+### 3.27 DeviceIdHelperTest (4 tests)
+
+**Scope:** Device ID generation format and uniqueness.
+
+| # | Test | Assertion |
+|---|------|-----------|
+| 1 | `generateDeviceId_isEightCharHex` | 8 chars, matches `[0-9a-f]{8}` |
+| 2 | `generateDeviceId_isNonNull` | Never null |
+| 3 | `generateDeviceId_uniqueAcrossCalls` | Two calls produce different IDs |
+| 4 | `generateDeviceId_alwaysCorrectLength` | 100 iterations all return 8 chars |
 
 ---
 

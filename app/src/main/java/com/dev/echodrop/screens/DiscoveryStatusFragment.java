@@ -17,6 +17,7 @@ import com.dev.echodrop.R;
 import com.dev.echodrop.ble.BleScanner;
 import com.dev.echodrop.databinding.ScreenDiscoveryStatusBinding;
 import com.dev.echodrop.db.AppDatabase;
+import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.mesh.ManifestManager;
 import com.dev.echodrop.viewmodels.MessageViewModel;
 
@@ -69,8 +70,32 @@ public class DiscoveryStatusFragment extends Fragment {
         viewModel.getMessages().observe(getViewLifecycleOwner(), messages -> {
             if (messages != null) {
                 binding.statMessageCount.setText(String.valueOf(messages.size()));
+                updateHopStats(messages);
             }
         });
+    }
+
+    /**
+     * Compute and display multi-hop stats from the current message list.
+     * Shows average hop count and number of forwarded (hop > 0) messages.
+     */
+    private void updateHopStats(@NonNull List<MessageEntity> messages) {
+        if (binding == null) return;
+        int forwarded = 0;
+        int totalHops = 0;
+        for (MessageEntity m : messages) {
+            int h = m.getHopCount();
+            if (h > 0) {
+                forwarded++;
+                totalHops += h;
+            }
+        }
+        binding.statForwardedCount.setText(String.valueOf(forwarded));
+        if (forwarded > 0) {
+            binding.statAvgHops.setText(String.format(Locale.US, "%.1f", (double) totalHops / forwarded));
+        } else {
+            binding.statAvgHops.setText("0.0");
+        }
     }
 
     private void refreshStats() {
