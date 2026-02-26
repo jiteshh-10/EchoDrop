@@ -43,6 +43,13 @@ public class WifiDirectManager {
     private static final long GO_ADDR_RETRY_DELAY_MS = 500;
     private int goAddrRetryCount;
 
+    /** Debounce: minimum interval between processing PEERS_CHANGED broadcasts. */
+    private static final long PEERS_DEBOUNCE_MS = 2_000;
+    private long lastPeersCallbackMs;
+
+    /** Tracks last logged peer count to suppress duplicate log lines. */
+    private int lastLoggedPeerCount = -1;
+
     /** Callback for Wi-Fi Direct connection events. */
     public interface ConnectionCallback {
         /** Called when a Wi-Fi Direct connection is established. */
@@ -62,6 +69,8 @@ public class WifiDirectManager {
     private BroadcastReceiver receiver;
     private boolean receiverRegistered;
     private boolean discovering;
+    /** True while a connect() call is in flight (waiting for callback). */
+    private boolean connectingInProgress;
 
     @Nullable
     private ConnectionCallback callback;
@@ -168,6 +177,12 @@ public class WifiDirectManager {
             Timber.tag(TAG).w("ED:WIFI_CONNECT_SKIP not_init");
             return;
         }
+        // Guard: don't issue another connect() while one is already in-flight
+        if (connectingInProgress) {
+            Timber.tag(TAG).d("ED:WIFI_CONNECT_SKIP already_connecting");
+            return;
+        }
+        connectingInProgress = true;
 
         final WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = device.deviceAddress;
@@ -177,16 +192,24 @@ public class WifiDirectManager {
                 @Override
                 public void onSuccess() {
                     Timber.tag(TAG).i("ED:WIFI_CONNECT_INIT addr=%s", device.deviceAddress);
+                    // connectingInProgress cleared when onConnected/onDisconnected fires
                 }
 
                 @Override
                 public void onFailure(final int reason) {
+                    connectingInProgress = false;
                     Timber.tag(TAG).e("ED:WIFI_CONNECT_FAIL addr=%s reason=%d", device.deviceAddress, reason);
                 }
             });
         } catch (SecurityException e) {
+            connectingInProgress = false;
             Timber.tag(TAG).e(e, "ED:WIFI_CONNECT_PERM");
         }
+    }
+
+    /** Returns whether a connect() call is currently in-flight. */
+    public boolean isConnectingInProgress() {
+        return connectingInProgress;
     }
 
     /** Disconnects from the current Wi-Fi Direct group. */
@@ -256,7 +279,13 @@ public class WifiDirectManager {
                 }
                 break;
 
-            case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
+            case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION: {
+                // Debounce: skip if last callback was < PEERS_DEBOUNCE_MS ago
+                final long now = System.currentTimeMillis();
+                if (now - lastPeersCallbackMs < PEERS_DEBOUNCE_MS) {
+                    break;
+                }
+                lastPeersCallbackMs = now;
                 if (manager != null && channel != null) {
                     try {
                         manager.requestPeers(channel, this::onPeersDiscovered);
@@ -265,6 +294,7 @@ public class WifiDirectManager {
                     }
                 }
                 break;
+            }
 
             case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
                 if (manager != null && channel != null) {
@@ -284,7 +314,12 @@ public class WifiDirectManager {
     private void onPeersDiscovered(@NonNull final WifiP2pDeviceList peerList) {
         currentPeers.clear();
         currentPeers.addAll(peerList.getDeviceList());
-        Timber.tag(TAG).i("ED:WIFI_PEERS_FOUND count=%d", currentPeers.size());
+        final int count = currentPeers.size();
+        // Only log when count actually changes to avoid log spam
+        if (count != lastLoggedPeerCount) {
+            Timber.tag(TAG).i("ED:WIFI_PEERS_FOUND count=%d", count);
+            lastLoggedPeerCount = count;
+        }
         if (callback != null) {
             callback.onPeersAvailable(getCurrentPeers());
         }
@@ -317,12 +352,14 @@ public class WifiDirectManager {
             }
 
             goAddrRetryCount = 0;
+            connectingInProgress = false;
             Timber.tag(TAG).i("ED:WIFI_CONNECTED go=%b addr=%s", isGroupOwner, groupOwnerAddress);
             if (callback != null) {
                 callback.onConnected(groupOwnerAddress, isGroupOwner);
             }
         } else {
             goAddrRetryCount = 0;
+            connectingInProgress = false;
             Timber.tag(TAG).i("ED:WIFI_GROUP_DISSOLVED");
             if (callback != null) {
                 callback.onDisconnected();

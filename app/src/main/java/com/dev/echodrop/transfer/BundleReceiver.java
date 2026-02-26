@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -254,6 +255,10 @@ public class BundleReceiver {
             callback.onReceiveComplete(finalCount);
             Timber.tag(TAG).i("ED:RECV_DONE inserted=%d chat=%d", insertedCount, chatCount);
 
+        } catch (SocketException e) {
+            // WiFi Direct group dissolved while reading — not a real error
+            Timber.tag(TAG).w("ED:RECV_ABORT %s", e.getMessage());
+            callback.onReceiveFailed(e.getMessage() != null ? e.getMessage() : "Connection aborted");
         } catch (IOException e) {
             Timber.tag(TAG).e(e, "ED:RECV_FAIL");
             callback.onReceiveFailed(e.getMessage() != null ? e.getMessage() : "Unknown error");

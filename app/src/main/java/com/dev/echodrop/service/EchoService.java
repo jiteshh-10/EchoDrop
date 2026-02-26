@@ -61,6 +61,9 @@ public class EchoService extends Service {
     /** Cooldown before re-discovering after a transfer completes. */
     private static final long REDISCOVERY_COOLDOWN_MS = 15_000;
 
+    /** Extended cooldown when last transfer produced 0 new inserts (already synced). */
+    private static final long REDISCOVERY_SYNCED_COOLDOWN_MS = 60_000;
+
     private BleAdvertiser advertiser;
     private BleScanner scanner;
     private WifiDirectManager wifiDirectManager;
@@ -69,6 +72,13 @@ public class EchoService extends Service {
     private boolean transferInProgress;
     private boolean wifiDirectConnected;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    /** Tracks whether the last completed transfer had any new inserts. */
+    private volatile boolean lastTransferHadInserts;
+
+    /** Tracks last logged peer count to suppress duplicate WIFI_PEERS lines. */
+    private int lastLoggedWifiPeerCount = -1;
+    private boolean lastLoggedWifiConnected;
 
     /** Listener for transfer state changes (used by UI for pulse animation). */
     private static TransferStateListener transferStateListener;
@@ -113,6 +123,7 @@ public class EchoService extends Service {
             @Override
             public void onReceiveComplete(final int insertedCount) {
                 Timber.tag(TAG).i("ED:TRANSFER_RECV_DONE count=%d", insertedCount);
+                if (insertedCount > 0) lastTransferHadInserts = true;
                 // After receiving, send our messages back (bidirectional sync)
                 // This happens on the group-owner side after receiving from client
             }
@@ -169,23 +180,43 @@ public class EchoService extends Service {
 
             @Override
             public void onDisconnected() {
+                // Guard: ignore duplicate disconnect callbacks
+                if (!wifiDirectConnected) {
+                    Timber.tag(TAG).d("ED:WIFI_DISCONNECT_DUP_SKIP");
+                    return;
+                }
                 wifiDirectConnected = false;
                 Timber.tag(TAG).i("ED:WIFI_DISCONNECTED");
+
+                // Choose cooldown based on whether last transfer was productive
+                final long cooldown = lastTransferHadInserts
+                        ? REDISCOVERY_COOLDOWN_MS
+                        : REDISCOVERY_SYNCED_COOLDOWN_MS;
+                // Reset for next cycle
+                lastTransferHadInserts = false;
+
                 // Schedule re-discovery after cooldown
                 mainHandler.postDelayed(() -> {
                     if (scanner != null && scanner.getPeerCount() > 0
                             && !transferInProgress && !wifiDirectConnected) {
-                        Timber.tag(TAG).i("ED:WIFI_REDISCOVER post_transfer");
+                        Timber.tag(TAG).i("ED:WIFI_REDISCOVER post_transfer cooldown=%dms", cooldown);
                         wifiDirectManager.discoverPeers();
                     }
-                }, REDISCOVERY_COOLDOWN_MS);
+                }, cooldown);
             }
 
             @Override
             public void onPeersAvailable(@NonNull final List<android.net.wifi.p2p.WifiP2pDevice> peers) {
-                Timber.tag(TAG).i("ED:WIFI_PEERS count=%d connected=%b", peers.size(), wifiDirectConnected);
+                // Suppress duplicate log lines
+                if (peers.size() != lastLoggedWifiPeerCount || wifiDirectConnected != lastLoggedWifiConnected) {
+                    Timber.tag(TAG).i("ED:WIFI_PEERS count=%d connected=%b", peers.size(), wifiDirectConnected);
+                    lastLoggedWifiPeerCount = peers.size();
+                    lastLoggedWifiConnected = wifiDirectConnected;
+                }
                 // Auto-connect to first available peer if not already connected
-                if (!peers.isEmpty() && !wifiDirectConnected) {
+                // and no connect() call is already in-flight
+                if (!peers.isEmpty() && !wifiDirectConnected
+                        && !wifiDirectManager.isConnectingInProgress()) {
                     final android.net.wifi.p2p.WifiP2pDevice peer = peers.get(0);
                     Timber.tag(TAG).i("ED:WIFI_AUTO_CONNECT name=%s addr=%s",
                             peer.deviceName, peer.deviceAddress);
@@ -243,6 +274,7 @@ public class EchoService extends Service {
                     if (bundleReceiver != null && !responseMessages.isEmpty()) {
                         final int inserted = bundleReceiver.processReceivedMessages(responseMessages);
                         Timber.tag(TAG).i("ED:FWD_RESPONSE_DONE inserted=%d", inserted);
+                        if (inserted > 0) lastTransferHadInserts = true;
                     }
                 }
             });
