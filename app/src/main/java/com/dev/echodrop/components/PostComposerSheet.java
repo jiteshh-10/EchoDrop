@@ -104,6 +104,7 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
         chip.setChipStrokeColor(new ColorStateList(states, strokeColors));
         chip.setChipStrokeWidth(1f);
         chip.setTextColor(new ColorStateList(states, textColors));
+        chip.setCheckedIconVisible(false);
     }
 
     private void setupUrgentToggle() {

@@ -5,17 +5,31 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ═══ Room entities — keep all fields/constructors for reflection ═══
+-keep class com.dev.echodrop.db.** { *; }
+-keepclassmembers class com.dev.echodrop.db.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ═══ BLE callbacks — keep scan callback classes ═══
+-keep class com.dev.echodrop.ble.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ═══ WorkManager workers — keep for reflection ═══
+-keep class com.dev.echodrop.workers.** { *; }
+
+# ═══ Service + BroadcastReceiver — keep for manifest ═══
+-keep class com.dev.echodrop.service.** { *; }
+
+# ═══ Transfer protocol — keep wire format classes ═══
+-keep class com.dev.echodrop.transfer.** { *; }
+
+# ═══ Models — keep for JSON/serialization ═══
+-keep class com.dev.echodrop.models.** { *; }
+
+# ═══ Timber — strip debug logs in release ═══
+-assumenosideeffects class timber.log.Timber {
+    public static *** d(...);
+    public static *** v(...);
+}
+
+# ═══ Preserve line numbers for crash reports ═══
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

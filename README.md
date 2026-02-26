@@ -34,6 +34,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 - [15. Iteration 6 Completion Status](#15-iteration-6-completion-status)
 - [16. Iteration 7 Completion Status](#16-iteration-7-completion-status)
 - [17. Iteration 8 Completion Status](#17-iteration-8-completion-status)
+- [18. Iteration 9 Completion Status](#18-iteration-9-completion-status)
 
 ---
 
@@ -46,8 +47,8 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 | **Min SDK**      | 24 (Android 7.0 Nougat)                      |
 | **Compile SDK**  | 35                                           |
 | **Language**     | Java 11                                      |
-| **Theme**        | Material 3 — Dark Only                       |
-| **Branch**       | `main` (latest: `iteration-8`)               |
+| **Theme**        | Material 3 — Light + Dark (night qualifier)  |
+| **Branch**       | `main` (latest: `iteration-9`)               |
 
 ### Concept
 
@@ -1091,3 +1092,35 @@ android {
 - [x] Non-members carry encrypted bundles but cannot decrypt
 - [x] 41 new unit tests across 3 new test classes + 1 updated
 
+
+## 18. Iteration 9 Completion Status
+
+> Stability, Power Management, UX Polish & Demo Readiness
+
+### Summary
+
+| Category                   | Items | Status |
+|----------------------------|-------|--------|
+| New Production Files       | 1     | ✅ Complete |
+| Updated Production Files   | 17    | ✅ Complete |
+| New Documentation Files    | 3     | ✅ Complete |
+| Build Verification         | —     | ✅ `BUILD SUCCESSFUL` |
+| Unit Tests                 | 446   | ✅ 0 failures (100% pass rate) |
+
+### Key Changes
+
+- [x] Light mode (values/) + Dark mode (values-night/) color system
+- [x] Typography overhaul: Display/H1/H2/Body/Caption/Mono/Button/Badge type scale
+- [x] 8dp grid spacing enforcement across all dimensions
+- [x] Pill-shaped badges (100dp corners, 22dp height)
+- [x] Three button styles: Primary, Secondary, Ghost
+- [x] Custom app icon: 3-arc echo motif with primary accent
+- [x] Bug fix: TTL refresh on inbox message cards (60s periodic)
+- [x] Bug fix: Non-functional left navigation icon removed
+- [x] Timber logging (debug tree + ProGuard stripping)
+- [x] StrictMode for debug builds (thread + VM policies)
+- [x] ProGuard/R8 rules for release builds (minify + shrink enabled)
+- [x] BuildConfig generation enabled for AGP 8.x
+- [x] 14 accessibility strings (`a11y_*`) + 5 error snackbar strings
+- [x] Demo script with 6-act walkthrough
+- [x] Known limitations document (21 items)

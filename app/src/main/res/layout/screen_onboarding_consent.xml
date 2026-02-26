@@ -39,7 +39,7 @@
                     android:layout_gravity="center"
                     android:contentDescription="@string/content_sync"
                     android:src="@drawable/ic_wifi"
-                    android:tint="@color/echo_primary_accent" />
+                    app:tint="@color/echo_primary_accent" />
             </com.google.android.material.card.MaterialCardView>
         </FrameLayout>
 
@@ -89,7 +89,7 @@
                         android:layout_height="24dp"
                         android:contentDescription="@string/onboarding_feature_1_title"
                         android:src="@android:drawable/stat_sys_download_done"
-                        android:tint="@color/echo_positive_accent" />
+                        app:tint="@color/echo_positive_accent" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -138,7 +138,7 @@
                         android:layout_height="24dp"
                         android:contentDescription="@string/onboarding_feature_2_title"
                         android:src="@android:drawable/ic_lock_idle_alarm"
-                        android:tint="@color/echo_text_secondary" />
+                        app:tint="@color/echo_text_secondary" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -186,7 +186,7 @@
                         android:layout_height="24dp"
                         android:contentDescription="@string/onboarding_feature_3_title"
                         android:src="@android:drawable/ic_lock_lock"
-                        android:tint="@color/echo_primary_accent" />
+                        app:tint="@color/echo_primary_accent" />
 
                     <LinearLayout
                         android:layout_width="0dp"

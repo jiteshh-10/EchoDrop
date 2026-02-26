@@ -34,7 +34,7 @@
             android:layout_height="20dp"
             android:contentDescription="@string/content_search"
             android:src="@android:drawable/ic_menu_search"
-            android:tint="@color/echo_text_secondary" />
+            app:tint="@color/echo_text_secondary" />
 
         <EditText
             android:id="@+id/search_input"
@@ -207,7 +207,7 @@
                 android:layout_gravity="center"
                 android:contentDescription="@string/empty_state_title"
                 android:src="@android:drawable/ic_dialog_email"
-                android:tint="@color/echo_muted_disabled" />
+                app:tint="@color/echo_muted_disabled" />
         </com.google.android.material.card.MaterialCardView>
 
         <TextView

@@ -1177,3 +1177,65 @@ ChatRepo.processIncomingChatBundle(entity)
 - **Chat Conversation Sync Bar:** Shows "Messages sync when nearby" before first sync, then "Last synced just now" / "Xm ago" / "Xh ago". Sync dot turns green on sync. Updates every 30 seconds.
 - **Incoming Message Animation:** New messages from sync events animate with fade (alpha 0→1) + slide (translateY -8dp→0) over 250ms with AccelerateDecelerateInterpolator.
 - **Sync State:** Outgoing messages update from single tick (SENT) to double tick (SYNCED) when the chat peer receives them.
+
+## Iteration 9 — Stability, UX Polish & Demo Readiness
+
+### Color System (Light + Dark)
+
+```
+values/colors.xml (light mode — default)
+    echo_bg_main        = #F4F5F7
+    echo_card_surface   = #FFFFFF
+    echo_elevated_surface = #ECEDF0
+    echo_text_primary   = #1A1D23
+    echo_text_secondary = #6B7280
+
+values-night/colors.xml (dark mode — night qualifier)
+    echo_bg_main        = #0A0C0F
+    echo_card_surface   = #111318
+    echo_elevated_surface = #070809
+    echo_text_primary   = #D8DFE8
+    echo_text_secondary = #7E8896
+```
+
+Accent colors shared across modes: primary=#7C9EBF, alert=#C0616A, positive=#5E9E82, amber=#C8935A.
+
+### Typography Type Scale
+
+| Style | Size | Weight | Font | Usage |
+|-------|------|--------|------|-------|
+| Display | 24sp | 600 | sans-serif-medium | Onboarding headline |
+| H1 | 20sp | 500 | sans-serif-medium | App title |
+| H2/Headline | 18sp | 500 | sans-serif-medium | Screen titles |
+| Body | 14sp | 400 | sans-serif | Primary content |
+| Caption/Small | 12sp | 400 | sans-serif | Timestamps, metadata |
+| Mono | 13sp | 500 | monospace | Codes, countdowns |
+| Button | 14sp | 500 | sans-serif-medium | Button labels |
+| Badge | 11sp | 500 | sans-serif-medium | Pill labels |
+
+### Stability Stack
+
+```
+Timber (5.0.1)
+    → DebugTree planted in MainActivity.onCreate() when BuildConfig.DEBUG
+    → ProGuard strips Timber.d() and Timber.v() in release builds
+    → EchoService + BootReceiver migrated from android.util.Log to Timber
+
+StrictMode (debug only)
+    → ThreadPolicy: detectDiskReads, detectDiskWrites, detectNetwork, penaltyLog
+    → VmPolicy: detectLeakedSqlLiteObjects, detectLeakedClosableObjects, penaltyLog
+
+ProGuard/R8 (release builds)
+    → minifyEnabled=true, shrinkResources=true
+    → Keep rules: Room entities, BLE callbacks, WorkManager workers,
+      services, receivers, transfer protocol, models
+```
+
+### Bug Fixes
+
+1. **TTL refresh:** Added 60-second periodic adapter refresh in HomeInboxFragment so message card TTL labels stay current. Handler is lazy-initialized to avoid Looper dependency in unit tests.
+2. **Navigation icon:** Removed non-functional `setNavigationIcon` from home toolbar.
+
+### App Icon
+
+Adaptive icon with 3-arc echo motif: dark background (#0A0C0F) + primary accent arcs radiating from center-left dot. Arcs at 100%/70%/40% opacity.

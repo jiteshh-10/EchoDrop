@@ -14,7 +14,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.util.Log;
+import timber.log.Timber;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -48,8 +48,7 @@ import java.util.List;
  */
 public class EchoService extends Service {
 
-    private static final String TAG = "EchoService";
-    private static final String CHANNEL_ID = "EchoDrop";
+        private static final String CHANNEL_ID = "EchoDrop";
     private static final int NOTIFICATION_ID = 1;
     private static final String PREFS_NAME = "echodrop_prefs";
     private static final String PREF_BG_ENABLED = "bg_enabled";
@@ -104,12 +103,12 @@ public class EchoService extends Service {
         bundleReceiver.setReceiveCallback(new BundleReceiver.ReceiveCallback() {
             @Override
             public void onReceiveComplete(final int insertedCount) {
-                Log.i(TAG, "Transfer complete: " + insertedCount + " messages received");
+                Timber.i("Transfer complete: " + insertedCount + " messages received");
             }
 
             @Override
             public void onReceiveFailed(@NonNull final String error) {
-                Log.e(TAG, "Transfer failed: " + error);
+                Timber.e("Transfer failed: " + error);
             }
 
             @Override
@@ -130,7 +129,7 @@ public class EchoService extends Service {
         // When BLE scanner discovers peers, start Wi-Fi Direct peer discovery
         scanner.setPeerUpdateListener(peers -> {
             if (!peers.isEmpty() && !wifiDirectConnected) {
-                Log.i(TAG, "BLE found " + peers.size() + " peers — starting Wi-Fi Direct discovery");
+                Timber.i("BLE found " + peers.size() + " peers — starting Wi-Fi Direct discovery");
                 wifiDirectManager.discoverPeers();
             }
             // Notify UI about real peer count
@@ -143,7 +142,7 @@ public class EchoService extends Service {
             public void onConnected(@NonNull final InetAddress groupOwnerAddress,
                                     final boolean isGroupOwner) {
                 wifiDirectConnected = true;
-                Log.i(TAG, "Wi-Fi Direct connected — groupOwner=" + isGroupOwner
+                Timber.i("Wi-Fi Direct connected — groupOwner=" + isGroupOwner
                         + " addr=" + groupOwnerAddress);
 
                 if (!isGroupOwner) {
@@ -156,16 +155,16 @@ public class EchoService extends Service {
             @Override
             public void onDisconnected() {
                 wifiDirectConnected = false;
-                Log.i(TAG, "Wi-Fi Direct disconnected");
+                Timber.i("Wi-Fi Direct disconnected");
             }
 
             @Override
             public void onPeersAvailable(@NonNull final List<android.net.wifi.p2p.WifiP2pDevice> peers) {
-                Log.i(TAG, "Wi-Fi Direct found " + peers.size() + " peers");
+                Timber.i("Wi-Fi Direct found " + peers.size() + " peers");
                 // Auto-connect to first available peer if not already connected
                 if (!peers.isEmpty() && !wifiDirectConnected) {
                     final android.net.wifi.p2p.WifiP2pDevice peer = peers.get(0);
-                    Log.i(TAG, "Auto-connecting to peer: " + peer.deviceName);
+                    Timber.i("Auto-connecting to peer: " + peer.deviceName);
                     wifiDirectManager.connect(peer);
                 }
             }
@@ -182,10 +181,10 @@ public class EchoService extends Service {
         new Thread(() -> {
             final List<MessageEntity> messages = dao.getActiveMessagesDirect(System.currentTimeMillis());
             if (messages.isEmpty()) {
-                Log.i(TAG, "No messages to forward");
+                Timber.i("No messages to forward");
                 return;
             }
-            Log.i(TAG, "Forwarding " + messages.size() + " candidate messages to " + address);
+            Timber.i("Forwarding " + messages.size() + " candidate messages to " + address);
             // Use forwarding-aware send: filters by hop limit, seen-by, scope
             // peerDeviceId is unknown here (Wi-Fi Direct doesn't expose it),
             // so we pass "" — the peer will dedup via content hash
@@ -193,13 +192,13 @@ public class EchoService extends Service {
                     true, new BundleSender.SendCallback() {
                 @Override
                 public void onSendComplete(final int count) {
-                    Log.i(TAG, "Forwarded " + count + " messages successfully");
+                    Timber.i("Forwarded " + count + " messages successfully");
                     wifiDirectManager.disconnect();
                 }
 
                 @Override
                 public void onSendFailed(@NonNull final String error) {
-                    Log.e(TAG, "Forward failed: " + error);
+                    Timber.e("Forward failed: " + error);
                     wifiDirectManager.disconnect();
                 }
             });
@@ -213,7 +212,7 @@ public class EchoService extends Service {
         scanner.start();
         wifiDirectManager.initialize();
         bundleReceiver.start();
-        Log.i(TAG, "EchoService started — BLE + Wi-Fi Direct active");
+        Timber.i("EchoService started — BLE + Wi-Fi Direct active");
         return START_STICKY;
     }
 
@@ -225,7 +224,7 @@ public class EchoService extends Service {
         bundleReceiver.stop();
         bundleSender.shutdown();
         wifiDirectManager.teardown();
-        Log.i(TAG, "EchoService destroyed");
+        Timber.i("EchoService destroyed");
     }
 
     @Nullable
@@ -377,7 +376,7 @@ public class EchoService extends Service {
     /** Starts the foreground service if BLE permissions are granted. */
     public static void startService(Context context) {
         if (!hasBlePermissions(context)) {
-            Log.w(TAG, "Cannot start EchoService — BLE runtime permissions not granted");
+            Timber.w("Cannot start EchoService — BLE runtime permissions not granted");
             return;
         }
         final Intent intent = new Intent(context, EchoService.class);

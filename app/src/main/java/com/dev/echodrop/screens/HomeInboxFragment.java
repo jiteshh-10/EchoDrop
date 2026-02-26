@@ -3,6 +3,8 @@ package com.dev.echodrop.screens;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -67,6 +69,8 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     private List<MessageEntity> allMessages = new ArrayList<>();
     private ObjectAnimator syncDotAnimator;
     private boolean transferActive;
+    private Handler ttlRefreshHandler;
+    private static final long TTL_REFRESH_INTERVAL_MS = 60_000L;
 
     private enum Tab {
         ALL,
@@ -105,11 +109,36 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             if (binding == null) return;
             updateSyncIndicator(count);
         });
+
+        // Periodic TTL refresh so message card timestamps stay current
+        startTtlRefresh();
+    }
+
+    /** Periodic task that refreshes the adapter so TTL labels update. */
+    private final Runnable ttlRefreshRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (binding != null && adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
+            ttlRefreshHandler.postDelayed(this, TTL_REFRESH_INTERVAL_MS);
+        }
+    };
+
+    private void startTtlRefresh() {
+        if (ttlRefreshHandler == null) {
+            ttlRefreshHandler = new Handler(Looper.getMainLooper());
+        }
+        ttlRefreshHandler.postDelayed(ttlRefreshRunnable, TTL_REFRESH_INTERVAL_MS);
+    }
+
+    private void stopTtlRefresh() {
+        if (ttlRefreshHandler != null) {
+            ttlRefreshHandler.removeCallbacks(ttlRefreshRunnable);
+        }
     }
 
     private void setupToolbar() {
-        binding.homeToolbar.setNavigationIcon(android.R.drawable.ic_menu_sort_by_size);
-        binding.homeToolbar.setNavigationContentDescription(R.string.content_menu);
         binding.homeToolbar.inflateMenu(R.menu.home_menu);
         binding.homeToolbar.setOnMenuItemClickListener(this::onMenuItemClicked);
     }
@@ -405,6 +434,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         super.onDestroyView();
         EchoService.setTransferStateListener(null);
         EchoService.setPeerCountListener(null);
+        stopTtlRefresh();
         if (syncDotAnimator != null) {
             syncDotAnimator.cancel();
             syncDotAnimator = null;

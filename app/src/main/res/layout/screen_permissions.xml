@@ -69,7 +69,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="@string/permission_nearby_title"
                             android:src="@android:drawable/stat_sys_data_bluetooth"
-                            android:tint="@color/echo_primary_accent" />
+                            app:tint="@color/echo_primary_accent" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -145,7 +145,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="@string/permission_location_title"
                             android:src="@android:drawable/ic_menu_mylocation"
-                            android:tint="@color/echo_primary_accent" />
+                            app:tint="@color/echo_primary_accent" />
                     </FrameLayout>
 
                     <LinearLayout
@@ -221,7 +221,7 @@
                             android:layout_gravity="center"
                             android:contentDescription="@string/permission_notifications_title"
                             android:src="@android:drawable/ic_dialog_email"
-                            android:tint="@color/echo_text_secondary" />
+                            app:tint="@color/echo_text_secondary" />
                     </FrameLayout>
 
                     <LinearLayout

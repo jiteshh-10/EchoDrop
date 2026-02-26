@@ -255,3 +255,51 @@ Context: When a user sends a chat message, when should the DTN bundle be created
 Decided: `ChatRepo.sendMessage()` creates both the local `ChatMessageEntity` and a `MessageEntity` DTN bundle in the same operation.
 Why: Ensures the bundle enters the message table immediately and is available for the next send cycle. No separate sync job needed.
 Impact: Each outgoing chat message creates two database rows: one in chat_messages (for local display) and one in messages (for DTN transport).
+
+## Decision: System fonts over bundled TTF — iter-9
+Context: Spec calls for DM Sans / JetBrains Mono. Downloadable Google Fonts caused crash in iter-0-1.
+Decided: Use `sans-serif` (DM Sans proxy) and `monospace` (JetBrains Mono proxy) set at theme level.
+Why: Zero crash risk, no asset download, minimal APK size. Sans-serif on modern Android (Roboto) maps closely to DM Sans metrics.
+Impact: Typography does not match spec pixel-perfectly but is visually cohesive and crash-free.
+
+## Decision: values/ = light, values-night/ = dark — iter-9
+Context: App was dark-only. Spec requires light mode as default with dark mode via night qualifier.
+Decided: `values/colors.xml` holds light palette; `values-night/colors.xml` overrides for dark. Themes use `Material3.Light.NoActionBar` and `Material3.Dark.NoActionBar`.
+Why: Standard Android resource qualifier system. Avoids runtime logic; system handles mode switching automatically.
+Impact: All color tokens resolved via resources; no Java-side mode switching needed.
+
+## Decision: Periodic adapter refresh for TTL countdown — iter-9
+Context: TTL label on message cards only computed at bind time — stale until scroll recycle.
+Decided: 60-second `Handler.postDelayed` loop calls `adapter.notifyDataSetChanged()` in HomeInboxFragment.
+Why: Simplest fix. 60s is low-cost (single adapter rebind) and acceptable for display that shows "2h 15m" granularity.
+Impact: Minor CPU/battery cost (~negligible). Handler is lazy-initialized to avoid Looper dependency in unit tests.
+
+## Decision: Remove non-functional icon vs add drawer — iter-9
+Context: Home toolbar had `setNavigationIcon` but no click listener or drawer.
+Decided: Remove the icon entirely rather than adding a navigation drawer.
+Why: No spec for drawer/navigation menu. Dead UI is worse than absent UI.
+Impact: Toolbar shows only title and overflow menu.
+
+## Decision: Timber planted in Activity, not Application — iter-9
+Context: Timber.plant() typically goes in Application.onCreate(). EchoDrop has no custom Application class.
+Decided: Plant DebugTree in `MainActivity.onCreate()` guarded by `BuildConfig.DEBUG`.
+Why: Avoids creating a new Application subclass + manifest changes for a single line. All code paths go through MainActivity first.
+Impact: If future iterations add an Application class, move the plant call there.
+
+## Decision: Log-only StrictMode penalties — iter-9
+Context: StrictMode can crash (penaltyDeath) or log (penaltyLog).
+Decided: penaltyLog only, debug builds only.
+Why: Crash penalty would make development painful with Room's synchronous convenience methods. Log-only surfaces violations without blocking.
+Impact: Violations appear in Logcat under StrictMode tag. No user-visible effect.
+
+## Decision: Strip Timber.d/v in release, keep i/w/e — iter-9
+Context: ProGuard `assumenosideeffects` can remove log calls entirely.
+Decided: Strip `Timber.d()` and `Timber.v()` in release builds. Keep `Timber.i()`, `Timber.w()`, `Timber.e()`.
+Why: Debug/verbose logs are high-volume and developer-only. Info/warn/error logs are sparse and useful for post-release diagnostics.
+Impact: Release APK has no debug logging overhead.
+
+## Decision: 100dp pill corners for badges — iter-9
+Context: Spec says "pill shape" badges. Previously used 20dp corners.
+Decided: Set badge corner radius to 100dp.
+Why: 100dp on a 22dp-high badge guarantees fully rounded ends regardless of width. Overdrawing corners is cropped by the view bounds.
+Impact: Badges visually match pill specification.
