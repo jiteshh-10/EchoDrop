@@ -1,13 +1,16 @@
 package com.dev.echodrop;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.StrictMode;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.splashscreen.SplashScreen;
 
 import com.dev.echodrop.screens.BatteryGuideFragment;
 import com.dev.echodrop.screens.ChatConversationFragment;
 import com.dev.echodrop.screens.CreateChatFragment;
+import com.dev.echodrop.screens.DiagnosticsFragment;
 import com.dev.echodrop.screens.DiscoveryStatusFragment;
 import com.dev.echodrop.screens.HomeInboxFragment;
 import com.dev.echodrop.screens.HowItWorksFragment;
@@ -17,6 +20,7 @@ import com.dev.echodrop.screens.PermissionsFragment;
 import com.dev.echodrop.screens.PrivateChatListFragment;
 import com.dev.echodrop.screens.SettingsFragment;
 import com.dev.echodrop.service.EchoService;
+import com.dev.echodrop.util.DiagnosticsLog;
 import com.dev.echodrop.workers.TtlCleanupWorker;
 
 import timber.log.Timber;
@@ -34,8 +38,12 @@ import timber.log.Timber;
  */
 public class MainActivity extends AppCompatActivity {
 
+    private static final String PREFS_NAME = "echodrop_prefs";
+    private static final String PREF_ONBOARDING_COMPLETE = "onboarding_complete";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -43,6 +51,8 @@ public class MainActivity extends AppCompatActivity {
         if (BuildConfig.DEBUG) {
             Timber.plant(new Timber.DebugTree());
         }
+        // Always plant diagnostics tree for in-app log viewing
+        Timber.plant(new DiagnosticsLog.DiagTree());
 
         // StrictMode for debug builds — catch disk/network on main thread
         if (BuildConfig.DEBUG) {
@@ -68,10 +78,19 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, new OnboardingConsentFragment())
-                    .commit();
+            if (isOnboardingComplete()) {
+                getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, new HomeInboxFragment())
+                        .commit();
+                Timber.i("ED:NAV onboarding_complete=true → HomeInbox");
+            } else {
+                getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, new OnboardingConsentFragment())
+                        .commit();
+                Timber.i("ED:NAV onboarding_complete=false → Onboarding");
+            }
         }
     }
 
@@ -104,7 +123,21 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
+    public void showHowItWorksFromSettings() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container,
+                        HowItWorksFragment.newInstance(true))
+                .addToBackStack("howItWorks")
+                .commit();
+    }
+
     public void showHomeInbox() {
+        // Mark onboarding as complete when reaching home for the first time
+        markOnboardingComplete();
         getSupportFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(
@@ -202,5 +235,32 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.fragment_container, new DiscoveryStatusFragment())
                 .addToBackStack("discoveryStatus")
                 .commit();
+    }
+
+    public void showDiagnostics() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new DiagnosticsFragment())
+                .addToBackStack("diagnostics")
+                .commit();
+    }
+
+    // ──────────────────── Onboarding Persistence ────────────────────
+
+    /** Returns true if onboarding has been completed (user reached HomeInbox). */
+    private boolean isOnboardingComplete() {
+        return getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getBoolean(PREF_ONBOARDING_COMPLETE, false);
+    }
+
+    /** Marks onboarding as complete. Called when user first reaches HomeInbox. */
+    public void markOnboardingComplete() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putBoolean(PREF_ONBOARDING_COMPLETE, true)
+                .apply();
     }
 }

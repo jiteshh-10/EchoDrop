@@ -127,6 +127,90 @@
                     android:src="@drawable/ic_chevron_right" />
             </LinearLayout>
 
+            <!-- Divider before How it works -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="@dimen/spacing_2"
+                android:background="@color/echo_divider" />
+
+            <!-- How it works row -->
+            <LinearLayout
+                android:id="@+id/how_it_works_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_2"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="@dimen/min_touch_target"
+                android:orientation="horizontal"
+                android:paddingVertical="@dimen/spacing_1">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@string/how_it_works_title"
+                    android:src="@drawable/ic_wifi"
+                    app:tint="@color/echo_primary_accent" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_2"
+                    android:layout_weight="1"
+                    android:text="@string/how_it_works_title"
+                    android:textColor="@color/echo_text_primary"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@string/content_chevron"
+                    android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+
+            <!-- Divider before Diagnostics -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="@dimen/spacing_2"
+                android:background="@color/echo_divider" />
+
+            <!-- Diagnostics row -->
+            <LinearLayout
+                android:id="@+id/diagnostics_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_2"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="@dimen/min_touch_target"
+                android:orientation="horizontal"
+                android:paddingVertical="@dimen/spacing_1">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@string/settings_diagnostics_title"
+                    android:src="@drawable/ic_settings"
+                    app:tint="@color/echo_primary_accent" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_2"
+                    android:layout_weight="1"
+                    android:text="@string/settings_diagnostics_title"
+                    android:textColor="@color/echo_text_primary"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@string/content_chevron"
+                    android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+
             <!-- Divider before About -->
             <View
                 android:layout_width="match_parent"

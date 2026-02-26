@@ -1,12 +1,13 @@
 package com.dev.echodrop.transfer;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
 import com.dev.echodrop.db.MessageEntity;
 
+import timber.log.Timber;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -32,7 +33,7 @@ import java.util.concurrent.Executors;
  */
 public class BundleSender {
 
-    private static final String TAG = "BundleSender";
+    private static final String TAG = "ED:Sender";
 
     /** Timeout for establishing the TCP connection (ms). */
     private static final int CONNECT_TIMEOUT_MS = 5_000;
@@ -44,6 +45,16 @@ public class BundleSender {
 
         /** Called when the send fails. */
         void onSendFailed(@NonNull String error);
+    }
+
+    /**
+     * Extended callback for bidirectional sync.
+     * After sending our messages, the peer sends its messages back on the
+     * same TCP connection. This callback delivers those response messages.
+     */
+    public interface BidirectionalCallback extends SendCallback {
+        /** Called with messages received from the peer's response session. */
+        void onResponseReceived(@NonNull List<MessageEntity> messages);
     }
 
     private final ExecutorService executor;
@@ -85,7 +96,7 @@ public class BundleSender {
             }
 
             if (valid.isEmpty()) {
-                Log.i(TAG, "No non-expired messages to send");
+                Timber.tag(TAG).i("ED:SEND_SKIP no_valid_messages");
                 callback.onSendComplete(0);
                 return;
             }
@@ -153,13 +164,12 @@ public class BundleSender {
             }
 
             if (forwardable.isEmpty()) {
-                Log.i(TAG, "No forwardable messages for peer " + peerDeviceId);
+                Timber.tag(TAG).i("ED:FWD_SKIP peer=%s no_forwardable", peerDeviceId);
                 callback.onSendComplete(0);
                 return;
             }
 
-            Log.i(TAG, "Forwarding " + forwardable.size() + " messages to peer "
-                    + peerDeviceId + " at " + address);
+            Timber.tag(TAG).i("ED:FWD_START peer=%s count=%d addr=%s", peerDeviceId, forwardable.size(), address);
             sendToSocket(address, forwardable, callback);
         });
     }
@@ -189,10 +199,25 @@ public class BundleSender {
             TransferProtocol.writeSession(out, messages);
             out.flush();
 
-            Log.i(TAG, "Sent " + messages.size() + " messages to " + address);
+            Timber.tag(TAG).i("ED:SEND_OK count=%d addr=%s", messages.size(), address);
+
+            // Bidirectional sync: read response session from the peer
+            if (callback instanceof BidirectionalCallback) {
+                try {
+                    socket.setSoTimeout(15_000); // 15s timeout for response
+                    final InputStream in = socket.getInputStream();
+                    final List<MessageEntity> response = TransferProtocol.readSession(in);
+                    Timber.tag(TAG).i("ED:SEND_RESP_OK count=%d addr=%s", response.size(), address);
+                    ((BidirectionalCallback) callback).onResponseReceived(response);
+                } catch (IOException e) {
+                    // Response reading is best-effort; the core send already succeeded
+                    Timber.tag(TAG).w(e, "ED:SEND_RESP_FAIL addr=%s", address);
+                }
+            }
+
             callback.onSendComplete(messages.size());
         } catch (IOException e) {
-            Log.e(TAG, "Send failed: " + e.getMessage(), e);
+            Timber.tag(TAG).e(e, "ED:SEND_FAIL addr=%s", address);
             callback.onSendFailed(e.getMessage() != null ? e.getMessage() : "Unknown error");
         } finally {
             closeQuietly(socket);
@@ -204,7 +229,7 @@ public class BundleSender {
             try {
                 socket.close();
             } catch (IOException e) {
-                Log.w(TAG, "Error closing socket", e);
+                Timber.tag("ED:Sender").w(e, "ED:SEND_CLOSE_ERR");
             }
         }
     }

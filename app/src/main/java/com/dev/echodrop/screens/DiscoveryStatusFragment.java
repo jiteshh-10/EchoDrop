@@ -13,13 +13,18 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
 import com.dev.echodrop.ble.BleScanner;
 import com.dev.echodrop.databinding.ScreenDiscoveryStatusBinding;
 import com.dev.echodrop.db.AppDatabase;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.mesh.ManifestManager;
+import com.dev.echodrop.service.EchoService;
+import com.dev.echodrop.util.DeviceIdHelper;
 import com.dev.echodrop.viewmodels.MessageViewModel;
+
+import timber.log.Timber;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -57,12 +62,18 @@ public class DiscoveryStatusFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         setupToolbar();
         setupViewModel();
+        setupLiveServiceState();
         refreshStats();
         startPeriodicRefresh();
     }
 
     private void setupToolbar() {
         binding.btnBack.setOnClickListener(v -> navigateBack());
+        binding.btnDiagnostics.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).showDiagnostics();
+            }
+        });
     }
 
     private void setupViewModel() {
@@ -98,6 +109,36 @@ public class DiscoveryStatusFragment extends Fragment {
         }
     }
 
+    /**
+     * Set up listeners for live EchoService state: peer count and transfer events.
+     * Also displays the local device ID for debugging.
+     */
+    private void setupLiveServiceState() {
+        // Show local device ID
+        final String localId = DeviceIdHelper.getDeviceId(requireContext());
+        Timber.i("ED:DEBUG_SCREEN localId=%s", localId);
+
+        // Listen for peer count changes from the running EchoService
+        EchoService.setPeerCountListener(count -> {
+            if (binding != null && isAdded()) {
+                binding.statNearbyCount.setText(String.valueOf(count));
+                if (count > 0) {
+                    updateBleStatus(true);
+                }
+            }
+        });
+
+        // Listen for transfer state changes
+        EchoService.setTransferStateListener(inProgress -> {
+            if (binding != null && isAdded()) {
+                updateWifiStatus(inProgress);
+                if (inProgress) {
+                    lastExchangeMs = System.currentTimeMillis();
+                }
+            }
+        });
+    }
+
     private void refreshStats() {
         // Nearby nodes
         binding.statNearbyCount.setText("0");
@@ -130,9 +171,9 @@ public class DiscoveryStatusFragment extends Fragment {
         });
 
         // Message count — handled by LiveData observer
-        // BLE status
-        updateBleStatus(false);
-        // Wi-Fi Direct status (not implemented yet)
+        // BLE status — now refreshed from service state
+        updateBleStatus(EchoService.isBackgroundEnabled(requireContext()));
+        // Wi-Fi Direct status
         updateWifiStatus(false);
 
         // Peers
@@ -201,6 +242,8 @@ public class DiscoveryStatusFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         refreshHandler.removeCallbacksAndMessages(null);
+        EchoService.setPeerCountListener(null);
+        EchoService.setTransferStateListener(null);
         binding = null;
     }
 }

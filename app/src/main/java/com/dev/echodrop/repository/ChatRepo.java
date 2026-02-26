@@ -171,8 +171,12 @@ public class ChatRepo {
             // Create a DTN bundle for mesh propagation (Iteration 8)
             if (messageDao != null) {
                 final long now = message.getCreatedAt();
+                // Look up chat name to embed in the bundle
+                final ChatEntity chat = chatDao.getChatById(chatId);
+                final String chatName = (chat != null && chat.getName() != null)
+                        ? chat.getName() : "";
                 final MessageEntity bundle = MessageEntity.createChatBundle(
-                        cipherText, chatCode, now, now + CHAT_BUNDLE_TTL_MS);
+                        cipherText, chatCode, now, now + CHAT_BUNDLE_TTL_MS, chatName);
                 messageDao.insert(bundle);
             }
         });
@@ -205,6 +209,14 @@ public class ChatRepo {
         if (chat == null) {
             // Not a member — bundle stays in messages table for DTN forwarding
             return false;
+        }
+
+        // If our chat has no name but the bundle carries one, adopt it
+        final String alias = entity.getSenderAlias();
+        if (alias != null && !alias.isEmpty()
+                && (chat.getName() == null || chat.getName().isEmpty())) {
+            chat.setName(alias);
+            chatDao.updateChat(chat);
         }
 
         // Check for duplicate chat message (based on bundle ID)

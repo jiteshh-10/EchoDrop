@@ -11,9 +11,10 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelUuid;
-import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
+
+import timber.log.Timber;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BleScanner {
 
-    private static final String TAG = "BleScanner";
+    private static final String TAG = "ED:BleScan";
 
     /** Scan window duration in milliseconds. */
     public static final long SCAN_DURATION_MS = 10_000;
@@ -88,7 +89,7 @@ public class BleScanner {
 
         @Override
         public void onScanFailed(int errorCode) {
-            Log.e(TAG, "Scan failed with error: " + errorCode);
+            Timber.tag(TAG).e("ED:BLE_SCAN_FAIL error=%d", errorCode);
         }
     };
 
@@ -121,7 +122,7 @@ public class BleScanner {
         if (running) return;
         running = true;
         handler.post(scanCycle);
-        Log.i(TAG, "Scanner started (10s on / 20s off)");
+        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=10s/20s mode=LOW_LATENCY");
     }
 
     /** Stops the periodic scan cycle and clears pending callbacks. */
@@ -130,7 +131,7 @@ public class BleScanner {
         handler.removeCallbacks(scanCycle);
         handler.removeCallbacks(stopAndPause);
         stopScan();
-        Log.i(TAG, "Scanner stopped");
+        Timber.tag(TAG).i("ED:BLE_SCAN_STOP");
     }
 
     /** Returns whether the scanner is currently active. */
@@ -161,14 +162,14 @@ public class BleScanner {
     private void startScan() {
         final BluetoothAdapter adapter = getBluetoothAdapter();
         if (adapter == null || !adapter.isEnabled()) {
-            Log.w(TAG, "Bluetooth unavailable, skipping scan");
+            Timber.tag(TAG).w("ED:BLE_SCAN_SKIP bt_off=true");
             return;
         }
 
         try {
             bleScanner = adapter.getBluetoothLeScanner();
             if (bleScanner == null) {
-                Log.w(TAG, "BluetoothLeScanner unavailable");
+                Timber.tag(TAG).w("ED:BLE_SCAN_SKIP scanner=null");
                 return;
             }
 
@@ -177,7 +178,7 @@ public class BleScanner {
                     .build();
 
             final ScanSettings settings = new ScanSettings.Builder()
-                    .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                     .setReportDelay(0)
                     .build();
 
@@ -185,7 +186,7 @@ public class BleScanner {
             filters.add(filter);
             bleScanner.startScan(filters, settings, scanCallback);
         } catch (SecurityException e) {
-            Log.e(TAG, "Missing BLE scan permissions", e);
+            Timber.tag(TAG).e(e, "ED:BLE_SCAN_PERM missing permissions");
         }
     }
 
@@ -194,7 +195,7 @@ public class BleScanner {
             try {
                 bleScanner.stopScan(scanCallback);
             } catch (SecurityException | IllegalStateException e) {
-                Log.w(TAG, "Error stopping scan", e);
+                Timber.tag(TAG).w(e, "ED:BLE_SCAN_STOP_ERR");
             }
         }
         notifyPeerListener();
@@ -215,8 +216,9 @@ public class BleScanner {
 
             final PeerInfo peer = new PeerInfo(deviceId, manifestSize, rssi);
             peers.put(deviceId, peer);
+            Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d", deviceId, manifestSize, rssi);
         } catch (IllegalArgumentException e) {
-            Log.w(TAG, "Invalid payload from scan result", e);
+            Timber.tag(TAG).w(e, "ED:BLE_SCAN_PARSE invalid payload");
         }
     }
 

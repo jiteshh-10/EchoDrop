@@ -65,6 +65,8 @@ public class SettingsFragment extends Fragment {
         setupToolbar();
         setupToggle();
         setupBatteryGuide();
+        setupHowItWorks();
+        setupDiagnostics();
         setupVersion();
     }
 
@@ -116,6 +118,22 @@ public class SettingsFragment extends Fragment {
         binding.batteryGuideRow.setOnClickListener(v -> {
             if (getActivity() instanceof MainActivity) {
                 ((MainActivity) getActivity()).showBatteryGuide();
+            }
+        });
+    }
+
+    private void setupHowItWorks() {
+        binding.howItWorksRow.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).showHowItWorksFromSettings();
+            }
+        });
+    }
+
+    private void setupDiagnostics() {
+        binding.diagnosticsRow.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).showDiagnostics();
             }
         });
     }

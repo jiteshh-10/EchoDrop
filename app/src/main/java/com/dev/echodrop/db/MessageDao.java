@@ -26,13 +26,22 @@ public interface MessageDao {
     // ──────────────────── Live Queries ────────────────────
 
     /**
-     * Returns all non-expired messages ordered by priority then creation time.
+     * Returns all non-expired BROADCAST messages ordered by priority then creation time.
      * ALERT (0) → NORMAL (1) → BULK (2), newest first within each tier.
+     * Excludes CHAT bundles (encrypted ciphertext not suitable for public feed).
+     */
+    @Query("SELECT * FROM messages WHERE expires_at > :now AND type != 'CHAT' " +
+            "ORDER BY CASE priority WHEN 'ALERT' THEN 0 WHEN 'NORMAL' THEN 1 ELSE 2 END ASC, " +
+            "created_at DESC")
+    LiveData<List<MessageEntity>> getActiveMessages(long now);
+
+    /**
+     * Returns ALL non-expired messages (including CHAT bundles) for DTN forwarding.
      */
     @Query("SELECT * FROM messages WHERE expires_at > :now " +
             "ORDER BY CASE priority WHEN 'ALERT' THEN 0 WHEN 'NORMAL' THEN 1 ELSE 2 END ASC, " +
             "created_at DESC")
-    LiveData<List<MessageEntity>> getActiveMessages(long now);
+    LiveData<List<MessageEntity>> getAllActiveMessages(long now);
 
     /**
      * Returns count of non-expired ALERT messages.
