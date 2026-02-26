@@ -1,9 +1,10 @@
 # EchoDrop — Test Report
 
-> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6 + 7 + 8: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery + Payload Transfer + Multi-Hop DTN + Chat Sync**  
+> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery + Payload Transfer + Multi-Hop DTN + Chat Sync + Stability & UX Polish**  
 > **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
 > **Execution Date:** 2026  
-> **Result:** ✅ **446 tests — 0 failures — 100% pass rate**
+> **Result:** ✅ **446 tests — 0 failures — 100% pass rate**  
+> **Note:** Iteration 9 added no new test classes. All 446 existing tests pass without modification after stability, theming, and bug-fix changes.
 
 ---
 

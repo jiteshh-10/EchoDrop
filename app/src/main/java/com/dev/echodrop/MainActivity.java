@@ -1,6 +1,7 @@
 package com.dev.echodrop;
 
 import android.os.Bundle;
+import android.os.StrictMode;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -17,6 +18,8 @@ import com.dev.echodrop.screens.PrivateChatListFragment;
 import com.dev.echodrop.screens.SettingsFragment;
 import com.dev.echodrop.service.EchoService;
 import com.dev.echodrop.workers.TtlCleanupWorker;
+
+import timber.log.Timber;
 
 /**
  * Single-activity host for all fragments.
@@ -35,6 +38,26 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Initialize Timber logging
+        if (BuildConfig.DEBUG) {
+            Timber.plant(new Timber.DebugTree());
+        }
+
+        // StrictMode for debug builds — catch disk/network on main thread
+        if (BuildConfig.DEBUG) {
+            StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
+                    .detectDiskReads()
+                    .detectDiskWrites()
+                    .detectNetwork()
+                    .penaltyLog()
+                    .build());
+            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
+                    .detectLeakedSqlLiteObjects()
+                    .detectLeakedClosableObjects()
+                    .penaltyLog()
+                    .build());
+        }
 
         // Schedule periodic TTL cleanup (every 15 minutes)
         TtlCleanupWorker.schedule(this);

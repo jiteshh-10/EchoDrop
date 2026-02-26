@@ -106,7 +106,13 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="@dimen/card_padding">
-                            android:tint="@color/echo_primary_accent" />
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@string/how_it_works_tile_1_title"
+                            android:src="@drawable/ic_wifi"
+                            app:tint="@color/echo_primary_accent" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -142,7 +148,13 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="@dimen/card_padding">
-                            android:tint="@color/echo_text_secondary" />
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@string/how_it_works_tile_2_title"
+                            android:src="@android:drawable/ic_lock_idle_alarm"
+                            app:tint="@color/echo_text_secondary" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -177,7 +189,13 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="@dimen/card_padding">
-                            android:tint="@color/echo_primary_accent" />
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:contentDescription="@string/how_it_works_tile_3_title"
+                            android:src="@android:drawable/ic_lock_lock"
+                            app:tint="@color/echo_primary_accent" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -218,7 +236,7 @@
                             android:layout_height="24dp"
                             android:contentDescription="@string/how_it_works_tile_4_title"
                             android:src="@android:drawable/ic_dialog_alert"
-                            android:tint="@color/echo_alert_accent" />
+                            app:tint="@color/echo_alert_accent" />
 
                         <TextView
                             android:layout_width="wrap_content"

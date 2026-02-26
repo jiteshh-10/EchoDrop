@@ -52,7 +52,7 @@
             android:layout_height="@dimen/priority_banner_icon_size"
             android:contentDescription="@string/detail_urgent_banner"
             android:src="@android:drawable/ic_dialog_alert"
-            android:tint="@color/echo_alert_accent" />
+            app:tint="@color/echo_alert_accent" />
 
         <TextView
             android:layout_width="wrap_content"

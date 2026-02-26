@@ -31,7 +31,7 @@
             android:background="@android:color/transparent"
             android:contentDescription="@string/content_close"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:tint="@color/echo_text_primary" />
+            app:tint="@color/echo_text_primary" />
     </LinearLayout>
 
     <View
@@ -95,18 +95,21 @@
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_scope_nearby"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/post_scope_nearby" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_scope_area"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/post_scope_area" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_scope_event"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/post_scope_event" />
@@ -156,24 +159,28 @@
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_ttl_1h"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/post_ttl_1h" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_ttl_4h"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/post_ttl_4h" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_ttl_12h"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/post_ttl_12h" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_ttl_24h"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/post_ttl_24h" />

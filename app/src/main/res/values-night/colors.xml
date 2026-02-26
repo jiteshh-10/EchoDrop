@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ═══ Light Mode (default) ═══ -->
+    <!-- ═══ Dark Mode (night) ═══ -->
 
     <!-- Backgrounds -->
-    <color name="echo_bg_main">#F4F5F7</color>
-    <color name="echo_card_surface">#FFFFFF</color>
-    <color name="echo_elevated_surface">#ECEDF0</color>
+    <color name="echo_bg_main">#0A0C0F</color>
+    <color name="echo_card_surface">#111318</color>
+    <color name="echo_elevated_surface">#070809</color>
 
     <!-- Accents (same in both modes) -->
     <color name="echo_primary_accent">#7C9EBF</color>
@@ -14,9 +14,9 @@
     <color name="echo_amber_accent">#C8935A</color>
 
     <!-- Accent tints (for badge backgrounds) -->
-    <color name="echo_primary_tint">#1A7C9EBF</color>
-    <color name="echo_alert_tint">#1AC0616A</color>
-    <color name="echo_positive_tint">#1A5E9E82</color>
+    <color name="echo_primary_tint">#267C9EBF</color>
+    <color name="echo_alert_tint">#26C0616A</color>
+    <color name="echo_positive_tint">#265E9E82</color>
 
     <!-- Accent borders (25% alpha) -->
     <color name="echo_primary_border_tint">#407C9EBF</color>
@@ -24,14 +24,14 @@
     <color name="echo_positive_border_tint">#405E9E82</color>
 
     <!-- Text -->
-    <color name="echo_text_primary">#1A1D23</color>
-    <color name="echo_text_secondary">#6B7280</color>
-    <color name="echo_text_muted">#9CA3AF</color>
-    <color name="echo_muted_disabled">#C4C9D4</color>
+    <color name="echo_text_primary">#D8DFE8</color>
+    <color name="echo_text_secondary">#7E8896</color>
+    <color name="echo_text_muted">#555D69</color>
+    <color name="echo_muted_disabled">#3D4451</color>
 
     <!-- Structural -->
-    <color name="echo_divider">#0A000000</color>
-    <color name="echo_border">#0F000000</color>
+    <color name="echo_divider">#0FFFFFFF</color>
+    <color name="echo_border">#12FFFFFF</color>
 
     <!-- Button surfaces -->
     <color name="echo_btn_secondary_border">#407C9EBF</color>

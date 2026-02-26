@@ -3,7 +3,7 @@ package com.dev.echodrop.service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
+import timber.log.Timber;
 
 /**
  * Restarts the {@link EchoService} after the device reboots,
@@ -11,18 +11,16 @@ import android.util.Log;
  */
 public class BootReceiver extends BroadcastReceiver {
 
-    private static final String TAG = "BootReceiver";
-
-    @Override
+        @Override
     public void onReceive(Context context, Intent intent) {
         if (intent == null || intent.getAction() == null) return;
 
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             if (EchoService.isBackgroundEnabled(context)) {
-                Log.i(TAG, "Boot completed — starting EchoService");
+                Timber.i("Boot completed — starting EchoService");
                 EchoService.startService(context);
             } else {
-                Log.i(TAG, "Boot completed — background sharing disabled, skipping");
+                Timber.i("Boot completed — background sharing disabled, skipping");
             }
         }
     }

@@ -227,4 +227,27 @@
     <string name="discovery_avg_hops">Avg Hops</string>
     <string name="discovery_forwarded_count">Forwarded</string>
     <string name="discovery_hop_section_title">Multi-Hop Stats</string>
+
+    <!-- ═══ Iteration 9: Error States ═══ -->
+    <string name="error_ble_unavailable">Bluetooth is unavailable on this device</string>
+    <string name="error_permissions_missing">Nearby sharing paused — missing permissions</string>
+    <string name="error_message_expired">This message has expired</string>
+    <string name="error_post_empty">Message cannot be empty</string>
+    <string name="error_chat_code_invalid">Chat code is invalid or expired</string>
+
+    <!-- ═══ Iteration 9: Accessibility ═══ -->
+    <string name="a11y_post_button">Create new post</string>
+    <string name="a11y_search_button">Search messages</string>
+    <string name="a11y_settings_button">Open settings</string>
+    <string name="a11y_send_button">Send message</string>
+    <string name="a11y_back_button">Go back</string>
+    <string name="a11y_close_button">Close</string>
+    <string name="a11y_urgency_toggle">Toggle urgency</string>
+    <string name="a11y_badge_scope">Message scope: %1$s</string>
+    <string name="a11y_badge_urgent">Urgent message</string>
+    <string name="a11y_ttl_remaining">Time remaining: %1$s</string>
+    <string name="a11y_sync_status">Sync status: %1$s</string>
+    <string name="a11y_message_card">Message: %1$s</string>
+    <string name="a11y_chat_item">Chat: %1$s</string>
+    <string name="a11y_device_count">%1$d devices nearby</string>
 </resources>

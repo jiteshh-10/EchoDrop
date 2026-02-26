@@ -1,4 +1,6 @@
 <resources>
+
+    <!-- ═══ Dark Theme (night) ═══ -->
     <style name="Theme.EchoDrop" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/echo_primary_accent</item>
         <item name="colorOnPrimary">@color/echo_text_primary</item>
@@ -10,12 +12,17 @@
         <item name="colorOnError">@color/echo_text_primary</item>
         <item name="android:statusBarColor">@color/echo_elevated_surface</item>
         <item name="android:navigationBarColor">@color/echo_elevated_surface</item>
+        <!-- Apply DM Sans (sans-serif) globally via theme -->
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
     </style>
 
+    <!-- Dialog theme -->
     <style name="Theme.EchoDrop.Dialog" parent="Theme.Material3.Dark.Dialog.Alert">
         <item name="colorPrimary">@color/echo_primary_accent</item>
         <item name="colorSurface">@color/echo_card_surface</item>
         <item name="colorOnSurface">@color/echo_text_primary</item>
         <item name="android:colorBackground">@color/echo_elevated_surface</item>
     </style>
+
 </resources>
