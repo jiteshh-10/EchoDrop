@@ -1,11 +1,15 @@
 package com.dev.echodrop.screens;
 
+import android.animation.ObjectAnimator;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,6 +23,7 @@ import com.dev.echodrop.adapters.ChatMessageAdapter;
 import com.dev.echodrop.crypto.ChatCrypto;
 import com.dev.echodrop.databinding.ScreenChatConversationBinding;
 import com.dev.echodrop.db.ChatEntity;
+import com.dev.echodrop.repository.ChatRepo;
 import com.dev.echodrop.viewmodels.ChatViewModel;
 
 import javax.crypto.SecretKey;
@@ -44,6 +49,24 @@ public class ChatConversationFragment extends Fragment {
     private String chatCode;
     private String chatName;
     private SecretKey decryptionKey;
+
+    /** Timestamp of the last sync event (0 = never synced). */
+    private long lastSyncTimestamp;
+
+    /** Handler for periodic sync bar updates. */
+    private final Handler syncBarHandler = new Handler(Looper.getMainLooper());
+
+    /** Runnable that refreshes the sync bar text periodically. */
+    private final Runnable syncBarUpdater = new Runnable() {
+        @Override
+        public void run() {
+            updateSyncBarText();
+            syncBarHandler.postDelayed(this, 30_000); // Update every 30 seconds
+        }
+    };
+
+    /** Previous message count for detecting new incoming messages. */
+    private int previousMessageCount;
 
     // ──────────────────── Factory ────────────────────
 
@@ -87,6 +110,7 @@ public class ChatConversationFragment extends Fragment {
         setupToolbar();
         setupRecyclerView();
         setupInput();
+        setupSyncBar();
         observeMessages();
     }
 
@@ -136,8 +160,58 @@ public class ChatConversationFragment extends Fragment {
         binding.btnSend.setEnabled(false);
     }
 
+    private void setupSyncBar() {
+        // Register for sync events from ChatRepo
+        final ChatRepo repo = viewModel.getRepo();
+        repo.setSyncEventListener((syncedChatId, timestamp) -> {
+            if (chatId.equals(syncedChatId)) {
+                lastSyncTimestamp = timestamp;
+                syncBarHandler.post(this::updateSyncBarText);
+            }
+        });
+
+        // Start periodic updates
+        syncBarHandler.post(syncBarUpdater);
+    }
+
+    /** Updates the sync bar text based on time since last sync. */
+    private void updateSyncBarText() {
+        if (binding == null) return;
+
+        if (lastSyncTimestamp == 0) {
+            binding.syncText.setText(R.string.chat_sync_hint);
+            binding.syncDot.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            ContextCompat.getColor(requireContext(), R.color.echo_text_muted)));
+            return;
+        }
+
+        final long elapsed = System.currentTimeMillis() - lastSyncTimestamp;
+        final long minutes = elapsed / (60 * 1000L);
+        final long hours = elapsed / (60 * 60 * 1000L);
+
+        final String text;
+        if (minutes < 1) {
+            text = getString(R.string.chat_sync_just_now);
+        } else if (hours < 1) {
+            text = getString(R.string.chat_sync_minutes_ago, (int) minutes);
+        } else {
+            text = getString(R.string.chat_sync_hours_ago, (int) hours);
+        }
+
+        binding.syncText.setText(text);
+        // Green dot when recently synced
+        binding.syncDot.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(requireContext(), R.color.echo_positive_accent)));
+    }
+
     private void observeMessages() {
         viewModel.getMessages(chatId).observe(getViewLifecycleOwner(), messages -> {
+            final int newCount = messages != null ? messages.size() : 0;
+            final boolean hasNewIncoming = newCount > previousMessageCount
+                    && previousMessageCount > 0;
+
             adapter.submitList(messages, () -> {
                 // Scroll to bottom on new messages
                 if (messages != null && !messages.isEmpty()) {
@@ -145,9 +219,41 @@ public class ChatConversationFragment extends Fragment {
                 }
             });
 
+            // Animate incoming messages with fade/slide if this is a sync event
+            if (hasNewIncoming) {
+                animateNewMessages();
+            }
+
+            previousMessageCount = newCount;
+
             // Empty state
             final boolean empty = messages == null || messages.isEmpty();
             binding.emptyState.setVisibility(empty ? View.VISIBLE : View.GONE);
+        });
+    }
+
+    /**
+     * Animates newly arrived messages with a fade + slide (250ms).
+     * Applied to the last visible item to communicate arrival.
+     */
+    private void animateNewMessages() {
+        binding.messageList.post(() -> {
+            final int childCount = binding.messageList.getChildCount();
+            if (childCount == 0) return;
+
+            // Animate the last (newest) child
+            final View lastChild = binding.messageList.getChildAt(childCount - 1);
+            if (lastChild == null) return;
+
+            lastChild.setAlpha(0f);
+            lastChild.setTranslationY(-8 * getResources().getDisplayMetrics().density);
+
+            lastChild.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(250)
+                    .setInterpolator(new AccelerateDecelerateInterpolator())
+                    .start();
         });
     }
 
@@ -175,6 +281,10 @@ public class ChatConversationFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        syncBarHandler.removeCallbacks(syncBarUpdater);
+        // Unregister sync listener
+        final ChatRepo repo = viewModel.getRepo();
+        repo.setSyncEventListener(null);
         binding = null;
         decryptionKey = null; // Clear key from memory
     }

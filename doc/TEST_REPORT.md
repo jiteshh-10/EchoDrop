@@ -1,9 +1,9 @@
 # EchoDrop — Test Report
 
-> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6 + 7: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery + Payload Transfer + Multi-Hop DTN**  
+> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6 + 7 + 8: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery + Payload Transfer + Multi-Hop DTN + Chat Sync**  
 > **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
 > **Execution Date:** 2026  
-> **Result:** ✅ **405 tests — 0 failures — 100% pass rate**
+> **Result:** ✅ **446 tests — 0 failures — 100% pass rate**
 
 ---
 
@@ -39,6 +39,9 @@
   - [3.25 TransferProtocolHopTest (11 tests)](#325-transferprotocolhoptest-11-tests)
   - [3.26 BundleSenderForwardingTest (7 tests)](#326-bundlesenderforwardingtest-7-tests)
   - [3.27 DeviceIdHelperTest (4 tests)](#327-deviceidhelpertest-4-tests)
+  - [3.28 MessageEntityChatTest (27 tests)](#328-messageentitychattest-27-tests)
+  - [3.29 TransferProtocolChatTest (9 tests)](#329-transferprotocolchattest-9-tests)
+  - [3.30 ChatRepoChatSyncTest (5 tests)](#330-chatrepochatsynctest-5-tests)
 - [4. Bugs Found & Fixed During Testing](#4-bugs-found--fixed-during-testing)
 - [5. Test Coverage Matrix](#5-test-coverage-matrix)
 - [6. Testing Methodology](#6-testing-methodology)
@@ -50,12 +53,12 @@
 
 | Metric            | Value          |
 |-------------------|----------------|
-| **Total Tests**   | 405            |
-| **Passed**        | 405            |
+| **Total Tests**   | 446            |
+| **Passed**        | 446            |
 | **Failed**        | 0              |
 | **Ignored**       | 0              |
 | **Success Rate**  | 100%           |
-| **Test Classes**  | 27             |
+| **Test Classes**  | 30             |
 | **Packages Tested** | 14           |
 
 ### Package Results
@@ -66,15 +69,15 @@
 | `com.dev.echodrop.adapters`       | 26    | 0        | 100%         |
 | `com.dev.echodrop.components`     | 27    | 0        | 100%         |
 | `com.dev.echodrop.crypto`         | 12    | 0        | 100%         |
-| `com.dev.echodrop.db`             | 102   | 0        | 100%         |
+| `com.dev.echodrop.db`             | 129   | 0        | 100%         |
 | `com.dev.echodrop.models`         | 20    | 0        | 100%         |
-| `com.dev.echodrop.repository`     | 14    | 0        | 100%         |
+| `com.dev.echodrop.repository`     | 19    | 0        | 100%         |
 | `com.dev.echodrop.screens`        | 14    | 0        | 100%         |
 | `com.dev.echodrop.viewmodels`     | 10    | 0        | 100%         |
 | `com.dev.echodrop.ble`            | 26    | 0        | 100%         |
 | `com.dev.echodrop.mesh`           | 30    | 0        | 100%         |
 | `com.dev.echodrop.service`        | 6     | 0        | 100%         |
-| `com.dev.echodrop.transfer`       | 60    | 0        | 100%         |
+| `com.dev.echodrop.transfer`       | 69    | 0        | 100%         |
 | `com.dev.echodrop.util`           | 4     | 0        | 100%         |
 
 ---
@@ -623,6 +626,85 @@ Tests cover:
 | 2 | `generateDeviceId_isNonNull` | Never null |
 | 3 | `generateDeviceId_uniqueAcrossCalls` | Two calls produce different IDs |
 | 4 | `generateDeviceId_alwaysCorrectLength` | 100 iterations all return 8 chars |
+
+---
+
+### 3.28 MessageEntityChatTest (27 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/db/MessageEntityChatTest.java`  
+**Runner:** Pure JUnit  
+**Purpose:** Validates type/scopeId fields, `createChatBundle()` factory, `isChatBundle()` helper, and type preservation through copy
+
+| # | Test | Assertion |
+|---|------|-----------|
+| 1 | `typeBroadcast_constantValue` | TYPE_BROADCAST equals "BROADCAST" |
+| 2 | `typeChat_constantValue` | TYPE_CHAT equals "CHAT" |
+| 3 | `defaultType_isBroadcast` | New entity type defaults to "BROADCAST" |
+| 4 | `defaultScopeId_isEmpty` | New entity scopeId defaults to "" |
+| 5 | `setType_getType_roundTrip` | Set/get type preserves value |
+| 6 | `setScopeId_getScopeId_roundTrip` | Set/get scopeId preserves value |
+| 7 | `isChatBundle_broadcast_returnsFalse` | Broadcast type is not a chat bundle |
+| 8 | `isChatBundle_chat_returnsTrue` | CHAT type is a chat bundle |
+| 9 | `isChatBundle_nullType_returnsFalse` | Null type is not a chat bundle |
+| 10 | `createChatBundle_typeIsChat` | Factory sets type to CHAT |
+| 11 | `createChatBundle_scopeIdIsChatCode` | Factory sets scopeId to chat code |
+| 12 | `createChatBundle_scopeIsLocal` | Factory sets scope to LOCAL |
+| 13 | `createChatBundle_priorityIsNormal` | Factory sets priority to NORMAL |
+| 14 | `createChatBundle_textIsCipherText` | Factory sets text to ciphertext |
+| 15 | `createChatBundle_idIsNonNull` | Factory generates non-null UUID |
+| 16 | `createChatBundle_hashIsNonNull` | Factory generates non-null content hash |
+| 17 | `createChatBundle_createdAtPreserved` | Factory preserves createdAt timestamp |
+| 18 | `createChatBundle_expiresAtPreserved` | Factory preserves expiresAt timestamp |
+| 19 | `createChatBundle_hopCountIsZero` | Factory sets hop count to 0 |
+| 20 | `createChatBundle_seenByIdsIsEmpty` | Factory sets seenByIds to "" |
+| 21 | `createChatBundle_isChatBundle` | Factory output passes isChatBundle() check |
+| 22 | `createChatBundle_uniqueIds` | Two factory calls produce different IDs |
+| 23 | `createChatBundle_uniqueHashes` | Different ciphertexts produce different hashes |
+| 24 | `createChatBundle_readIsFalse` | Factory output is unread |
+| 25 | `createChatBundle_differentCodes_differentScopeIds` | Different chat codes produce different scopeIds |
+| 26 | `typePreservedThroughCopy` | Set type on copy preserves CHAT type |
+| 27 | `scopeIdPreservedThroughCopy` | Set scopeId on copy preserves value |
+
+---
+
+### 3.29 TransferProtocolChatTest (9 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/transfer/TransferProtocolChatTest.java`  
+**Runner:** Pure JUnit  
+**Purpose:** Validates ED08 wire format with type/scopeId serialisation and mixed sessions
+
+| # | Test | Assertion |
+|---|------|-----------|
+| 1 | `magic_isED08` | MAGIC header is {'E','D','0','8'} |
+| 2 | `serialize_broadcast_preservesDefaultType` | Broadcast type survives round-trip |
+| 3 | `serialize_chatBundle_preservesTypeAndScopeId` | CHAT type and scopeId survive round-trip |
+| 4 | `serialize_chatBundle_preservesAllFields` | All fields (id, text, scope, priority, timestamps, hop, seenByIds, type, scopeId) survive round-trip |
+| 5 | `writeFrame_readFrame_chatBundle` | Chat bundle survives frame-level round-trip |
+| 6 | `mixedSession_broadcastAndChat` | Session with broadcast + chat + alert bundles preserves all types |
+| 7 | `session_onlyChatBundles` | Session of only chat bundles round-trips correctly |
+| 8 | `backwardCompatibility_broadcastMessages` | Broadcast messages have type=BROADCAST and empty scopeId |
+| 9 | `chatBundle_isChatBundle_afterDeserialize` | Deserialized chat bundle passes isChatBundle() |
+
+---
+
+### 3.30 ChatRepoChatSyncTest (5 tests)
+
+**File:** `app/src/test/java/com/dev/echodrop/repository/ChatRepoChatSyncTest.java`  
+**Runner:** Pure JUnit + Mockito  
+**Purpose:** Validates `processIncomingChatBundle()` flow for non-members, duplicates, decryption failures, and type routing
+
+| # | Test | Assertion |
+|---|------|-----------|
+| 1 | `processIncomingChatBundle_nonChatType_returnsFalse` | Broadcast messages are rejected |
+| 2 | `processIncomingChatBundle_nonChatType_noDbInteraction` | No DAO calls for non-chat bundles |
+| 3 | `processIncomingChatBundle_emptyScopeId_returnsFalse` | Empty scope_id returns false |
+| 4 | `processIncomingChatBundle_nonMember_returnsFalse` | No matching chat returns false |
+| 5 | `processIncomingChatBundle_nonMember_doesNotInsertMessage` | No message inserted for non-member |
+| 6 | `processIncomingChatBundle_duplicate_returnsTrue` | Already-existing message returns true |
+| 7 | `processIncomingChatBundle_duplicate_doesNotReinsert` | No double-insert for duplicates |
+| 8 | `processIncomingChatBundle_decryptionFails_returnsFalse` | Invalid ciphertext gracefully returns false |
+| 9 | `processIncomingChatBundle_chatType_queriesByCode` | CHAT type triggers getChatByCode lookup |
+| 10 | `processIncomingChatBundle_verifyBundleIsChatType` | Factory output has correct type and scopeId |
 
 ---
 

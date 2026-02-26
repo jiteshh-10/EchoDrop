@@ -31,6 +31,10 @@ import java.util.UUID;
 )
 public class MessageEntity {
 
+    /** Message types: BROADCAST (default public) or CHAT (encrypted private). */
+    public static final String TYPE_BROADCAST = "BROADCAST";
+    public static final String TYPE_CHAT = "CHAT";
+
     public enum Scope {
         LOCAL,
         ZONE,
@@ -73,6 +77,16 @@ public class MessageEntity {
     @ColumnInfo(name = "content_hash")
     private String contentHash;
 
+    /** Message type: BROADCAST (default) or CHAT (encrypted private). */
+    @NonNull
+    @ColumnInfo(name = "type", defaultValue = "BROADCAST")
+    private String type;
+
+    /** Scope identifier: empty for broadcast, chat_code for CHAT bundles. */
+    @NonNull
+    @ColumnInfo(name = "scope_id", defaultValue = "")
+    private String scopeId;
+
     /** Number of hops this message has traversed (0 = originated here). */
     @ColumnInfo(name = "hop_count", defaultValue = "0")
     private int hopCount;
@@ -101,6 +115,8 @@ public class MessageEntity {
         this.expiresAt = expiresAt;
         this.read = read;
         this.contentHash = contentHash;
+        this.type = TYPE_BROADCAST;
+        this.scopeId = "";
         this.hopCount = 0;
         this.seenByIds = "";
     }
@@ -117,6 +133,27 @@ public class MessageEntity {
         String contentHash = computeHash(text, scope.name(), createdAt);
         return new MessageEntity(id, text, scope.name(), priority.name(),
                 createdAt, expiresAt, false, contentHash);
+    }
+
+    /**
+     * Creates a chat bundle MessageEntity for DTN propagation.
+     *
+     * @param cipherText Base64-encoded encrypted message text
+     * @param chatCode   the 8-char chat code used as scope_id
+     * @param createdAt  creation timestamp
+     * @param expiresAt  expiry timestamp
+     * @return MessageEntity with type=CHAT, scope=LOCAL, scopeId=chatCode
+     */
+    public static MessageEntity createChatBundle(@NonNull String cipherText,
+                                                  @NonNull String chatCode,
+                                                  long createdAt, long expiresAt) {
+        String id = UUID.randomUUID().toString();
+        String contentHash = computeHash(cipherText, "LOCAL", createdAt);
+        MessageEntity entity = new MessageEntity(id, cipherText, Scope.LOCAL.name(),
+                Priority.NORMAL.name(), createdAt, expiresAt, false, contentHash);
+        entity.setType(TYPE_CHAT);
+        entity.setScopeId(chatCode);
+        return entity;
     }
 
     /**
@@ -241,6 +278,23 @@ public class MessageEntity {
     public String getContentHash() { return contentHash; }
 
     public void setContentHash(@NonNull String contentHash) { this.contentHash = contentHash; }
+
+    /** Returns the message type (BROADCAST or CHAT). */
+    @NonNull
+    public String getType() { return type; }
+
+    /** Sets the message type. */
+    public void setType(@NonNull String type) { this.type = type; }
+
+    /** Returns the scope identifier (empty for broadcast, chat_code for CHAT). */
+    @NonNull
+    public String getScopeId() { return scopeId; }
+
+    /** Sets the scope identifier. */
+    public void setScopeId(@NonNull String scopeId) { this.scopeId = scopeId; }
+
+    /** Returns true if this is a chat bundle (type == CHAT). */
+    public boolean isChatBundle() { return TYPE_CHAT.equals(type); }
 
     /** Returns the number of hops this message has traversed. */
     public int getHopCount() { return hopCount; }

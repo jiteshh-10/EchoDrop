@@ -219,3 +219,39 @@ Context: Wi-Fi Direct doesn't expose the peer's EchoDrop device ID before the TC
 Decided: Pass empty string "" as peerDeviceId when calling `sendForForwarding()`. The seen-by filter is effectively skipped for unknown peers.
 Why: Content hash dedup in Room prevents double-insertion regardless. Seen-by-ids is a best-effort optimization, not a correctness requirement.
 Impact: Some redundant transfers may occur to the same peer, but dedup ensures no duplicate storage.
+
+## Decision: Chat bundles reuse existing DTN pipeline — iter-8
+Context: Chat messages need to sync between members over the mesh. Options: (a) separate chat transport, (b) piggyback on existing DTN pipeline.
+Decided: Chat messages are wrapped as `MessageEntity` bundles with `type=CHAT`, `scope=LOCAL`, `scope_id=chat_code`. They flow through the same BLE discovery → Wi-Fi Direct transfer → store-carry-forward pipeline.
+Why: No separate transport needed. Chat bundles benefit from multi-hop forwarding, hop limits, and seen-by-ids loop prevention for free. Non-members carry ciphertext without any special handling.
+Impact: All existing pipeline logic (BundleSender filtering, BundleReceiver dedup, EchoService scheduling) works for chat bundles without modification.
+
+## Decision: type + scope_id columns on MessageEntity — iter-8
+Context: Need to distinguish chat bundles from broadcast bundles and route them to the correct chat.
+Decided: Added `type` (TEXT, default "BROADCAST") and `scope_id` (TEXT, default "") columns. Chat bundles have `type="CHAT"` and `scope_id=<chat_code>`.
+Why: Clean separation without a separate table. Default values ensure backward compatibility — all existing messages are implicitly BROADCAST with empty scope_id. The chat code in scope_id enables lookup without exposing the encryption key.
+Impact: DB version bumped 3→4 (destructive migration). Wire protocol includes type/scopeId in serialisation.
+
+## Decision: Wire protocol version bump "ED07" → "ED08" — iter-8
+Context: Adding type and scopeId fields to the wire frame changes the serialisation format.
+Decided: Bump magic header to "ED08". Old clients reject new sessions; new clients reject old sessions.
+Why: Clean break. Follows the versioning convention established in iter-6 and iter-7.
+Impact: Devices running iter-7 and iter-8 cannot exchange messages directly.
+
+## Decision: Non-members carry encrypted bundles blindly — iter-8
+Context: When a device receives a CHAT bundle for a chat it hasn't joined, what should happen?
+Decided: Store the encrypted bundle in the messages table and forward it normally. Never attempt to decrypt or display.
+Why: Maximises delivery probability. Any device in the mesh can carry the bundle toward the intended recipient. The AES-256-GCM encryption ensures only members with the chat code can read the content.
+Impact: Non-member devices accumulate some encrypted bundles that they cannot read. These expire naturally via TTL (24h).
+
+## Decision: Chat bundle TTL of 24 hours — iter-8
+Context: How long should chat bundles live in the DTN?
+Decided: `CHAT_BUNDLE_TTL_MS = 24 * 60 * 60 * 1000` (24 hours).
+Why: Matches the ephemeral philosophy of broadcast messages. Long enough for store-carry-forward to deliver across a venue over a day. Short enough to prevent indefinite accumulation.
+Impact: Chat messages older than 24h are cleaned up by the existing WorkManager TTL job.
+
+## Decision: DTN bundle created on send — iter-8
+Context: When a user sends a chat message, when should the DTN bundle be created?
+Decided: `ChatRepo.sendMessage()` creates both the local `ChatMessageEntity` and a `MessageEntity` DTN bundle in the same operation.
+Why: Ensures the bundle enters the message table immediately and is available for the next send cycle. No separate sync job needed.
+Impact: Each outgoing chat message creates two database rows: one in chat_messages (for local display) and one in messages (for DTN transport).

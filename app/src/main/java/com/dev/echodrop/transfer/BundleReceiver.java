@@ -10,6 +10,7 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import com.dev.echodrop.MainActivity;
@@ -17,6 +18,7 @@ import com.dev.echodrop.R;
 import com.dev.echodrop.db.AppDatabase;
 import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
+import com.dev.echodrop.repository.ChatRepo;
 import com.dev.echodrop.repository.MessageRepo;
 import com.dev.echodrop.util.DeviceIdHelper;
 
@@ -64,6 +66,7 @@ public class BundleReceiver {
 
     private final Context context;
     private final MessageRepo repo;
+    private final ChatRepo chatRepo;
     private final ExecutorService executor;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private ServerSocket serverSocket;
@@ -74,6 +77,7 @@ public class BundleReceiver {
     public BundleReceiver(@NonNull final Context context) {
         this.context = context.getApplicationContext();
         this.repo = new MessageRepo(context);
+        this.chatRepo = new ChatRepo(((android.app.Application) context.getApplicationContext()));
         this.executor = Executors.newCachedThreadPool(r -> {
             final Thread t = new Thread(r, "BundleReceiver");
             t.setDaemon(true);
@@ -90,8 +94,29 @@ public class BundleReceiver {
                    @NonNull final ExecutorService executor) {
         this.context = context.getApplicationContext();
         this.repo = repo;
+        this.chatRepo = null;
         this.executor = executor;
         createNotificationChannel();
+    }
+
+    /**
+     * Constructor for testing with custom repos and executor.
+     */
+    BundleReceiver(@NonNull final Context context,
+                   @NonNull final MessageRepo repo,
+                   @NonNull final ChatRepo chatRepo,
+                   @NonNull final ExecutorService executor) {
+        this.context = context.getApplicationContext();
+        this.repo = repo;
+        this.chatRepo = chatRepo;
+        this.executor = executor;
+        createNotificationChannel();
+    }
+
+    /** Returns the ChatRepo for sync event registration. */
+    @Nullable
+    public ChatRepo getChatRepo() {
+        return chatRepo;
     }
 
     /** Sets the callback for receive events. */
@@ -155,6 +180,7 @@ public class BundleReceiver {
     private void handleClient(@NonNull final Socket client) {
         callback.onTransferStarted();
         int insertedCount = 0;
+        int chatCount = 0;
         final String localDeviceId = DeviceIdHelper.getDeviceId(context);
 
         try {
@@ -169,8 +195,9 @@ public class BundleReceiver {
                     continue;
                 }
 
-                // Validate checksum
-                if (!TransferProtocol.validateChecksum(entity)) {
+                // Validate checksum (only for non-chat bundles; chat bundles
+                // use ciphertext which changes checksum semantics)
+                if (!entity.isChatBundle() && !TransferProtocol.validateChecksum(entity)) {
                     Log.w(TAG, "Checksum mismatch for message: " + entity.getId());
                     continue;
                 }
@@ -184,13 +211,23 @@ public class BundleReceiver {
                 // Stamp this device into the seen-by list
                 entity.addSeenBy(localDeviceId);
 
-                // Insert into database
+                // Insert into messages table (for DTN forwarding)
                 final MessageDao dao = AppDatabase.getInstance(context).messageDao();
                 final long rowId = dao.insert(entity);
                 if (rowId != -1) {
                     insertedCount++;
                     Log.i(TAG, "Inserted message: " + entity.getId()
-                            + " (hop=" + entity.getHopCount() + ")");
+                            + " (hop=" + entity.getHopCount()
+                            + ", type=" + entity.getType() + ")");
+                }
+
+                // Process chat bundles: decrypt and display if member (Iteration 8)
+                if (entity.isChatBundle() && chatRepo != null) {
+                    final boolean processed = chatRepo.processIncomingChatBundle(entity);
+                    if (processed) {
+                        chatCount++;
+                        Log.i(TAG, "Chat bundle processed for code: " + entity.getScopeId());
+                    }
                 }
             }
 
@@ -200,7 +237,8 @@ public class BundleReceiver {
 
             final int finalCount = insertedCount;
             callback.onReceiveComplete(finalCount);
-            Log.i(TAG, "Transfer session complete: " + insertedCount + " new messages");
+            Log.i(TAG, "Transfer session complete: " + insertedCount + " new messages"
+                    + (chatCount > 0 ? " (" + chatCount + " chat)" : ""));
 
         } catch (IOException e) {
             Log.e(TAG, "Transfer failed: " + e.getMessage(), e);

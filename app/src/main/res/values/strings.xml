@@ -141,6 +141,9 @@
     <string name="chat_create_info">Share this code with the person you want to chat with. Messages sync automatically when your phones are nearby.</string>
 
     <string name="chat_sync_hint">Messages sync when nearby</string>
+    <string name="chat_sync_just_now">Last synced just now</string>
+    <string name="chat_sync_minutes_ago">Last synced %1$dm ago</string>
+    <string name="chat_sync_hours_ago">Last synced %1$dh ago</string>
     <string name="chat_conv_empty">Start the conversation.</string>
     <string name="chat_input_hint">Message</string>
     <string name="chat_send">Send message</string>

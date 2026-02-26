@@ -63,4 +63,19 @@ public interface ChatDao {
 
     @Query("UPDATE chats SET unread_count = 0 WHERE id = :chatId")
     void clearUnread(String chatId);
+
+    // ──────────────────── Sync helpers (Iteration 8) ────────────────────
+
+    /** Marks all outgoing SENT messages in a chat as SYNCED (peer received). */
+    @Query("UPDATE chat_messages SET sync_state = 2 " +
+            "WHERE chat_id = :chatId AND is_outgoing = 1 AND sync_state = 1")
+    int markOutgoingSynced(String chatId);
+
+    /** Returns a synchronous list of messages for a chat (for DTN receive processing). */
+    @Query("SELECT * FROM chat_messages WHERE chat_id = :chatId ORDER BY created_at ASC")
+    List<ChatMessageEntity> getMessagesForChatSync(String chatId);
+
+    /** Checks if a chat message with the given ID already exists. */
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE id = :messageId")
+    int chatMessageExists(String messageId);
 }

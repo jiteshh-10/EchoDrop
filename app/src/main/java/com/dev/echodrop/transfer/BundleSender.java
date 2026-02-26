@@ -146,6 +146,8 @@ public class BundleSender {
                 copy.setHopCount(msg.getHopCount() + 1);
                 copy.setSeenByIds(msg.getSeenByIds());
                 copy.addSeenBy(localDeviceId);
+                copy.setType(msg.getType());
+                copy.setScopeId(msg.getScopeId());
 
                 forwardable.add(copy);
             }

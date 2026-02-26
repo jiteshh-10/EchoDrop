@@ -323,8 +323,8 @@ public class TransferProtocolTest {
     }
 
     @Test
-    public void magic_isED07() {
-        assertArrayEquals(new byte[]{'E', 'D', '0', '7'}, TransferProtocol.MAGIC);
+    public void magic_isED08() {
+        assertArrayEquals(new byte[]{'E', 'D', '0', '8'}, TransferProtocol.MAGIC);
     }
 
     @Test

@@ -1110,3 +1110,70 @@ BundleReceiver.handleClient()
 - **Discovery Status:** New "Multi-Hop Stats" section with two stat cards:
   - **Avg Hops** — average hop count of all forwarded messages
   - **Forwarded** — count of messages with hop_count > 0
+
+---
+
+## Iteration 8 — Private Chat Sync (Proximity-Based)
+
+### Schema Changes
+
+```
+messages (table) — new columns
+| Column    | Type | Default     | Purpose                                      |
+|-----------|------|-------------|----------------------------------------------|
+| type      | TEXT | "BROADCAST" | Bundle type: BROADCAST or CHAT               |
+| scope_id  | TEXT | ""          | Chat code for CHAT bundles, empty for broadcasts |
+```
+
+**Database version:** 3 → 4 (destructive migration via `fallbackToDestructiveMigration()`)
+
+### Chat Bundle Factory
+
+```
+MessageEntity.createChatBundle(cipherText, chatCode, createdAt, expiresAt)
+    → type = "CHAT"
+    → scope = "LOCAL"
+    → scope_id = chatCode
+    → priority = "NORMAL"
+    → text = cipherText (AES-256-GCM encrypted)
+    → id = UUID
+    → contentHash = SHA-256(cipherText + "LOCAL" + createdAt)
+```
+
+### Wire Protocol
+
+Magic header bumped from `"ED07"` to `"ED08"`. Frame payload now includes:
+```
+...existing fields... + type (UTF-8 string) + scopeId (UTF-8 string)
+```
+
+### Chat Sync Pipeline
+
+```
+ChatRepo.sendMessage(chatId, plaintext)
+    → encrypt with ChatCrypto.deriveKey(chatCode) + ChatCrypto.encrypt()
+    → create ChatMessageEntity (local display)
+    → create MessageEntity.createChatBundle() (DTN transport)
+    → insert into messages table → picked up by EchoService.sendAllMessages()
+
+BundleReceiver.handleClient()
+    → receive MessageEntity via TransferProtocol.readSession()
+    → insert into Room (dedup via contentHash UNIQUE)
+    → if type == CHAT: chatRepo.processIncomingChatBundle(entity)
+
+ChatRepo.processIncomingChatBundle(entity)
+    → lookup ChatEntity by scope_id (chat code)
+    → if not found: return false (non-member, bundle just stored for forwarding)
+    → if duplicate (chatMessageExists): return true (already processed)
+    → decrypt cipherText with ChatCrypto.deriveKey(chatCode) + ChatCrypto.decrypt()
+    → create incoming ChatMessageEntity
+    → update chat preview + increment unread
+    → markOutgoingSynced(chatId) → double-tick
+    → notify SyncEventListener
+```
+
+### UI Integration
+
+- **Chat Conversation Sync Bar:** Shows "Messages sync when nearby" before first sync, then "Last synced just now" / "Xm ago" / "Xh ago". Sync dot turns green on sync. Updates every 30 seconds.
+- **Incoming Message Animation:** New messages from sync events animate with fade (alpha 0→1) + slide (translateY -8dp→0) over 250ms with AccelerateDecelerateInterpolator.
+- **Sync State:** Outgoing messages update from single tick (SENT) to double tick (SYNCED) when the chat peer receives them.

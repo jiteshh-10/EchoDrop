@@ -44,6 +44,8 @@ import java.util.List;
  *   content_hash: UTF-8 bytes
  *   hop_count   : 4 bytes (int)
  *   seen_by_ids : 2 bytes len + UTF-8 bytes
+ *   type        : 2 bytes len + UTF-8 bytes (BROADCAST or CHAT)
+ *   scope_id    : 2 bytes len + UTF-8 bytes (empty or chat_code)
  * </pre>
  *
  * <p>Messages are ordered by priority (ALERT first) before sending.</p>
@@ -59,7 +61,7 @@ public final class TransferProtocol {
     public static final int MAX_FRAME_SIZE = 512 * 1024;
 
     /** Magic header bytes written at start of each transfer session. */
-    static final byte[] MAGIC = {'E', 'D', '0', '7'};
+    static final byte[] MAGIC = {'E', 'D', '0', '8'};
 
     private TransferProtocol() { /* Utility class */ }
 
@@ -86,6 +88,8 @@ public final class TransferProtocol {
         writeString(out, entity.getContentHash());
         out.writeInt(entity.getHopCount());
         writeString(out, entity.getSeenByIds());
+        writeString(out, entity.getType());
+        writeString(out, entity.getScopeId());
 
         out.flush();
         return baos.toByteArray();
@@ -112,11 +116,15 @@ public final class TransferProtocol {
         final String contentHash = readString(in);
         final int hopCount = in.readInt();
         final String seenByIds = readString(in);
+        final String type = readString(in);
+        final String scopeId = readString(in);
 
         final MessageEntity entity = new MessageEntity(id, text, scope, priority,
                 createdAt, expiresAt, false, contentHash);
         entity.setHopCount(hopCount);
         entity.setSeenByIds(seenByIds);
+        entity.setType(type);
+        entity.setScopeId(scopeId);
         return entity;
     }
 

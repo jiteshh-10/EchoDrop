@@ -33,6 +33,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 - [14. Iteration 5 Completion Status](#14-iteration-5-completion-status)
 - [15. Iteration 6 Completion Status](#15-iteration-6-completion-status)
 - [16. Iteration 7 Completion Status](#16-iteration-7-completion-status)
+- [17. Iteration 8 Completion Status](#17-iteration-8-completion-status)
 
 ---
 
@@ -46,7 +47,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 | **Compile SDK**  | 35                                           |
 | **Language**     | Java 11                                      |
 | **Theme**        | Material 3 — Dark Only                       |
-| **Branch**       | `main` (latest: `iteration-7`)               |
+| **Branch**       | `main` (latest: `iteration-8`)               |
 
 ### Concept
 
@@ -59,6 +60,7 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 - **Iteration 5** added BLE offline discovery with foreground service, manifest exchange, settings, battery guide, and discovery status developer screen.
 - **Iteration 6** added Wi-Fi Direct payload transfer (data plane): TCP socket transfer protocol, bundle sender/receiver, checksum validation, priority-sorted sessions, transfer-aware sync pulse, and fitsSystemWindows fix.
 - **Iteration 7** added store-carry-forward multi-hop DTN: hop count + seen-by-ids fields, forwarding logic with loop prevention, DeviceIdHelper, wire protocol version ED07, message detail and discovery status UI updates.
+- **Iteration 8** added private chat sync over DTN: chat bundles (type=CHAT, scope_id=chat_code) flow through the mesh pipeline, non-members carry but cannot read, sync indicator updates to double-tick, incoming messages animate with fade/slide, wire protocol version ED08.
 
 ---
 
@@ -1056,4 +1058,36 @@ android {
 - [x] Message Detail shows "Forwarded N times" or "Direct (not forwarded)"
 - [x] Discovery Status shows Avg Hops and Forwarded message count
 - [x] 44 new unit tests across 4 new test classes
+
+
+## 17. Iteration 8 Completion Status
+
+> Private Chat Sync (Proximity-Based)
+
+### Summary
+
+| Category                  | Items | Status |
+|---------------------------|-------|--------|
+| New Production Files      | 0     | ✅ Complete |
+| Updated Production Files  | 8     | ✅ Complete |
+| New Test Files            | 3     | ✅ Complete |
+| Updated Test Files        | 1     | ✅ Complete |
+| Build Verification        | —     | ✅ `BUILD SUCCESSFUL` |
+| Unit Tests                | 446   | ✅ 0 failures (100% pass rate) |
+
+### Key Features
+
+- [x] `type` and `scope_id` columns on MessageEntity (Room DB version 4)
+- [x] `TYPE_BROADCAST` / `TYPE_CHAT` constants and `isChatBundle()` helper
+- [x] `createChatBundle()` factory wraps ciphertext with chat code as scope_id
+- [x] Wire protocol version bump "ED07" → "ED08" with type and scopeId fields
+- [x] `BundleSender` preserves type/scopeId on forwarded copies
+- [x] `BundleReceiver` processes incoming chat bundles via `ChatRepo.processIncomingChatBundle()`
+- [x] `ChatRepo.sendMessage()` creates DTN bundle alongside local chat message
+- [x] `ChatRepo.processIncomingChatBundle()` — decrypt, insert, update preview/unread, mark synced
+- [x] `ChatDao` sync queries: `markOutgoingSynced`, `getMessagesForChatSync`, `chatMessageExists`
+- [x] Chat conversation sync bar: "Last synced X ago" / "Messages sync when nearby"
+- [x] Incoming message fade/slide animation (250ms)
+- [x] Non-members carry encrypted bundles but cannot decrypt
+- [x] 41 new unit tests across 3 new test classes + 1 updated
 
