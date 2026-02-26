@@ -23,6 +23,11 @@ import java.util.concurrent.Executors;
  * writes a framed session of serialized {@link MessageEntity} objects, then closes
  * the connection. Messages are sorted by priority before sending (ALERT first).</p>
  *
+ * <p>Updated in Iteration 7: adds {@link #sendForForwarding} which filters messages
+ * by hop limit, scope rules, and seen-by-ids before forwarding. Each forwarded
+ * message gets its hop count incremented and the local device ID appended to
+ * seen_by_ids.</p>
+ *
  * <p>Runs on a background executor thread; never blocks the main thread.</p>
  */
 public class BundleSender {
@@ -85,30 +90,111 @@ public class BundleSender {
                 return;
             }
 
-            Socket socket = null;
-            try {
-                socket = new Socket();
-                socket.connect(new InetSocketAddress(address, TransferProtocol.PORT),
-                        CONNECT_TIMEOUT_MS);
+            sendToSocket(address, valid, callback);
+        });
+    }
 
-                final OutputStream out = socket.getOutputStream();
-                TransferProtocol.writeSession(out, valid);
-                out.flush();
+    /**
+     * Filters and forwards messages for multi-hop DTN propagation.
+     *
+     * <p>Filtering rules:
+     * <ul>
+     *   <li>Expired messages are excluded</li>
+     *   <li>Messages at or above {@link MessageEntity#MAX_HOP_COUNT} are excluded</li>
+     *   <li>Messages already seen by the target device (in seen_by_ids) are excluded</li>
+     *   <li>LOCAL-scope messages are only forwarded to immediate BLE peers (same session)</li>
+     * </ul>
+     * </p>
+     *
+     * <p>For each forwarded message, hop_count is incremented and the local
+     * device ID is appended to seen_by_ids.</p>
+     *
+     * @param address        the peer's IP address
+     * @param messages       all local messages to consider
+     * @param localDeviceId  this device's persistent hex ID
+     * @param peerDeviceId   the target peer's device ID (for seen-by filtering)
+     * @param isBleSession   true if the peer is in the current BLE session (for LOCAL scope)
+     * @param callback       result callback
+     */
+    public void sendForForwarding(@NonNull final InetAddress address,
+                                  @NonNull final List<MessageEntity> messages,
+                                  @NonNull final String localDeviceId,
+                                  @NonNull final String peerDeviceId,
+                                  final boolean isBleSession,
+                                  @NonNull final SendCallback callback) {
+        executor.execute(() -> {
+            final long now = System.currentTimeMillis();
+            final List<MessageEntity> forwardable = new ArrayList<>();
 
-                Log.i(TAG, "Sent " + valid.size() + " messages to " + address);
-                callback.onSendComplete(valid.size());
-            } catch (IOException e) {
-                Log.e(TAG, "Send failed: " + e.getMessage(), e);
-                callback.onSendFailed(e.getMessage() != null ? e.getMessage() : "Unknown error");
-            } finally {
-                closeQuietly(socket);
+            for (final MessageEntity msg : messages) {
+                // Skip expired
+                if (msg.getExpiresAt() <= now) continue;
+
+                // Skip messages at hop limit
+                if (msg.isAtHopLimit()) continue;
+
+                // Skip messages already seen by target peer
+                if (msg.hasBeenSeenBy(peerDeviceId)) continue;
+
+                // LOCAL scope: only forward within same BLE session (direct proximity)
+                if ("LOCAL".equals(msg.getScope()) && !isBleSession) continue;
+
+                // Prepare forwarded copy with incremented hop and updated seen list
+                final MessageEntity copy = new MessageEntity(
+                        msg.getId(), msg.getText(), msg.getScope(), msg.getPriority(),
+                        msg.getCreatedAt(), msg.getExpiresAt(), false, msg.getContentHash());
+                copy.setHopCount(msg.getHopCount() + 1);
+                copy.setSeenByIds(msg.getSeenByIds());
+                copy.addSeenBy(localDeviceId);
+
+                forwardable.add(copy);
             }
+
+            if (forwardable.isEmpty()) {
+                Log.i(TAG, "No forwardable messages for peer " + peerDeviceId);
+                callback.onSendComplete(0);
+                return;
+            }
+
+            Log.i(TAG, "Forwarding " + forwardable.size() + " messages to peer "
+                    + peerDeviceId + " at " + address);
+            sendToSocket(address, forwardable, callback);
         });
     }
 
     /** Shuts down the executor. */
     public void shutdown() {
         executor.shutdownNow();
+    }
+
+    /**
+     * Opens a TCP socket and sends the given messages via TransferProtocol.
+     *
+     * @param address  target address
+     * @param messages messages to send (already filtered)
+     * @param callback result callback
+     */
+    private void sendToSocket(@NonNull final InetAddress address,
+                              @NonNull final List<MessageEntity> messages,
+                              @NonNull final SendCallback callback) {
+        Socket socket = null;
+        try {
+            socket = new Socket();
+            socket.connect(new InetSocketAddress(address, TransferProtocol.PORT),
+                    CONNECT_TIMEOUT_MS);
+
+            final OutputStream out = socket.getOutputStream();
+            TransferProtocol.writeSession(out, messages);
+            out.flush();
+
+            Log.i(TAG, "Sent " + messages.size() + " messages to " + address);
+            callback.onSendComplete(messages.size());
+        } catch (IOException e) {
+            Log.e(TAG, "Send failed: " + e.getMessage(), e);
+            callback.onSendFailed(e.getMessage() != null ? e.getMessage() : "Unknown error");
+        } finally {
+            closeQuietly(socket);
+        }
     }
 
     private static void closeQuietly(final Socket socket) {

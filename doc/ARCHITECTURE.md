@@ -22,6 +22,7 @@
 - [14. Private Chat System (Iteration 4)](#14-private-chat-system-iteration-4)
 - [15. BLE Discovery Layer (Iteration 5)](#15-ble-discovery-layer-iteration-5)
 - [16. Transfer Layer (Iteration 6)](#16-transfer-layer-iteration-6)
+- [17. Store-Carry-Forward / Multi-Hop (Iteration 7)](#17-store-carry-forward--multi-hop-iteration-7)
 
 ---
 
@@ -1037,3 +1038,75 @@ The service starts automatically in two scenarios:
 | `CHANGE_NETWORK_STATE`           | Network state management          |
 | `ACCESS_NETWORK_STATE`           | Check network connectivity        |
 | `NEARBY_WIFI_DEVICES` (API 33+)  | Wi-Fi Direct device discovery     |
+
+---
+
+## 17. Store-Carry-Forward / Multi-Hop (Iteration 7)
+
+### Overview
+
+Messages now propagate beyond direct peers. When device A sends to device B, device B can forward to device C (and so on). This is the core of DTN store-carry-forward.
+
+### Schema Changes
+
+```
+messages (table) — new columns
+| Column         | Type    | Default | Purpose                              |
+|----------------|---------|---------|--------------------------------------|
+| hop_count      | INTEGER | 0       | How many hops the message has taken  |
+| seen_by_ids    | TEXT    | ""      | Comma-separated device IDs that have seen this message |
+```
+
+**Database version:** 2 → 3 (destructive migration via `fallbackToDestructiveMigration()`)
+
+### Hop Constants & Helpers
+
+```
+MAX_HOP_COUNT = 5        — maximum propagation depth
+isAtHopLimit()           — returns true when hopCount >= MAX_HOP_COUNT
+hasBeenSeenBy(deviceId)  — scans comma-separated seen_by_ids for the given ID
+addSeenBy(deviceId)      — appends device ID if not already present (dedup)
+```
+
+### Device Identity
+
+`DeviceIdHelper` generates a persistent 8-character lowercase hex device ID:
+- Derived from `UUID.randomUUID()` → first 8 hex characters
+- Stored in `SharedPreferences("echodrop_device", "device_id")`
+- Created once, reused for the device's lifetime
+
+### Wire Protocol
+
+Magic header bumped from `"ED06"` to `"ED07"`. Frame payload now includes:
+```
+...existing fields... + hopCount (4 bytes int) + seenByIds (UTF-8 string)
+```
+
+### Forwarding Pipeline
+
+```
+EchoService.sendAllMessages()
+    → BundleSender.sendForForwarding(address, messages, localDeviceId, peerDeviceId, isBle, callback)
+        Filter: expired? → skip
+        Filter: isAtHopLimit()? → skip
+        Filter: hasBeenSeenBy(peerDeviceId)? → skip
+        Filter: LOCAL scope + !isBleSession? → skip
+        Create copy: hopCount + 1, addSeenBy(localDeviceId)
+        → sendToSocket(address, filteredCopies, callback)
+```
+
+### Receive-Side Processing
+
+```
+BundleReceiver.handleClient()
+    → foreach received entity:
+        entity.addSeenBy(localDeviceId)    ← stamps this device as having received the message
+        → insert to Room (dedup via contentHash UNIQUE)
+```
+
+### UI Integration
+
+- **Message Detail:** Shows "Forwarded N times" below the created-at timestamp (or "Direct (not forwarded)" if hop_count = 0)
+- **Discovery Status:** New "Multi-Hop Stats" section with two stat cards:
+  - **Avg Hops** — average hop count of all forwarded messages
+  - **Forwarded** — count of messages with hop_count > 0

@@ -131,6 +131,15 @@ public class MessageDetailFragment extends Fragment {
         binding.detailCreatedAt.setText(getString(R.string.detail_created_at,
                 sdf.format(new Date(message.getCreatedAt()))));
 
+        // Forwarded count (Iteration 7)
+        int hopCount = message.getHopCount();
+        if (hopCount > 0) {
+            binding.detailForwardedCount.setText(
+                    getString(R.string.detail_forwarded_count, hopCount));
+        } else {
+            binding.detailForwardedCount.setText(R.string.detail_forwarded_none);
+        }
+
         // Schedule periodic TTL updates
         startTtlUpdates(message);
     }

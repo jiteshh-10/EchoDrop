@@ -32,6 +32,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 - [13. Iteration 4 Completion Status](#13-iteration-4-completion-status)
 - [14. Iteration 5 Completion Status](#14-iteration-5-completion-status)
 - [15. Iteration 6 Completion Status](#15-iteration-6-completion-status)
+- [16. Iteration 7 Completion Status](#16-iteration-7-completion-status)
 
 ---
 
@@ -45,7 +46,7 @@ EchoDrop is an Android application that enables hyperlocal, ephemeral communicat
 | **Compile SDK**  | 35                                           |
 | **Language**     | Java 11                                      |
 | **Theme**        | Material 3 — Dark Only                       |
-| **Branch**       | `main` (latest: `iteration-6`)               |
+| **Branch**       | `main` (latest: `iteration-7`)               |
 
 ### Concept
 
@@ -57,6 +58,7 @@ EchoDrop operates on a store-carry-forward paradigm. Users create short-lived me
 - **Iteration 4** added private chat: local-only encrypted 1:1 messaging with AES-256-GCM, PBKDF2 key derivation from shareable 8-char codes, QR code generation, chat list, conversation screen, and full Room persistence.
 - **Iteration 5** added BLE offline discovery with foreground service, manifest exchange, settings, battery guide, and discovery status developer screen.
 - **Iteration 6** added Wi-Fi Direct payload transfer (data plane): TCP socket transfer protocol, bundle sender/receiver, checksum validation, priority-sorted sessions, transfer-aware sync pulse, and fitsSystemWindows fix.
+- **Iteration 7** added store-carry-forward multi-hop DTN: hop count + seen-by-ids fields, forwarding logic with loop prevention, DeviceIdHelper, wire protocol version ED07, message detail and discovery status UI updates.
 
 ---
 
@@ -1024,4 +1026,34 @@ android {
 - [x] Transfer-aware sync pulse: 500ms during active transfer, 2000ms normal
 - [x] 6 new Wi-Fi Direct permissions + `android.hardware.wifi.direct` feature
 - [x] `fitsSystemWindows="true"` fix on root layout — toolbar/status bar overlap resolved on all devices
+
+
+## 16. Iteration 7 Completion Status
+
+> Store-Carry-Forward — Multi-Hop DTN
+
+### Summary
+
+| Category                  | Items | Status |
+|---------------------------|-------|--------|
+| New Production Files      | 1     | ✅ Complete |
+| Updated Production Files  | 8     | ✅ Complete |
+| New Test Files            | 4     | ✅ Complete |
+| Updated Test Files        | 1     | ✅ Complete |
+| Build Verification        | —     | ✅ `BUILD SUCCESSFUL` |
+| Unit Tests                | 405   | ✅ 0 failures (100% pass rate) |
+
+### Key Features
+
+- [x] `hop_count` and `seen_by_ids` columns on MessageEntity (Room DB version 3)
+- [x] `MAX_HOP_COUNT = 5` propagation depth limit
+- [x] `isAtHopLimit()`, `hasBeenSeenBy()`, `addSeenBy()` helper methods
+- [x] `DeviceIdHelper` — persistent 8-char hex device ID via SharedPreferences
+- [x] Wire protocol version bump "ED06" → "ED07" with hop_count and seen_by_ids fields
+- [x] `BundleSender.sendForForwarding()` — filters by expired, hop limit, seen-by, scope
+- [x] `BundleReceiver` stamps local device ID on received messages
+- [x] `EchoService` uses forwarding-aware send with DeviceIdHelper
+- [x] Message Detail shows "Forwarded N times" or "Direct (not forwarded)"
+- [x] Discovery Status shows Avg Hops and Forwarded message count
+- [x] 44 new unit tests across 4 new test classes
 

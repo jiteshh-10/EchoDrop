@@ -217,4 +217,11 @@
     <string name="transfer_error_checksum">Received a corrupted message, discarded</string>
     <string name="transfer_error_socket">Transfer interrupted, will retry later</string>
     <string name="transfer_complete">%1$d new messages received</string>
+
+    <!-- Store-Carry-Forward / Multi-Hop (Iteration 7) -->
+    <string name="detail_forwarded_count">Forwarded %1$d times</string>
+    <string name="detail_forwarded_none">Direct (not forwarded)</string>
+    <string name="discovery_avg_hops">Avg Hops</string>
+    <string name="discovery_forwarded_count">Forwarded</string>
+    <string name="discovery_hop_section_title">Multi-Hop Stats</string>
 </resources>

@@ -73,7 +73,19 @@ public class MessageEntity {
     @ColumnInfo(name = "content_hash")
     private String contentHash;
 
+    /** Number of hops this message has traversed (0 = originated here). */
+    @ColumnInfo(name = "hop_count", defaultValue = "0")
+    private int hopCount;
+
+    /** Comma-separated device IDs that have already seen this message (loop prevention). */
+    @NonNull
+    @ColumnInfo(name = "seen_by_ids", defaultValue = "")
+    private String seenByIds;
+
     // ──────────────────── Constructors ────────────────────
+
+    /** Maximum number of hops a message can travel before forwarding stops. */
+    public static final int MAX_HOP_COUNT = 5;
 
     /**
      * Full constructor used by Room and tests.
@@ -89,6 +101,8 @@ public class MessageEntity {
         this.expiresAt = expiresAt;
         this.read = read;
         this.contentHash = contentHash;
+        this.hopCount = 0;
+        this.seenByIds = "";
     }
 
     // ──────────────────── Factory Methods ────────────────────
@@ -227,4 +241,41 @@ public class MessageEntity {
     public String getContentHash() { return contentHash; }
 
     public void setContentHash(@NonNull String contentHash) { this.contentHash = contentHash; }
+
+    /** Returns the number of hops this message has traversed. */
+    public int getHopCount() { return hopCount; }
+
+    /** Sets the hop count. */
+    public void setHopCount(int hopCount) { this.hopCount = hopCount; }
+
+    /** Returns the comma-separated list of device IDs that have seen this message. */
+    @NonNull
+    public String getSeenByIds() { return seenByIds; }
+
+    /** Sets the seen-by device IDs list. */
+    public void setSeenByIds(@NonNull String seenByIds) { this.seenByIds = seenByIds; }
+
+    /** Returns true if this message has reached the maximum hop count. */
+    public boolean isAtHopLimit() { return hopCount >= MAX_HOP_COUNT; }
+
+    /** Returns true if the given device ID is in the seen-by list. */
+    public boolean hasBeenSeenBy(@NonNull String deviceId) {
+        if (deviceId.isEmpty()) return false;
+        if (seenByIds == null || seenByIds.isEmpty()) return false;
+        for (final String id : seenByIds.split(",")) {
+            if (id.equals(deviceId)) return true;
+        }
+        return false;
+    }
+
+    /** Appends a device ID to the seen-by list. */
+    public void addSeenBy(@NonNull String deviceId) {
+        if (deviceId.isEmpty()) return;
+        if (hasBeenSeenBy(deviceId)) return;
+        if (seenByIds == null || seenByIds.isEmpty()) {
+            seenByIds = deviceId;
+        } else {
+            seenByIds = seenByIds + "," + deviceId;
+        }
+    }
 }
