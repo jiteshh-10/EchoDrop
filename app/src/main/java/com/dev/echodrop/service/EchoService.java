@@ -277,10 +277,11 @@ public class EchoService extends Service {
                 // Auto-connect to first available peer if state machine allows
                 if (!peers.isEmpty() && !wifiDirectConnected) {
                     final WifiDirectManager.P2pState wState = wifiDirectManager.getState();
-                    if (wState == WifiDirectManager.P2pState.DISCOVERING) {
+                    if (wState == WifiDirectManager.P2pState.DISCOVERING
+                            || wState == WifiDirectManager.P2pState.IDLE) {
                         final android.net.wifi.p2p.WifiP2pDevice peer = peers.get(0);
-                        Timber.tag(TAG).i("ED:WIFI_AUTO_CONNECT name=%s addr=%s",
-                                peer.deviceName, peer.deviceAddress);
+                        Timber.tag(TAG).i("ED:WIFI_AUTO_CONNECT name=%s addr=%s state=%s",
+                                peer.deviceName, peer.deviceAddress, wState);
                         wifiDirectManager.connect(peer);
                     }
                 }

@@ -68,8 +68,20 @@ public class WifiDirectManager {
 
     /** Exponential backoff steps for reason=2 (BUSY) failures. */
     private static final long[] BACKOFF_STEPS_MS = { 2_000, 4_000, 8_000, 15_000 };
+    /** Short cooldown after reason=0 (generic) failures. */
+    private static final long CONNECT_FAIL_COOLDOWN_MS = 3_000;
     private int backoffIndex;
     private Runnable scheduledBackoffResume;
+
+    // ---- Timeouts ----
+
+    /** Discovery auto-expires after this long if no peers connect. */
+    private static final long DISCOVERY_TIMEOUT_MS = 30_000;
+    private Runnable scheduledDiscoveryTimeout;
+
+    /** Connect attempt auto-expires after this long if no group forms. */
+    private static final long CONNECT_TIMEOUT_MS = 45_000;
+    private Runnable scheduledConnectTimeout;
 
     // ---- GO Address Retry ----
 
@@ -149,10 +161,15 @@ public class WifiDirectManager {
 
     /**
      * Initializes the Wi-Fi P2P manager and registers the broadcast receiver.
-     * Must be called before any other method.
+     * Idempotent: calling multiple times from onStartCommand is safe.
      */
     @SuppressLint("MissingPermission")
     public void initialize() {
+        // Guard: skip if already initialized (prevents duplicate receivers)
+        if (manager != null && channel != null && receiverRegistered) {
+            Timber.tag(TAG).d("ED:WIFI_INIT_SKIP already_init");
+            return;
+        }
         manager = (WifiP2pManager) context.getSystemService(Context.WIFI_P2P_SERVICE);
         if (manager == null) {
             Timber.tag(TAG).e("ED:WIFI_INIT_FAIL p2p_not_supported");
@@ -214,6 +231,8 @@ public class WifiDirectManager {
                     Timber.tag(TAG).i("ED:WIFI_DISCOVER_START state=DISCOVERING");
                     // Reset backoff on successful discovery
                     backoffIndex = 0;
+                    // Schedule discovery timeout so we don't stay stuck in DISCOVERING
+                    scheduleDiscoveryTimeout();
                 }
 
                 @Override
@@ -240,6 +259,7 @@ public class WifiDirectManager {
     @SuppressLint("MissingPermission")
     public void stopDiscovery() {
         if (manager == null || channel == null) return;
+        cancelDiscoveryTimeout();
         if (state == P2pState.DISCOVERING) {
             try {
                 manager.stopPeerDiscovery(channel, null);
@@ -270,6 +290,9 @@ public class WifiDirectManager {
             return;
         }
 
+        // Cancel discovery timeout since we're transitioning
+        cancelDiscoveryTimeout();
+
         // Stop discovery before connecting (prevents reason=2)
         if (state == P2pState.DISCOVERING) {
             try {
@@ -289,6 +312,8 @@ public class WifiDirectManager {
                 public void onSuccess() {
                     Timber.tag(TAG).i("ED:WIFI_CONNECT_INIT addr=%s state=CONNECTING",
                             device.deviceAddress);
+                    // Schedule connect timeout so we don't stay stuck in CONNECTING
+                    scheduleConnectTimeout();
                     // State will transition to CONNECTED in onConnectionInfoAvailable
                 }
 
@@ -299,7 +324,8 @@ public class WifiDirectManager {
                     if (reason == 2) {
                         enterCooldown();
                     } else {
-                        state = P2pState.IDLE;
+                        // Short cooldown for generic failures (reason=0)
+                        enterShortCooldown();
                     }
                 }
             });
@@ -334,6 +360,72 @@ public class WifiDirectManager {
     }
 
     // ---- Backoff / Cooldown ----
+
+    /**
+     * Schedules a timeout that resets DISCOVERING -> IDLE if no connect happens.
+     */
+    private void scheduleDiscoveryTimeout() {
+        cancelDiscoveryTimeout();
+        scheduledDiscoveryTimeout = () -> {
+            if (state == P2pState.DISCOVERING) {
+                Timber.tag(TAG).i("ED:WIFI_DISCOVER_TIMEOUT %dms -> IDLE", DISCOVERY_TIMEOUT_MS);
+                state = P2pState.IDLE;
+            }
+        };
+        handler.postDelayed(scheduledDiscoveryTimeout, DISCOVERY_TIMEOUT_MS);
+    }
+
+    /** Cancels any pending discovery timeout. */
+    private void cancelDiscoveryTimeout() {
+        if (scheduledDiscoveryTimeout != null) {
+            handler.removeCallbacks(scheduledDiscoveryTimeout);
+            scheduledDiscoveryTimeout = null;
+        }
+    }
+
+    /**
+     * Schedules a timeout that resets CONNECTING -> IDLE if no group forms.
+     */
+    private void scheduleConnectTimeout() {
+        cancelConnectTimeout();
+        scheduledConnectTimeout = () -> {
+            if (state == P2pState.CONNECTING) {
+                Timber.tag(TAG).i("ED:WIFI_CONNECT_TIMEOUT %dms -> IDLE", CONNECT_TIMEOUT_MS);
+                state = P2pState.IDLE;
+                // Also try to remove any lingering group
+                if (manager != null && channel != null) {
+                    manager.removeGroup(channel, null);
+                }
+            }
+        };
+        handler.postDelayed(scheduledConnectTimeout, CONNECT_TIMEOUT_MS);
+    }
+
+    /** Cancels any pending connect timeout. */
+    private void cancelConnectTimeout() {
+        if (scheduledConnectTimeout != null) {
+            handler.removeCallbacks(scheduledConnectTimeout);
+            scheduledConnectTimeout = null;
+        }
+    }
+
+    /**
+     * Short cooldown for generic connect failures (reason=0).
+     */
+    private void enterShortCooldown() {
+        state = P2pState.COOLDOWN;
+        Timber.tag(TAG).i("ED:WIFI_SHORT_COOLDOWN %dms", CONNECT_FAIL_COOLDOWN_MS);
+        if (scheduledBackoffResume != null) {
+            handler.removeCallbacks(scheduledBackoffResume);
+        }
+        scheduledBackoffResume = () -> {
+            if (state == P2pState.COOLDOWN) {
+                state = P2pState.IDLE;
+                Timber.tag(TAG).d("ED:WIFI_SHORT_COOLDOWN_DONE -> IDLE");
+            }
+        };
+        handler.postDelayed(scheduledBackoffResume, CONNECT_FAIL_COOLDOWN_MS);
+    }
 
     /**
      * Enters COOLDOWN state with exponential backoff, then returns to IDLE.
@@ -388,11 +480,13 @@ public class WifiDirectManager {
 
     /** Unregisters the broadcast receiver and releases resources. */
     public void teardown() {
-        // Cancel any pending backoff
+        // Cancel any pending callbacks
         if (scheduledBackoffResume != null) {
             handler.removeCallbacks(scheduledBackoffResume);
             scheduledBackoffResume = null;
         }
+        cancelDiscoveryTimeout();
+        cancelConnectTimeout();
         if (state == P2pState.DISCOVERING) {
             stopDiscovery();
         }
@@ -426,13 +520,16 @@ public class WifiDirectManager {
                         WifiP2pManager.EXTRA_WIFI_STATE, WifiP2pManager.WIFI_P2P_STATE_DISABLED);
                 final boolean wasEnabled = p2pEnabled;
                 p2pEnabled = (wifiState == WifiP2pManager.WIFI_P2P_STATE_ENABLED);
-                if (!p2pEnabled) {
-                    Timber.tag(TAG).w("ED:WIFI_P2P_DISABLED");
-                } else if (!wasEnabled) {
-                    Timber.tag(TAG).i("ED:WIFI_P2P_ENABLED");
-                }
-                if (callback != null && wasEnabled != p2pEnabled) {
-                    callback.onP2pStateChanged(p2pEnabled);
+                // Only log & notify on actual state change (prevents log spam)
+                if (wasEnabled != p2pEnabled) {
+                    if (p2pEnabled) {
+                        Timber.tag(TAG).i("ED:WIFI_P2P_ENABLED");
+                    } else {
+                        Timber.tag(TAG).w("ED:WIFI_P2P_DISABLED");
+                    }
+                    if (callback != null) {
+                        callback.onP2pStateChanged(p2pEnabled);
+                    }
                 }
                 break;
             }
@@ -485,6 +582,10 @@ public class WifiDirectManager {
 
     private void onConnectionInfoAvailable(@NonNull final WifiP2pInfo info) {
         if (info.groupFormed) {
+            // Cancel connect timeout — group formed successfully
+            cancelConnectTimeout();
+            cancelDiscoveryTimeout();
+
             final InetAddress groupOwnerAddress = info.groupOwnerAddress;
             final boolean isGroupOwner = info.isGroupOwner;
 
@@ -519,13 +620,16 @@ public class WifiDirectManager {
             }
         } else {
             goAddrRetryCount = 0;
-            // Only log wasActive for debugging
+            cancelConnectTimeout();
+            // Only fire callback if we were in an active state
             final boolean wasActive = (state == P2pState.CONNECTED || state == P2pState.CONNECTING);
-            if (state != P2pState.COOLDOWN) {
+            // Don't reset DISCOVERING to IDLE on stale GROUP_DISSOLVED
+            if (state == P2pState.CONNECTED || state == P2pState.CONNECTING) {
                 state = P2pState.IDLE;
             }
+            // Leave COOLDOWN and DISCOVERING untouched
             Timber.tag(TAG).i("ED:WIFI_GROUP_DISSOLVED wasActive=%b state=%s", wasActive, state);
-            if (callback != null) {
+            if (wasActive && callback != null) {
                 callback.onDisconnected();
             }
         }
