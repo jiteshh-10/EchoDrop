@@ -16,7 +16,6 @@ import com.dev.echodrop.screens.HomeInboxFragment;
 import com.dev.echodrop.screens.HowItWorksFragment;
 import com.dev.echodrop.screens.MessageDetailFragment;
 import com.dev.echodrop.screens.OnboardingConsentFragment;
-import com.dev.echodrop.screens.PermissionsFragment;
 import com.dev.echodrop.screens.PrivateChatListFragment;
 import com.dev.echodrop.screens.SettingsFragment;
 import com.dev.echodrop.service.EchoService;
@@ -84,12 +83,44 @@ public class MainActivity extends AppCompatActivity {
                         .replace(R.id.fragment_container, new HomeInboxFragment())
                         .commit();
                 Timber.i("ED:NAV onboarding_complete=true → HomeInbox");
+
+                // Handle notification deep-link on cold start
+                handleNotificationIntent(getIntent());
             } else {
                 getSupportFragmentManager()
                         .beginTransaction()
                         .replace(R.id.fragment_container, new OnboardingConsentFragment())
                         .commit();
                 Timber.i("ED:NAV onboarding_complete=false → Onboarding");
+            }
+        }
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // Handle notification deep-link when activity is already running
+        handleNotificationIntent(intent);
+    }
+
+    /**
+     * Handles deep-link extras from notification taps.
+     * If the intent carries "navigate_to" = "chat_conversation", navigates
+     * directly to the specified chat conversation.
+     */
+    private void handleNotificationIntent(android.content.Intent intent) {
+        if (intent == null) return;
+        final String navigateTo = intent.getStringExtra("navigate_to");
+        if ("chat_conversation".equals(navigateTo)) {
+            final String chatId = intent.getStringExtra("chat_id");
+            final String chatCode = intent.getStringExtra("chat_code");
+            final String chatName = intent.getStringExtra("chat_name");
+            if (chatId != null && chatCode != null && chatName != null) {
+                Timber.i("ED:NAV notification_deeplink chat=%s", chatId);
+                showChatConversation(chatId, chatCode, chatName);
+                // Clear the extras so re-navigation doesn't happen
+                intent.removeExtra("navigate_to");
             }
         }
     }
@@ -102,31 +133,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showPermissions() {
-        // Mark onboarding done immediately — user tapped "Get Started",
-        // so even if the process dies during permission dialog, the
-        // onboarding screen will not reappear.
-        markOnboardingComplete();
-        getSupportFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(
-                        R.anim.fragment_enter, R.anim.fragment_exit,
-                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
-                .replace(R.id.fragment_container, new PermissionsFragment())
-                .addToBackStack(null)
-                .commit();
+        // Permissions are now handled inline from HomeInbox — redirect
+        showHomeInbox();
     }
 
     public void showHowItWorks() {
-        // Mark onboarding done — user has engaged with the onboarding screen
-        markOnboardingComplete();
-        getSupportFragmentManager()
-                .beginTransaction()
-                .setCustomAnimations(
-                        R.anim.fragment_enter, R.anim.fragment_exit,
-                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
-                .replace(R.id.fragment_container, new HowItWorksFragment())
-                .addToBackStack(null)
-                .commit();
+        // How It Works is no longer a separate screen — redirect
+        showHomeInbox();
     }
 
     public void showHowItWorksFromSettings() {

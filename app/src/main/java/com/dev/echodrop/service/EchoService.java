@@ -69,6 +69,12 @@ public class EchoService extends Service {
     /** Hold group alive for this long after transfer before disconnecting. */
     private static final long POST_TRANSFER_HOLD_MS = 5_000;
 
+    /** Intent action to stop the service from the notification "Quit" button. */
+    public static final String ACTION_QUIT_SERVICE = "com.dev.echodrop.ACTION_QUIT";
+
+    /** Current peer count for dynamic notification updates. */
+    private volatile int currentPeerCount;
+
     private BleAdvertiser advertiser;
     private BleScanner scanner;
     private WifiDirectManager wifiDirectManager;
@@ -364,6 +370,14 @@ public class EchoService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // Handle "Quit EchoDrop" notification action
+        if (intent != null && ACTION_QUIT_SERVICE.equals(intent.getAction())) {
+            Timber.tag(TAG).i("ED:SERVICE_QUIT user requested stop");
+            setBackgroundEnabled(this, false);
+            stopForeground(true);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         startForeground(NOTIFICATION_ID, buildNotification());
         // Initialize Wi-Fi Direct BEFORE BLE scanner to avoid race condition
         // where BLE callback triggers discoverPeers before WiFi Direct is ready
@@ -457,6 +471,9 @@ public class EchoService extends Service {
 
     /** Notifies the peer count listener on the main thread. */
     private void notifyPeerCount(final int count) {
+        currentPeerCount = count;
+        // Update the foreground notification with current peer count
+        updateNotification();
         if (peerCountListener != null) {
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (peerCountListener != null) {
@@ -479,23 +496,48 @@ public class EchoService extends Service {
         }
     }
 
-    /** Builds the persistent foreground notification. */
+    /** Builds the persistent foreground notification (bitchat-style). */
     private Notification buildNotification() {
+        return buildNotification(currentPeerCount);
+    }
+
+    /** Builds the notification with the given peer count. */
+    private Notification buildNotification(final int peerCount) {
         final Intent tapIntent = new Intent(this, MainActivity.class);
         tapIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         final PendingIntent pendingIntent = PendingIntent.getActivity(
                 this, 0, tapIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
+        // "Quit EchoDrop" action
+        final Intent quitIntent = new Intent(this, EchoService.class);
+        quitIntent.setAction(ACTION_QUIT_SERVICE);
+        final PendingIntent quitPending = PendingIntent.getService(
+                this, 1, quitIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        final String contentText = peerCount == 1
+                ? getString(R.string.service_notification_peers_one)
+                : getString(R.string.service_notification_peers, peerCount);
+
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(getString(R.string.service_notification_text))
-                .setContentText(getString(R.string.service_notification_sub))
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(getString(R.string.service_notification_title))
+                .setContentText(contentText)
                 .setContentIntent(pendingIntent)
+                .addAction(0, getString(R.string.service_notification_quit), quitPending)
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .build();
+    }
+
+    /** Updates the foreground notification with the current peer count. */
+    private void updateNotification() {
+        final NotificationManager nm = getSystemService(NotificationManager.class);
+        if (nm != null) {
+            nm.notify(NOTIFICATION_ID, buildNotification());
+        }
     }
 
     /** Creates the notification channel (required on API 26+). */

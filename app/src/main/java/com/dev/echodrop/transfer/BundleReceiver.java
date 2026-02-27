@@ -344,7 +344,7 @@ public class BundleReceiver {
             final NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     context.getString(R.string.transfer_channel_name),
-                    NotificationManager.IMPORTANCE_DEFAULT);
+                    NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription(context.getString(R.string.transfer_notification_title));
             final NotificationManager manager =
                     context.getSystemService(NotificationManager.class);
@@ -357,38 +357,75 @@ public class BundleReceiver {
     /** Shows a notification for newly arrived messages. */
     private void showNotification(@NonNull final List<MessageEntity> messages,
                                   final int insertedCount) {
-        final Intent tapIntent = new Intent(context, MainActivity.class);
-        tapIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        final PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, 0, tapIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        // Use the first message text as notification body (max 60 chars)
-        String body = "";
+        // Find the first chat bundle to use for deep-link navigation
+        MessageEntity firstChat = null;
         for (final MessageEntity msg : messages) {
-            if (!msg.getText().isEmpty()) {
-                body = msg.getText();
-                if (body.length() > 60) {
-                    body = body.substring(0, 60) + "…";
-                }
+            if (msg.isChatBundle()) {
+                firstChat = msg;
                 break;
             }
         }
 
+        final Intent tapIntent = new Intent(context, MainActivity.class);
+        tapIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        // If this is a chat notification, add extras for deep-link to conversation
+        if (firstChat != null && chatRepo != null) {
+            final String chatCode = firstChat.getScopeId();
+            if (chatCode != null && !chatCode.isEmpty()) {
+                final com.dev.echodrop.db.ChatEntity chat = chatRepo.getChatByCode(chatCode);
+                if (chat != null) {
+                    tapIntent.putExtra("navigate_to", "chat_conversation");
+                    tapIntent.putExtra("chat_id", chat.getId());
+                    tapIntent.putExtra("chat_code", chat.getCode());
+                    tapIntent.putExtra("chat_name", chat.getDisplayName());
+                }
+            }
+        }
+
+        // Use unique request code per notification so each has distinct PendingIntent
+        final int requestCode = (int) (System.currentTimeMillis() % 10000);
+        final PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, requestCode, tapIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // Build notification title and body based on message type
+        final String title;
+        String body = "";
+
+        if (firstChat != null) {
+            final String chatName = firstChat.getSenderAlias();
+            title = (chatName != null && !chatName.isEmpty())
+                    ? chatName
+                    : context.getString(R.string.transfer_notification_title);
+            body = context.getString(R.string.chat_notification_body);
+        } else {
+            title = context.getString(R.string.transfer_notification_title);
+            for (final MessageEntity msg : messages) {
+                if (!msg.getText().isEmpty()) {
+                    body = msg.getText();
+                    if (body.length() > 60) {
+                        body = body.substring(0, 60) + "…";
+                    }
+                    break;
+                }
+            }
+        }
+
         final Notification notification = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(context.getString(R.string.transfer_notification_title))
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle(title)
                 .setContentText(body)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .build();
 
         final NotificationManager manager =
                 context.getSystemService(NotificationManager.class);
         if (manager != null) {
-            manager.notify(NOTIFICATION_ID_BASE + (int) (System.currentTimeMillis() % 1000),
+            manager.notify(NOTIFICATION_ID_BASE + requestCode,
                     notification);
         }
     }

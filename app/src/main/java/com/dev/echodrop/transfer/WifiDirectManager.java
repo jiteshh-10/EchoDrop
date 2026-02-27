@@ -224,6 +224,14 @@ public class WifiDirectManager {
         }
         state = P2pState.DISCOVERING;
 
+        // Clear any lingering group from a previous session to prevent
+        // stale GROUP_DISSOLVED broadcasts during new connections
+        try {
+            manager.removeGroup(channel, null);
+        } catch (Exception e) {
+            Timber.tag(TAG).d("ED:WIFI_STALE_GROUP_CLEAR_SKIP");
+        }
+
         try {
             manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
                 @Override
@@ -305,6 +313,8 @@ public class WifiDirectManager {
 
         final WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = device.deviceAddress;
+        // Prefer client role to avoid both devices competing for GO
+        config.groupOwnerIntent = 0;
 
         try {
             manager.connect(channel, config, new WifiP2pManager.ActionListener() {
@@ -620,14 +630,21 @@ public class WifiDirectManager {
             }
         } else {
             goAddrRetryCount = 0;
+            // GROUP_DISSOLVED while CONNECTING is expected Android behavior:
+            // the system dissolves any old group before forming the new one.
+            // Do NOT reset CONNECTING → IDLE here; let the connect timeout handle real failures.
+            if (state == P2pState.CONNECTING) {
+                Timber.tag(TAG).i("ED:WIFI_GROUP_DISSOLVED_CONNECTING_IGNORE state=%s", state);
+                // Stale dissolution — keep CONNECTING, let connect timeout or
+                // successful groupFormed callback handle the outcome.
+                return;
+            }
             cancelConnectTimeout();
-            // Only fire callback if we were in an active state
-            final boolean wasActive = (state == P2pState.CONNECTED || state == P2pState.CONNECTING);
-            // Don't reset DISCOVERING to IDLE on stale GROUP_DISSOLVED
-            if (state == P2pState.CONNECTED || state == P2pState.CONNECTING) {
+            final boolean wasActive = (state == P2pState.CONNECTED);
+            if (state == P2pState.CONNECTED) {
                 state = P2pState.IDLE;
             }
-            // Leave COOLDOWN and DISCOVERING untouched
+            // Leave COOLDOWN, DISCOVERING, and IDLE untouched
             Timber.tag(TAG).i("ED:WIFI_GROUP_DISSOLVED wasActive=%b state=%s", wasActive, state);
             if (wasActive && callback != null) {
                 callback.onDisconnected();
