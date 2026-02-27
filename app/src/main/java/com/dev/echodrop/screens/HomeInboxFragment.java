@@ -1,7 +1,9 @@
 package com.dev.echodrop.screens;
 
+import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -13,7 +15,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.OvershootInterpolator;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 
 import com.dev.echodrop.MainActivity;
@@ -24,6 +29,8 @@ import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
+import timber.log.Timber;
 
 import com.dev.echodrop.R;
 import com.dev.echodrop.adapters.MessageAdapter;
@@ -72,6 +79,27 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     private Handler ttlRefreshHandler;
     private static final long TTL_REFRESH_INTERVAL_MS = 60_000L;
 
+    /** Whether we already requested permissions this fragment instance. */
+    private boolean permissionsRequested;
+
+    /** Launcher for inline permission request (replaces PermissionsFragment). */
+    private final ActivityResultLauncher<String[]> permissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestMultiplePermissions(),
+                    result -> {
+                        boolean anyGranted = result.containsValue(Boolean.TRUE);
+                        if (anyGranted) {
+                            EchoService.setBackgroundEnabled(requireContext(), true);
+                            EchoService.startService(requireContext());
+                            Timber.i("ED:PERM_INLINE granted — mesh sharing started");
+                        } else {
+                            Timber.w("ED:PERM_INLINE denied — user can enable later in Settings");
+                            Toast.makeText(requireContext(),
+                                    "Permissions needed for mesh sharing — enable in Settings",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
+
     private enum Tab {
         ALL,
         ALERTS,
@@ -110,8 +138,53 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             updateSyncIndicator(count);
         });
 
+        // Listen for BT/P2P prerequisite changes → show warning in sync indicator
+        EchoService.setPrerequisiteListener((btOn, p2pOn) -> {
+            if (binding == null) return;
+            updatePrerequisiteWarning(btOn, p2pOn);
+        });
+
         // Periodic TTL refresh so message card timestamps stay current
         startTtlRefresh();
+
+        // Auto-request permissions inline if not yet granted (replaces PermissionsFragment)
+        requestPermissionsIfNeeded();
+    }
+
+    /**
+     * Requests all required runtime permissions if not already granted.
+     * Called once per fragment instance from onViewCreated.
+     */
+    private void requestPermissionsIfNeeded() {
+        if (permissionsRequested) return;
+        if (EchoService.hasBlePermissions(requireContext())) {
+            // Already granted — make sure service is running
+            if (EchoService.isBackgroundEnabled(requireContext())) {
+                EchoService.startService(requireContext());
+            }
+            return;
+        }
+        permissionsRequested = true;
+        final java.util.List<String> perms = new java.util.ArrayList<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            perms.add(Manifest.permission.BLUETOOTH_ADVERTISE);
+            perms.add(Manifest.permission.BLUETOOTH_CONNECT);
+            perms.add(Manifest.permission.BLUETOOTH_SCAN);
+        }
+        perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        perms.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            perms.add(Manifest.permission.NEARBY_WIFI_DEVICES);
+            perms.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
+        if (!perms.isEmpty()) {
+            Timber.i("ED:PERM_INLINE requesting %d permissions", perms.size());
+            permissionLauncher.launch(perms.toArray(new String[0]));
+        } else {
+            // Pre-S: no runtime BLE permissions needed
+            EchoService.setBackgroundEnabled(requireContext(), true);
+            EchoService.startService(requireContext());
+        }
     }
 
     /** Periodic task that refreshes the adapter so TTL labels update. */
@@ -392,6 +465,33 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         }
     }
 
+    /**
+     * Shows a warning in the sync indicator when BT or P2P is off.
+     * Overrides the normal peer count display until prerequisites are met.
+     */
+    private void updatePrerequisiteWarning(boolean btOn, boolean p2pOn) {
+        if (btOn && p2pOn) {
+            // Prerequisites met — restore normal peer count display
+            // Let the next peer count callback handle it
+            return;
+        }
+        // Show warning
+        if (syncDotAnimator != null) {
+            syncDotAnimator.cancel();
+            syncDotAnimator = null;
+        }
+        binding.syncDot.setVisibility(View.VISIBLE);
+        binding.syncDot.setBackgroundTintList(
+                ContextCompat.getColorStateList(requireContext(), R.color.echo_amber_accent));
+        if (!btOn) {
+            binding.syncText.setText(R.string.sync_bt_off);
+        } else {
+            binding.syncText.setText(R.string.sync_wifi_off);
+        }
+        binding.syncText.setTextColor(
+                ContextCompat.getColor(requireContext(), R.color.echo_amber_accent));
+    }
+
     private void openPostComposer() {
         PostComposerSheet sheet = new PostComposerSheet();
         sheet.setOnPostListener(this);
@@ -434,6 +534,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         super.onDestroyView();
         EchoService.setTransferStateListener(null);
         EchoService.setPeerCountListener(null);
+        EchoService.setPrerequisiteListener(null);
         stopTtlRefresh();
         if (syncDotAnimator != null) {
             syncDotAnimator.cancel();

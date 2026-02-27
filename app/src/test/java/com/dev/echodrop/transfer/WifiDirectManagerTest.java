@@ -46,6 +46,9 @@ public class WifiDirectManagerTest {
 
             @Override
             public void onPeersAvailable(final java.util.List<android.net.wifi.p2p.WifiP2pDevice> peers) { }
+
+            @Override
+            public void onP2pStateChanged(final boolean enabled) { }
         };
         assertNotNull(cb);
     }
