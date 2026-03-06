@@ -1,6 +1,7 @@
 package com.dev.echodrop.ble;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -53,6 +54,7 @@ public class BleScanner {
     private final Map<Integer, PeerInfo> peers = new ConcurrentHashMap<>();
 
     private PeerUpdateListener peerListener;
+    private GattConnectRequester gattConnectRequester;
 
     /** Records a discovered peer. */
     public static class PeerInfo {
@@ -72,6 +74,11 @@ public class BleScanner {
     /** Listener for peer list changes. */
     public interface PeerUpdateListener {
         void onPeersUpdated(List<PeerInfo> currentPeers);
+    }
+
+    /** Listener for triggering GATT manifest exchange on new peer discovery. */
+    public interface GattConnectRequester {
+        void onPeerFoundForGatt(BluetoothDevice device);
     }
 
     private final ScanCallback scanCallback = new ScanCallback() {
@@ -144,6 +151,11 @@ public class BleScanner {
         this.peerListener = listener;
     }
 
+    /** Sets a requester to trigger GATT manifest exchange when a new peer is found. */
+    public void setGattConnectRequester(GattConnectRequester requester) {
+        this.gattConnectRequester = requester;
+    }
+
     /** Returns an unmodifiable snapshot of current peers. */
     public List<PeerInfo> getPeers() {
         return Collections.unmodifiableList(new ArrayList<>(peers.values()));
@@ -214,9 +226,16 @@ public class BleScanner {
             final int manifestSize = parsed[1];
             final int rssi = result.getRssi();
 
+            // Only trigger GATT for newly discovered peers (not already in map)
+            final boolean isNew = !peers.containsKey(deviceId);
             final PeerInfo peer = new PeerInfo(deviceId, manifestSize, rssi);
             peers.put(deviceId, peer);
-            Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d", deviceId, manifestSize, rssi);
+            Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d new=%b", deviceId, manifestSize, rssi, isNew);
+
+            // Trigger GATT manifest exchange for new peers
+            if (isNew && gattConnectRequester != null) {
+                gattConnectRequester.onPeerFoundForGatt(result.getDevice());
+            }
         } catch (IllegalArgumentException e) {
             Timber.tag(TAG).w(e, "ED:BLE_SCAN_PARSE invalid payload");
         }
