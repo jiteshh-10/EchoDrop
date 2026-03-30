@@ -99,7 +99,9 @@
         android:id="@+id/chevron"
         android:layout_width="20dp"
         android:layout_height="20dp"
+        android:layout_gravity="center_vertical"
         android:contentDescription="@string/content_add"
-        android:src="@android:drawable/ic_media_next"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_chevron_right"
         app:tint="@color/echo_muted_disabled" />
 </LinearLayout>

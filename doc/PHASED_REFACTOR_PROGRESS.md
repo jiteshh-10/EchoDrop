@@ -211,3 +211,49 @@ Status: Completed
 
 ## Next phase
 - Phase 8: Continue full-screen visual refinement pass against the reference style system (component states, spacing rhythm, and typography consistency).
+
+## Phase 8 - UI Rhythm and Minimal Icon System Polish
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Added micro-spacing tokens (`2dp`, `4dp`, `6dp`, `12dp`) and replaced scattered hardcoded spacing values in core chat/inbox surfaces.
+- Standardized primary CTA presentation by reusing shared button styles across permissions, onboarding, how-it-works, battery guide, composer, and detail confirmation actions.
+- Replaced all layout-level Android built-in icons with app-owned vector icons for consistent visual language.
+- Added a minimal icon set for search, compose, chat, lock, alert, location, close, check-circle, and bell.
+- Improved icon centering with `centerInside` scaling and constrained FAB icon sizing; updated permission icon holders to circular, minimal chips.
+
+### Files modified
+- app/src/main/res/values/dimens.xml
+- app/src/main/res/drawable/bg_icon_holder.xml
+- app/src/main/res/layout/screen_home_inbox.xml
+- app/src/main/res/layout/screen_chat_conversation.xml
+- app/src/main/res/layout/item_chat_list.xml
+- app/src/main/res/layout/screen_permissions.xml
+- app/src/main/res/layout/screen_onboarding_consent.xml
+- app/src/main/res/layout/screen_how_it_works.xml
+- app/src/main/res/layout/screen_battery_guide.xml
+- app/src/main/res/layout/fragment_post_composer.xml
+- app/src/main/res/layout/fragment_message_detail.xml
+- app/src/main/res/layout/screen_chat_list.xml
+- app/src/main/res/layout/item_message_card.xml
+- app/src/main/res/drawable/ic_search.xml
+- app/src/main/res/drawable/ic_compose.xml
+- app/src/main/res/drawable/ic_chat_bubble.xml
+- app/src/main/res/drawable/ic_lock.xml
+- app/src/main/res/drawable/ic_alert_outline.xml
+- app/src/main/res/drawable/ic_location.xml
+- app/src/main/res/drawable/ic_close.xml
+- app/src/main/res/drawable/ic_check_circle.xml
+- app/src/main/res/drawable/ic_bell.xml
+
+### Verified behavior intent
+- Icon visuals now use a single, minimal vector style and remain centered in icon containers and FABs.
+- Legacy built-in icon dependency in layouts is removed, reducing OEM/device icon variance.
+- Existing handlers, IDs, routing, and data/transport logic remain unchanged.
+
+### Risks / notes
+- This pass focuses on visual consistency of existing icon affordances; future UX iterations may still introduce dedicated semantic icons for new features.
+
+## Next phase
+- Phase 9: Final visual QA sweep (touch targets, state colors, and per-screen accessibility contrast checks).

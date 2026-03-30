@@ -16,7 +16,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:title="@string/detail_title"
         app:titleTextColor="@color/echo_text_primary"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationIconTint="@color/echo_text_primary" />
 
     <View
         android:id="@+id/toolbar_divider"
@@ -51,7 +52,8 @@
             android:layout_width="@dimen/priority_banner_icon_size"
             android:layout_height="@dimen/priority_banner_icon_size"
             android:contentDescription="@string/detail_urgent_banner"
-            android:src="@android:drawable/ic_dialog_alert"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_alert_outline"
             app:tint="@color/echo_alert_accent" />
 
         <TextView
@@ -218,12 +220,10 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/detail_got_it_btn"
+            style="@style/Widget.EchoDrop.Button.Primary"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:layout_marginTop="8dp"
-            android:text="@string/detail_got_it"
-            android:textColor="@color/echo_on_primary"
-            app:backgroundTint="@color/echo_primary_accent"
-            app:cornerRadius="@dimen/card_corner_radius" />
+            android:layout_height="@dimen/button_height_primary"
+            android:layout_marginTop="@dimen/spacing_1"
+            android:text="@string/detail_got_it" />
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

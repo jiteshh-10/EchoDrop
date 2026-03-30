@@ -1,6 +1,10 @@
 <resources>
     <!-- ═══ 8dp grid spacing scale ═══ -->
     <dimen name="spacing_1">8dp</dimen>
+    <dimen name="spacing_0_75">6dp</dimen>
+    <dimen name="spacing_0_5">4dp</dimen>
+    <dimen name="spacing_0_25">2dp</dimen>
+    <dimen name="spacing_1_5">12dp</dimen>
     <dimen name="spacing_2">16dp</dimen>
     <dimen name="spacing_3">24dp</dimen>
     <dimen name="spacing_4">32dp</dimen>
