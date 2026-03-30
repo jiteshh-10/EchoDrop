@@ -176,3 +176,38 @@ Status: Completed
 
 ## Next phase
 - Phase 7: Full UI polish sweep against all provided reference screens (spacing/typography hierarchy and component-level refinements).
+
+## Phase 7 - Primary CTA Contrast Hardening
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Added a dedicated on-primary token for text/icon contrast on accent-filled controls.
+- Remapped theme-level `colorOnPrimary` in default and night themes, including dialog theme primary contrast mapping.
+- Updated the shared primary button style to use the new on-primary token.
+- Updated accent CTA labels and primary FAB icon tint on onboarding, permissions, how-it-works, battery guide, post composer, and message detail screens.
+
+### Files modified
+- app/src/main/res/values/colors.xml
+- app/src/main/res/values-night/colors.xml
+- app/src/main/res/values/themes.xml
+- app/src/main/res/values-night/themes.xml
+- app/src/main/res/values/styles.xml
+- app/src/main/res/layout/screen_permissions.xml
+- app/src/main/res/layout/screen_onboarding_consent.xml
+- app/src/main/res/layout/screen_how_it_works.xml
+- app/src/main/res/layout/screen_battery_guide.xml
+- app/src/main/res/layout/fragment_post_composer.xml
+- app/src/main/res/layout/fragment_message_detail.xml
+- app/src/main/res/layout/screen_home_inbox.xml
+
+### Verified behavior intent
+- Primary accent buttons now render readable label contrast in dark mode.
+- Primary accent FAB icon contrast is preserved on the home inbox screen.
+- No IDs, event handlers, navigation wiring, or business logic were changed.
+
+### Risks / notes
+- This pass targeted known accent CTA contrast surfaces only; additional palette updates may require another token audit for less-common accent usages.
+
+## Next phase
+- Phase 8: Continue full-screen visual refinement pass against the reference style system (component states, spacing rhythm, and typography consistency).

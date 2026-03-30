@@ -339,7 +339,7 @@
             android:layout_height="56dp"
             android:layout_marginTop="@dimen/spacing_2"
             android:text="@string/permissions_allow"
-            android:textColor="@color/echo_text_primary"
+            android:textColor="@color/echo_on_primary"
             android:textSize="16sp"
             app:cornerRadius="@dimen/card_corner_radius"
             app:backgroundTint="@color/echo_primary_accent" />

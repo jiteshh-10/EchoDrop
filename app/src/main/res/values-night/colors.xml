@@ -28,6 +28,7 @@
     <color name="echo_text_secondary">#A4B2C4</color>
     <color name="echo_text_muted">#76859A</color>
     <color name="echo_muted_disabled">#5A6678</color>
+    <color name="echo_on_primary">#0A0C0F</color>
 
     <!-- Structural -->
     <color name="echo_divider">#0FFFFFFF</color>

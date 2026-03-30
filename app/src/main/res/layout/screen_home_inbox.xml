@@ -240,7 +240,7 @@
         android:layout_height="@dimen/fab_size"
         android:contentDescription="@string/fab_post"
         android:src="@android:drawable/ic_menu_edit"
-        android:tint="@color/echo_text_primary"
+        android:tint="@color/echo_on_primary"
         app:backgroundTint="@color/echo_primary_accent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

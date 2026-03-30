@@ -3,7 +3,7 @@
     <!-- ═══ Dark Theme (default, forced) ═══ -->
     <style name="Theme.EchoDrop" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/echo_primary_accent</item>
-        <item name="colorOnPrimary">@color/echo_white</item>
+        <item name="colorOnPrimary">@color/echo_on_primary</item>
         <item name="colorSurface">@color/echo_card_surface</item>
         <item name="colorOnSurface">@color/echo_text_primary</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.EchoDrop.MaterialAlertDialog</item>
@@ -21,6 +21,7 @@
     <!-- Dialog theme -->
     <style name="Theme.EchoDrop.Dialog" parent="Theme.Material3.Dark.Dialog.Alert">
         <item name="colorPrimary">@color/echo_primary_accent</item>
+        <item name="colorOnPrimary">@color/echo_on_primary</item>
         <item name="colorSurface">@color/echo_card_surface</item>
         <item name="colorOnSurface">@color/echo_text_primary</item>
         <item name="android:colorBackground">@color/echo_elevated_surface</item>

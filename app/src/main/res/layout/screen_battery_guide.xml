@@ -398,7 +398,7 @@
         android:layout_margin="@dimen/spacing_2"
         android:minHeight="@dimen/min_touch_target"
         android:text="@string/battery_done"
-        android:textColor="@color/echo_text_primary"
+        android:textColor="@color/echo_on_primary"
         app:backgroundTint="@color/echo_primary_accent"
         app:cornerRadius="@dimen/input_corner_radius" />
 </LinearLayout>

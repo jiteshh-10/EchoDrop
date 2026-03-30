@@ -222,7 +222,7 @@
             android:layout_height="52dp"
             android:layout_marginTop="8dp"
             android:text="@string/detail_got_it"
-            android:textColor="@color/echo_text_primary"
+            android:textColor="@color/echo_on_primary"
             app:backgroundTint="@color/echo_primary_accent"
             app:cornerRadius="@dimen/card_corner_radius" />
     </LinearLayout>
