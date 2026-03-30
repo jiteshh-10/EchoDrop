@@ -257,3 +257,108 @@ Status: Completed
 
 ## Next phase
 - Phase 9: Final visual QA sweep (touch targets, state colors, and per-screen accessibility contrast checks).
+
+## Phase 9 - Messaging Service Smoothing and Log De-dup
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Added one-time Timber initialization guard in activity startup to prevent duplicate tree planting across activity recreations.
+- Added service start-request coalescing and early-return guard when already running to avoid repeated foreground service start calls.
+- Throttled repeated `ED:SERVICE_ALREADY_RUNNING` logs to reduce diagnostics noise.
+- Added BLE self-peer filtering by local device ID to prevent self-connect churn.
+- Throttled repetitive `ED:BLE_PEER_FOUND` logs per peer while still logging new peers and manifest-size changes.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/MainActivity.java
+- app/src/main/java/com/dev/echodrop/service/EchoService.java
+- app/src/main/java/com/dev/echodrop/ble/BleScanner.java
+
+### Verified behavior intent
+- Log volume no longer multiplies when activity recreates.
+- Duplicate service start attempts are coalesced before entering `onStartCommand`.
+- Mesh transfer path remains unchanged, but with reduced self-noise and lower startup churn.
+
+### Risks / notes
+- `ED:BLE_PEER_FOUND` is now rate-limited for repeat sightings; diagnostics still capture all peer additions and manifest changes.
+
+## Next phase
+- Phase 10: Field validation pass on two-device sessions (peer count parity, transfer latency, and diagnostics consistency).
+
+## Phase 10 - Close-Range Latency and Nearby-Count Reliability Tuning
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Increased BLE discovery aggressiveness to a low-latency duty cycle (`10s` scan / `8s` pause) and switched scanner mode to `LOW_LATENCY`.
+- Replaced strict UUID scan filters with unfiltered scanning plus service-data parsing to improve OEM compatibility (notably Realme-class scan behavior).
+- Reduced per-peer GATT retry interval and added fast reconnect on manifest-size changes with a short safety gap.
+- Reduced empty-session backoff ceilings in the service so close-range peers do not wait up to minutes for next sync.
+- Added a recent-GATT-activity fallback for nearby peer count so UI can still show at least one nearby device when scanner callbacks are intermittent.
+- Triggered immediate peer-list updates when new peers appear or manifest values change.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/ble/BleScanner.java
+- app/src/main/java/com/dev/echodrop/service/EchoService.java
+- app/src/test/java/com/dev/echodrop/ble/BleScannerTest.java
+
+### Verified behavior intent
+- Peer discovery/connect cadence is materially faster in close-range two-device sessions.
+- Nearby device count remains visible even on devices where BLE scan callbacks are less stable.
+- Existing message serialization/relay semantics are unchanged; only timing/discovery strategy is tuned.
+
+### Risks / notes
+- Low-latency scanning increases power usage versus prior balanced mode.
+- Unfiltered scans may increase callback volume in crowded RF environments, though payload parsing still restricts mesh processing to EchoDrop frames.
+
+## Next phase
+- Phase 11: Battery-aware adaptive scanning (fast mode when peer present, relaxed mode when idle) with on-device A/B timing measurements.
+
+## Phase 11 - Ultra-Low Latency Connect Fast-Path and Transport Limits Documentation
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Tightened BLE scan duty cycle to `12s` active scan / `3s` pause to reduce wait time for the next discovery callback in close-range sessions.
+- Reduced generic per-peer reconnect interval from `12s` to `6s`.
+- Reduced manifest-change reconnect floor from `4s` to `1.5s`.
+- Extended scanner-to-service connect callback to include urgency metadata (`urgent=true` for new peers or manifest change).
+- Added urgent connect fast-path in service: urgent events can bypass empty-session exponential backoff after a short anti-churn floor (`1.5s`).
+- Kept standard exponential backoff for non-urgent reconnects to avoid excessive idle churn.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/ble/BleScanner.java
+- app/src/main/java/com/dev/echodrop/service/EchoService.java
+- app/src/test/java/com/dev/echodrop/ble/BleScannerTest.java
+
+### Verified behavior intent
+- New messages should propagate faster after a remote manifest bump, even when previous sessions were empty.
+- Normal idle-sync sessions still respect cooldown/backoff.
+- Build and focused scanner unit tests pass with updated constants.
+
+### Risks / notes
+- This is intentionally aggressive for latency and will consume more battery than slower scan cadences.
+- In high RF-density environments, more frequent scans/connect attempts can increase callback volume.
+
+## Current Mesh Operating Envelope (Code-Backed)
+
+### Hard limits
+- Message relay hop limit: `3` (`MessageEntity.MAX_HOP_COUNT`), enforced on receive/forward path in service.
+- Manifest entry ceiling: `18` IDs per manifest (`ManifestManager.MAX_ENTRIES`) to fit BLE payload constraints.
+- GATT chunk size: `512` bytes max packet with `509` bytes max payload (`GattTransferProtocol`).
+- Session timeout: `30s` (`GattTransferProtocol.SESSION_TIMEOUT_MS`).
+- Local message storage cap: `200` rows (`MessageRepo.STORAGE_CAP`) with eviction policy (BULK then NORMAL; ALERT preserved).
+- Chat bundle TTL: `24h` (`ChatRepo.CHAT_BUNDLE_TTL_MS`) by default.
+
+### Room/device scaling characteristics
+- Room membership has no explicit hard cap in schema/DAO; any device with the room code can participate.
+- Room code space is `32^8` combinations (8 chars from 32-symbol alphabet), approximately `1.10e12` possible codes.
+- Practical throughput depends on BLE radio conditions, OEM stack behavior, and connect/session scheduling, not a fixed participant constant.
+
+### Practical interpretation for field use
+- Best low-latency behavior: small to medium nearby sets where peers are consistently discoverable.
+- As nearby peer count grows, contention and repeated session setup overhead become the dominant limiters.
+- Multi-hop reach is bounded by hop count; topologies requiring more than 3 relays will not propagate beyond that boundary.
+
+## Next phase
+- Phase 12: adaptive latency mode (burst scan/connect on recent traffic, relaxed mode when idle) plus measured battery/latency baselines per OEM.

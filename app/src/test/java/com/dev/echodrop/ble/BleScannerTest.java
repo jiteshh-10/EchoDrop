@@ -54,13 +54,13 @@ public class BleScannerTest {
     // ── Duty Cycle Constants ──────────────────────────────
 
     @Test
-    public void scanDuration_is8Seconds() {
-        assertEquals(8_000L, BleScanner.SCAN_DURATION_MS);
+    public void scanDuration_is12Seconds() {
+        assertEquals(12_000L, BleScanner.SCAN_DURATION_MS);
     }
 
     @Test
-    public void scanPause_is30Seconds() {
-        assertEquals(30_000L, BleScanner.SCAN_PAUSE_MS);
+    public void scanPause_is3Seconds() {
+        assertEquals(3_000L, BleScanner.SCAN_PAUSE_MS);
     }
 
     // ── PeerInfo ──────────────────────────────────────────

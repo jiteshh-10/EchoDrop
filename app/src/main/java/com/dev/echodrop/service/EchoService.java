@@ -18,6 +18,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import timber.log.Timber;
 
@@ -69,17 +70,35 @@ public class EchoService extends Service {
     /** Singleton guard: true while onStartCommand has run and service is alive. */
     private static volatile boolean isRunning;
 
+    /** Last wall-clock-independent start request timestamp for coalescing duplicate starts. */
+    private static volatile long lastStartRequestElapsedMs;
+
+    /** Last time we logged the already-running message (throttled). */
+    private static volatile long lastAlreadyRunningLogElapsedMs;
+
     /** Returns whether the service is currently running. */
     public static boolean isRunning() { return isRunning; }
 
     /** Cooldown before allowing a new GATT session after one ends. */
     private static final long GATT_SESSION_COOLDOWN_MS = 5_000;
 
+    /** Coalesce duplicate start requests fired by multiple UI paths in quick succession. */
+    private static final long START_REQUEST_COALESCE_MS = 1_500L;
+
+    /** Suppress repeated ED:SERVICE_ALREADY_RUNNING spam when UI re-enters quickly. */
+    private static final long ALREADY_RUNNING_LOG_THROTTLE_MS = 15_000L;
+
     /** Extended cooldown when last session exchanged zero bundles (already synced). */
     private static final long GATT_SYNCED_COOLDOWN_MS = 30_000;
 
-    /** Exponential backoff steps (ms): 0 → 5s → 15s → 60s → 120s. */
-    private static final long[] BACKOFF_STEPS_MS = { 5_000, 10_000, 20_000, 60_000, 120_000 };
+    /** Exponential backoff steps (ms) tuned for lower close-range latency. */
+    private static final long[] BACKOFF_STEPS_MS = { 1_500, 3_000, 6_000, 12_000, 20_000 };
+
+    /** Safety floor even for urgent reconnect attempts to avoid connect churn. */
+    private static final long URGENT_CONNECT_MIN_GAP_MS = 1_500L;
+
+    /** If scanner misses peers on some OEMs, keep recent GATT activity visible briefly. */
+    private static final long RECENT_GATT_PEER_WINDOW_MS = 90_000L;
 
     /** Phase 1: hard-disable Wi-Fi Direct runtime path. */
     private static final boolean WIFI_DIRECT_ENABLED = false;
@@ -117,6 +136,9 @@ public class EchoService extends Service {
 
     /** Whether Wi-Fi P2P is currently enabled. */
     private volatile boolean p2pEnabled;
+
+    /** Timestamp of recent successful GATT traffic (inbound or outbound). */
+    private volatile long lastGattPeerSeenMs;
 
     /** Receiver for BT ON/OFF transitions to pause/resume BLE stack safely. */
     private BroadcastReceiver bluetoothStateReceiver;
@@ -239,6 +261,8 @@ public class EchoService extends Service {
                             }
                         }
 
+                        markRecentGattPeerActivity();
+
                         final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
                         final long rowId = dao.insert(entity); // IGNORE on duplicate content_hash
                         if (rowId > 0) {
@@ -306,6 +330,7 @@ public class EchoService extends Service {
                 Timber.tag(TAG).i("ED:GATT_SESSION_DONE addr=%s inserts=%b",
                         deviceAddress, lastSessionHadInserts);
                 lastSessionEndMs = System.currentTimeMillis();
+                markRecentGattPeerActivity();
                 if (lastSessionHadInserts) {
                     consecutiveEmptySessions = 0;
                 } else {
@@ -327,7 +352,7 @@ public class EchoService extends Service {
         });
 
         // ── BLE scanner → GATT connect ──
-        scanner.setGattConnectRequester(device -> {
+        scanner.setGattConnectRequester((device, urgent) -> {
             if (!bluetoothEnabled) return;
 
             // Exponential backoff cooldown
@@ -335,10 +360,19 @@ public class EchoService extends Service {
             final int backoffIdx = Math.min(consecutiveEmptySessions,
                     BACKOFF_STEPS_MS.length - 1);
             final long cooldown = BACKOFF_STEPS_MS[backoffIdx];
-            if (elapsed < cooldown) {
+            if (urgent && elapsed < URGENT_CONNECT_MIN_GAP_MS) {
+                Timber.tag(TAG).d("ED:GATT_URGENT_COOLDOWN addr=%s elapsed=%dms min=%dms",
+                        device.getAddress(), elapsed, URGENT_CONNECT_MIN_GAP_MS);
+                return;
+            }
+            if (!urgent && elapsed < cooldown) {
                 Timber.tag(TAG).d("ED:GATT_COOLDOWN addr=%s elapsed=%dms cooldown=%dms backoff=%d",
                         device.getAddress(), elapsed, cooldown, consecutiveEmptySessions);
                 return;
+            }
+            if (urgent && elapsed < cooldown) {
+                Timber.tag(TAG).d("ED:GATT_FASTPATH addr=%s elapsed=%dms cooldown=%dms backoff=%d",
+                        device.getAddress(), elapsed, cooldown, consecutiveEmptySessions);
             }
 
             Timber.tag(TAG).d("ED:GATT_CONNECT_REQUEST addr=%s", device.getAddress());
@@ -355,9 +389,10 @@ public class EchoService extends Service {
                 notifyPrerequisite();
             }
 
-            Timber.tag(TAG).d("ED:BLE_PEERS count=%d", peers.size());
+            final int effectivePeerCount = applyPeerCountFallback(peers.size());
+            Timber.tag(TAG).d("ED:BLE_PEERS count=%d", effectivePeerCount);
             if (bluetoothEnabled) {
-                notifyPeerCount(peers.size());
+                notifyPeerCount(effectivePeerCount);
             }
         });
 
@@ -404,7 +439,11 @@ public class EchoService extends Service {
 
         // Singleton guard: skip re-init if already running
         if (isRunning) {
-            Timber.tag(TAG).d("ED:SERVICE_ALREADY_RUNNING");
+            final long nowElapsed = SystemClock.elapsedRealtime();
+            if (nowElapsed - lastAlreadyRunningLogElapsedMs >= ALREADY_RUNNING_LOG_THROTTLE_MS) {
+                lastAlreadyRunningLogElapsedMs = nowElapsed;
+                Timber.tag(TAG).d("ED:SERVICE_ALREADY_RUNNING");
+            }
             return START_STICKY;
         }
         isRunning = true;
@@ -643,6 +682,29 @@ public class EchoService extends Service {
         }
     }
 
+    /**
+     * Keeps nearby count stable on devices where BLE scan callbacks are intermittent
+     * but GATT sessions are active.
+     */
+    private int applyPeerCountFallback(int scannerCount) {
+        if (scannerCount > 0) {
+            return scannerCount;
+        }
+        final long age = System.currentTimeMillis() - lastGattPeerSeenMs;
+        if (age <= RECENT_GATT_PEER_WINDOW_MS) {
+            return 1;
+        }
+        return 0;
+    }
+
+    /** Marks recent GATT activity and bumps peer count if scanner currently shows zero. */
+    private void markRecentGattPeerActivity() {
+        lastGattPeerSeenMs = System.currentTimeMillis();
+        if (bluetoothEnabled && currentPeerCount == 0) {
+            notifyPeerCount(1);
+        }
+    }
+
     // ══════════════════════════════════════════════════════════
     //  NOTIFICATION
     // ══════════════════════════════════════════════════════════
@@ -839,6 +901,17 @@ public class EchoService extends Service {
             Timber.tag(TAG).w("ED:SERVICE_SKIP_START perms=denied");
             return;
         }
+
+        final long nowElapsed = SystemClock.elapsedRealtime();
+        if (nowElapsed - lastStartRequestElapsedMs < START_REQUEST_COALESCE_MS) {
+            return;
+        }
+        lastStartRequestElapsedMs = nowElapsed;
+
+        if (isRunning) {
+            return;
+        }
+
         final Intent intent = new Intent(context, EchoService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
