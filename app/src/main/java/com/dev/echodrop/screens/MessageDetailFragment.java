@@ -18,6 +18,7 @@ import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.FragmentMessageDetailBinding;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.MessageRepo;
+import com.dev.echodrop.util.ScopeLabelCodec;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -145,27 +146,15 @@ public class MessageDetailFragment extends Fragment {
     }
 
     private void bindScopeBadge(@NonNull MessageEntity message) {
-        MessageEntity.Scope scope = message.getScopeEnum();
-        String scopeLabel;
-        switch (scope) {
-            case LOCAL:
-                scopeLabel = getString(R.string.message_scope_nearby);
-                binding.detailScopeBadge.setBackgroundResource(R.drawable.bg_badge_positive);
-                binding.detailScopeBadge.setTextColor(
-                        ContextCompat.getColor(requireContext(), R.color.echo_positive_accent));
-                break;
-            case ZONE:
-                scopeLabel = getString(R.string.message_scope_area);
-                binding.detailScopeBadge.setBackgroundResource(R.drawable.bg_badge_primary);
-                binding.detailScopeBadge.setTextColor(
-                        ContextCompat.getColor(requireContext(), R.color.echo_primary_accent));
-                break;
-            default:
-                scopeLabel = getString(R.string.message_scope_event);
-                binding.detailScopeBadge.setBackgroundResource(R.drawable.bg_badge_primary);
-                binding.detailScopeBadge.setTextColor(
-                        ContextCompat.getColor(requireContext(), R.color.echo_primary_accent));
-                break;
+        String scopeLabel = ScopeLabelCodec.toDisplayTag(message);
+        if (message.getScopeEnum() == MessageEntity.Scope.LOCAL) {
+            binding.detailScopeBadge.setBackgroundResource(R.drawable.bg_badge_positive);
+            binding.detailScopeBadge.setTextColor(
+                    ContextCompat.getColor(requireContext(), R.color.echo_positive_accent));
+        } else {
+            binding.detailScopeBadge.setBackgroundResource(R.drawable.bg_badge_primary);
+            binding.detailScopeBadge.setTextColor(
+                    ContextCompat.getColor(requireContext(), R.color.echo_primary_accent));
         }
         binding.detailScopeBadge.setText(scopeLabel);
     }
@@ -198,14 +187,7 @@ public class MessageDetailFragment extends Fragment {
     }
 
     private String getVisibleToText(@NonNull MessageEntity message) {
-        switch (message.getScopeEnum()) {
-            case LOCAL:
-                return getString(R.string.detail_visible_nearby);
-            case ZONE:
-                return getString(R.string.detail_visible_area);
-            default:
-                return getString(R.string.detail_visible_event);
-        }
+        return getString(R.string.detail_visible_scope_id, ScopeLabelCodec.toDisplayTag(message));
     }
 
     private void updateTtlDisplay(@NonNull MessageEntity message) {

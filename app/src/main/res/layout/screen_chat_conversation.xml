@@ -98,22 +98,22 @@
         android:background="@color/echo_elevated_surface"
         android:gravity="center"
         android:orientation="horizontal"
-        android:paddingVertical="6dp"
+        android:paddingVertical="@dimen/spacing_0_75"
         app:layout_constraintTop_toBottomOf="@id/toolbar_divider"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <View
             android:id="@+id/sync_dot"
-            android:layout_width="6dp"
-            android:layout_height="6dp"
+            android:layout_width="@dimen/spacing_0_75"
+            android:layout_height="@dimen/spacing_0_75"
             android:background="@drawable/bg_chat_avatar" />
 
         <TextView
             android:id="@+id/sync_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="@dimen/spacing_0_75"
             android:text="@string/chat_sync_hint"
             android:fontFamily="sans-serif"
             android:textColor="@color/echo_text_muted"

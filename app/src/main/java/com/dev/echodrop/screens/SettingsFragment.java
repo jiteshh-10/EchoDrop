@@ -16,12 +16,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.ScreenSettingsBinding;
 import com.dev.echodrop.service.EchoService;
 import com.dev.echodrop.util.BlockedDeviceStore;
+import com.dev.echodrop.viewmodels.ChatViewModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +38,7 @@ import java.util.Set;
 public class SettingsFragment extends Fragment {
 
     private ScreenSettingsBinding binding;
+    private ChatViewModel chatViewModel;
     private int versionTapCount;
 
     /** Launcher that requests BLE permissions, then starts the service on grant. */
@@ -69,12 +72,14 @@ public class SettingsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        chatViewModel = new ViewModelProvider(requireActivity()).get(ChatViewModel.class);
         setupToolbar();
         setupToggle();
         setupBatteryGuide();
         setupHowItWorks();
         setupDiagnostics();
         setupBlockDevices();
+        setupRooms();
         setupVersion();
     }
 
@@ -149,6 +154,23 @@ public class SettingsFragment extends Fragment {
     private void setupBlockDevices() {
         refreshBlockedSummary();
         binding.blockDeviceRow.setOnClickListener(v -> showBlockDialog());
+    }
+
+    private void setupRooms() {
+        binding.roomsRow.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).showChatList();
+            }
+        });
+
+        chatViewModel.getChats().observe(getViewLifecycleOwner(), chats -> {
+            final int count = chats == null ? 0 : chats.size();
+            if (count <= 0) {
+                binding.roomsSummaryText.setText(R.string.settings_rooms_sub_empty);
+            } else {
+                binding.roomsSummaryText.setText(getString(R.string.settings_rooms_count, count));
+            }
+        });
     }
 
     private void refreshBlockedSummary() {

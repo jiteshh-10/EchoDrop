@@ -14,6 +14,7 @@ import com.dev.echodrop.db.ChatMessageEntity;
 import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.util.DeviceIdHelper;
+import com.dev.echodrop.util.RoomCodeCodec;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -210,8 +211,8 @@ public class ChatRepo {
     public boolean processIncomingChatBundle(@NonNull MessageEntity entity) {
         if (!entity.isChatBundle()) return false;
 
-        final String chatCode = entity.getScopeId();
-        if (chatCode == null || chatCode.isEmpty()) return false;
+        final String chatCode = RoomCodeCodec.extractRawCode(entity.getScopeId());
+        if (chatCode.isEmpty()) return false;
 
         final ChatEntity chat = chatDao.getChatByCode(chatCode);
         if (chat == null) {

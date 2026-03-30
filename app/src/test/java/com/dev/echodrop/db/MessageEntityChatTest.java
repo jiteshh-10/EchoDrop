@@ -113,7 +113,7 @@ public class MessageEntityChatTest {
     public void createChatBundle_setsScopeIdToChatCode() {
         MessageEntity bundle = MessageEntity.createChatBundle(
                 "ciphertext123", "ABCD1234", NOW, NOW + ONE_HOUR);
-        assertEquals("ABCD1234", bundle.getScopeId());
+        assertEquals("room:abcd1234", bundle.getScopeId());
     }
 
     @Test

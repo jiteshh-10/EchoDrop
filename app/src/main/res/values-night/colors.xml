@@ -8,26 +8,27 @@
     <color name="echo_elevated_surface">#070809</color>
 
     <!-- Accents (same in both modes) -->
-    <color name="echo_primary_accent">#7C9EBF</color>
-    <color name="echo_alert_accent">#C0616A</color>
-    <color name="echo_positive_accent">#5E9E82</color>
-    <color name="echo_amber_accent">#C8935A</color>
+    <color name="echo_primary_accent">#5EDAF2</color>
+    <color name="echo_alert_accent">#FF5C7C</color>
+    <color name="echo_positive_accent">#66D3A5</color>
+    <color name="echo_amber_accent">#F3B562</color>
 
     <!-- Accent tints (for badge backgrounds) -->
-    <color name="echo_primary_tint">#267C9EBF</color>
-    <color name="echo_alert_tint">#26C0616A</color>
-    <color name="echo_positive_tint">#265E9E82</color>
+    <color name="echo_primary_tint">#2E5EDAF2</color>
+    <color name="echo_alert_tint">#2EFF5C7C</color>
+    <color name="echo_positive_tint">#2E66D3A5</color>
 
     <!-- Accent borders (25% alpha) -->
-    <color name="echo_primary_border_tint">#407C9EBF</color>
-    <color name="echo_alert_border_tint">#40C0616A</color>
-    <color name="echo_positive_border_tint">#405E9E82</color>
+    <color name="echo_primary_border_tint">#605EDAF2</color>
+    <color name="echo_alert_border_tint">#60FF5C7C</color>
+    <color name="echo_positive_border_tint">#6066D3A5</color>
 
     <!-- Text -->
-    <color name="echo_text_primary">#D8DFE8</color>
-    <color name="echo_text_secondary">#7E8896</color>
-    <color name="echo_text_muted">#555D69</color>
-    <color name="echo_muted_disabled">#3D4451</color>
+    <color name="echo_text_primary">#EAF3FF</color>
+    <color name="echo_text_secondary">#A4B2C4</color>
+    <color name="echo_text_muted">#76859A</color>
+    <color name="echo_muted_disabled">#5A6678</color>
+    <color name="echo_on_primary">#0A0C0F</color>
 
     <!-- Structural -->
     <color name="echo_divider">#0FFFFFFF</color>

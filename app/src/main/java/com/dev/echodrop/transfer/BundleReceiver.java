@@ -22,6 +22,7 @@ import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.ChatRepo;
 import com.dev.echodrop.repository.MessageRepo;
 import com.dev.echodrop.util.DeviceIdHelper;
+import com.dev.echodrop.util.RoomCodeCodec;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -371,8 +372,8 @@ public class BundleReceiver {
 
         // If this is a chat notification, add extras for deep-link to conversation
         if (firstChat != null && chatRepo != null) {
-            final String chatCode = firstChat.getScopeId();
-            if (chatCode != null && !chatCode.isEmpty()) {
+            final String chatCode = RoomCodeCodec.extractRawCode(firstChat.getScopeId());
+            if (!chatCode.isEmpty()) {
                 final com.dev.echodrop.db.ChatEntity chat = chatRepo.getChatByCode(chatCode);
                 if (chat != null) {
                     tapIntent.putExtra("navigate_to", "chat_conversation");
