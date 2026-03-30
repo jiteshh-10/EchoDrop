@@ -173,6 +173,17 @@
     <string name="settings_version">Version %1$s</string>
     <string name="settings_about_header">ABOUT</string>
     <string name="settings_diagnostics_title">Diagnostics log</string>
+    <string name="settings_block_device_title">Blocked device IDs</string>
+    <string name="settings_block_device_sub">Block messages from specific origin IDs</string>
+    <string name="settings_block_device_hint">Enter device ID (example: a1b2c3d4)</string>
+    <string name="settings_block_device_save">Block</string>
+    <string name="settings_block_device_manage">Manage blocked</string>
+    <string name="settings_block_device_added">Device ID blocked</string>
+    <string name="settings_block_device_exists">Device ID already blocked</string>
+    <string name="settings_blocked_count">%1$d blocked</string>
+    <string name="settings_blocked_none">No blocked device IDs</string>
+    <string name="settings_unblock_title">Unblock device</string>
+    <string name="settings_unblock_done">Device ID unblocked</string>
 
     <!-- Battery Guide (Iteration 5) -->
     <string name="battery_title">Keep EchoDrop Running</string>
@@ -185,6 +196,9 @@
     <string name="battery_xiaomi_step2">Security app → Permissions → Autostart → enable EchoDrop</string>
     <string name="battery_oneplus">OnePlus / OxygenOS</string>
     <string name="battery_oneplus_step1">Settings → Battery → Battery Optimization → EchoDrop → \"Don\'t optimize\"</string>
+    <string name="battery_realme">Realme / ColorOS</string>
+    <string name="battery_realme_step1">Settings → App management → App list → EchoDrop → Battery usage → \"Allow background activity\"</string>
+    <string name="battery_realme_step2">Phone Manager → Auto launch management → enable EchoDrop</string>
     <string name="battery_stock">Stock Android</string>
     <string name="battery_stock_step1">Settings → Apps → EchoDrop → Battery → \"Unrestricted\"</string>
     <string name="battery_done">Done</string>

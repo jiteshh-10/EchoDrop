@@ -260,6 +260,78 @@
                 android:layout_marginVertical="2dp"
                 android:background="@color/echo_divider" />
 
+            <!-- Realme / ColorOS section -->
+            <LinearLayout
+                android:id="@+id/section_realme"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_oem_card"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/header_realme"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/min_touch_target"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/oem_card_padding">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/battery_realme"
+                        android:textColor="@color/echo_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/arrow_realme"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@string/content_chevron"
+                        android:src="@drawable/ic_expand" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/body_realme"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/oem_card_padding"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/step_indent"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="@string/battery_realme_step1"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/step_indent"
+                        android:layout_marginTop="@dimen/spacing_1"
+                        android:lineSpacingMultiplier="1.5"
+                        android:text="@string/battery_realme_step2"
+                        android:textColor="@color/echo_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="2dp"
+                android:background="@color/echo_divider" />
+
             <!-- Stock Android section -->
             <LinearLayout
                 android:id="@+id/section_stock"

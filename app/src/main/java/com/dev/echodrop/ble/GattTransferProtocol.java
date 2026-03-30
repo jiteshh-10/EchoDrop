@@ -1,5 +1,7 @@
 package com.dev.echodrop.ble;
 
+import com.dev.echodrop.db.MessageEntity;
+
 import java.util.UUID;
 
 /**
@@ -50,13 +52,17 @@ public final class GattTransferProtocol {
     // ──────────────────── Timeouts ────────────────────
 
     /** Overall session timeout: disconnect if idle for this long. */
-    public static final long SESSION_TIMEOUT_MS = 15_000;
+    public static final long SESSION_TIMEOUT_MS = 30_000;
 
     /** How long to wait for a BUNDLE_ACK after writing (reserved). */
     public static final long ACK_TIMEOUT_MS = 5_000;
 
     // ──────────────────── Forwarding ────────────────────
 
-    /** Maximum hop count; bundles beyond this are not relayed. */
-    public static final int MAX_HOPS = 7;
+    /**
+     * Maximum hop count; bundles beyond this are not relayed.
+     * @deprecated Use {@link com.dev.echodrop.db.MessageEntity#MAX_HOP_COUNT} instead.
+     */
+    @Deprecated
+    public static final int MAX_HOPS = MessageEntity.MAX_HOP_COUNT;
 }

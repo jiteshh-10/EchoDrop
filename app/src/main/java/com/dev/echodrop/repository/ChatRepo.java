@@ -13,6 +13,7 @@ import com.dev.echodrop.db.ChatEntity;
 import com.dev.echodrop.db.ChatMessageEntity;
 import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
+import com.dev.echodrop.util.DeviceIdHelper;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +35,7 @@ public class ChatRepo {
     private final ChatDao chatDao;
     private final MessageDao messageDao;
     private final ExecutorService executor;
+    private final Application application;
 
     /** Listener for sync events (used by UI to show "Last synced X ago"). */
     private volatile SyncEventListener syncEventListener;
@@ -45,6 +47,7 @@ public class ChatRepo {
     }
 
     public ChatRepo(@NonNull Application application) {
+        this.application = application;
         this.chatDao = AppDatabase.getInstance(application).chatDao();
         this.messageDao = AppDatabase.getInstance(application).messageDao();
         this.executor = Executors.newSingleThreadExecutor();
@@ -52,6 +55,7 @@ public class ChatRepo {
 
     /** Constructor for testing with a custom DAO. */
     public ChatRepo(@NonNull ChatDao chatDao) {
+        this.application = null;
         this.chatDao = chatDao;
         this.messageDao = null;
         this.executor = Executors.newSingleThreadExecutor();
@@ -59,6 +63,7 @@ public class ChatRepo {
 
     /** Constructor for testing with custom DAOs. */
     public ChatRepo(@NonNull ChatDao chatDao, @NonNull MessageDao messageDao) {
+        this.application = null;
         this.chatDao = chatDao;
         this.messageDao = messageDao;
         this.executor = Executors.newSingleThreadExecutor();
@@ -177,6 +182,9 @@ public class ChatRepo {
                         ? chat.getName() : "";
                 final MessageEntity bundle = MessageEntity.createChatBundle(
                         cipherText, chatCode, now, now + CHAT_BUNDLE_TTL_MS, chatName);
+                if (application != null) {
+                    bundle.setOrigin(DeviceIdHelper.getDeviceId(application));
+                }
                 messageDao.insert(bundle);
             }
         });

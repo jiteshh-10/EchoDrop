@@ -3,10 +3,13 @@ package com.dev.echodrop.screens;
 import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -24,6 +27,7 @@ import androidx.annotation.NonNull;
 
 import com.dev.echodrop.MainActivity;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
@@ -88,13 +92,19 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             registerForActivityResult(
                     new ActivityResultContracts.RequestMultiplePermissions(),
                     result -> {
-                        boolean anyGranted = result.containsValue(Boolean.TRUE);
-                        if (anyGranted) {
+                        Timber.i("ED:PERM_RESULT %s", result);
+                        if (EchoService.hasBlePermissions(requireContext())) {
                             EchoService.setBackgroundEnabled(requireContext(), true);
                             EchoService.startService(requireContext());
-                            Timber.i("ED:PERM_INLINE granted — mesh sharing started");
+                            Timber.i("ED:PERM_INLINE all_granted — mesh sharing started");
+                        } else if (hasPermanentlyDeniedPermission(result)) {
+                            Timber.w("ED:PERM_INLINE permanent_denial -> app_settings");
+                            Toast.makeText(requireContext(),
+                                    "Enable permissions in App Settings to keep mesh running",
+                                    Toast.LENGTH_LONG).show();
+                            openAppSettings();
                         } else {
-                            Timber.w("ED:PERM_INLINE denied — user can enable later in Settings");
+                            Timber.w("ED:PERM_INLINE incomplete — user can enable later in Settings");
                             Toast.makeText(requireContext(),
                                     "Permissions needed for mesh sharing — enable in Settings",
                                     Toast.LENGTH_LONG).show();
@@ -183,9 +193,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
             perms.add(Manifest.permission.BLUETOOTH_SCAN);
         }
         perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
-        perms.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            perms.add(Manifest.permission.NEARBY_WIFI_DEVICES);
             perms.add(Manifest.permission.POST_NOTIFICATIONS);
         }
         if (!perms.isEmpty()) {
@@ -220,6 +228,23 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         if (ttlRefreshHandler != null) {
             ttlRefreshHandler.removeCallbacks(ttlRefreshRunnable);
         }
+    }
+
+    private boolean hasPermanentlyDeniedPermission(java.util.Map<String, Boolean> result) {
+        for (java.util.Map.Entry<String, Boolean> entry : result.entrySet()) {
+            if (!entry.getValue() && !ActivityCompat.shouldShowRequestPermissionRationale(
+                    requireActivity(), entry.getKey())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void openAppSettings() {
+        final Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        intent.setData(Uri.fromParts("package", requireContext().getPackageName(), null));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 
     private void setupToolbar() {
@@ -477,11 +502,11 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     }
 
     /**
-     * Shows a warning in the sync indicator when BT or P2P is off.
+     * Shows a warning in the sync indicator when Bluetooth is off.
      * Overrides the normal peer count display until prerequisites are met.
      */
     private void updatePrerequisiteWarning(boolean btOn, boolean p2pOn) {
-        if (btOn && p2pOn) {
+        if (btOn) {
             // Prerequisites met — restore normal peer count display
             // Let the next peer count callback handle it
             return;
@@ -494,11 +519,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         binding.syncDot.setVisibility(View.VISIBLE);
         binding.syncDot.setBackgroundTintList(
                 ContextCompat.getColorStateList(requireContext(), R.color.echo_amber_accent));
-        if (!btOn) {
-            binding.syncText.setText(R.string.sync_bt_off);
-        } else {
-            binding.syncText.setText(R.string.sync_wifi_off);
-        }
+        binding.syncText.setText(R.string.sync_bt_off);
         binding.syncText.setTextColor(
                 ContextCompat.getColor(requireContext(), R.color.echo_amber_accent));
     }

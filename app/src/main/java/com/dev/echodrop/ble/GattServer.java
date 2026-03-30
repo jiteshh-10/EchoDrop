@@ -132,6 +132,12 @@ public class GattServer {
     /** Starts the GATT server exposing manifest + transfer characteristics. */
     @SuppressLint("MissingPermission")
     public void startServer() {
+        // Idempotent: skip if already open
+        if (gattServer != null) {
+            Timber.tag(TAG).d("ED:GATT_SERVER_ALREADY_OPEN");
+            return;
+        }
+
         final BluetoothManager btManager =
                 (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
         if (btManager == null) {
@@ -402,7 +408,9 @@ public class GattServer {
         handler.postDelayed(timeoutRunnable, GattTransferProtocol.SESSION_TIMEOUT_MS);
 
         try {
-            device.connectGatt(context, false, new ClientGattCallback(addr, timeoutRunnable));
+            device.connectGatt(context, false,
+                    new ClientGattCallback(addr, timeoutRunnable),
+                    BluetoothDevice.TRANSPORT_LE);
         } catch (SecurityException e) {
             handler.removeCallbacks(timeoutRunnable);
             connectingDevices.remove(addr);
@@ -443,6 +451,24 @@ public class GattServer {
         /** True when the last write was TYPE_BUNDLE_REQUEST (need to read the response). */
         private boolean awaitingRequestResponse;
 
+        /** Prevents re-entering advanceTransfer after TRANSFER_COMPLETE is sent. */
+        private boolean transferCompleted;
+
+        /** Guards against double discoverServices calls. */
+        private volatile boolean serviceDiscoveryStarted;
+
+        /** Fallback runnable if onMtuChanged never fires (Realme). */
+        private Runnable mtuFallback;
+
+        /** MTU fallback delay in milliseconds. */
+        private static final long MTU_FALLBACK_MS = 2_000;
+
+        /** Negotiated ATT MTU (default 23 if onMtuChanged never fires). */
+        private int negotiatedMtu = 23;
+
+        /** Accumulation buffer for offset-based manifest long reads. */
+        private final ByteArrayOutputStream manifestBuffer = new ByteArrayOutputStream();
+
         ClientGattCallback(String addr, Runnable timeoutRunnable) {
             this.addr = addr;
             this.timeoutRunnable = timeoutRunnable;
@@ -453,24 +479,42 @@ public class GattServer {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                Timber.tag(TAG).d("ED:GATT_CLI_CONNECTED addr=%s", addr);
+                Timber.tag(TAG).i("ED:GATT_CLI_CONNECTED addr=%s status=%d", addr, status);
+                Timber.tag(TAG).i("GATT_CONNECTED addr=%s", addr);
+                serviceDiscoveryStarted = false;
                 gatt.requestMtu(517);
+                // Fallback: discover services if onMtuChanged never fires (Realme)
+                mtuFallback = () -> {
+                    if (!serviceDiscoveryStarted) {
+                        Timber.tag(TAG).w("ED:GATT_MTU_FALLBACK addr=%s -> discoverServices", addr);
+                        serviceDiscoveryStarted = true;
+                        gatt.discoverServices();
+                    }
+                };
+                handler.postDelayed(mtuFallback, MTU_FALLBACK_MS);
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                if (mtuFallback != null) handler.removeCallbacks(mtuFallback);
                 handler.removeCallbacks(timeoutRunnable);
                 connectingDevices.remove(addr);
                 gatt.close();
-                Timber.tag(TAG).d("ED:GATT_CLI_DISCONNECTED addr=%s", addr);
+                Timber.tag(TAG).i("ED:GATT_CLI_DISCONNECTED addr=%s status=%d", addr, status);
             }
         }
 
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
-            Timber.tag(TAG).d("ED:GATT_MTU addr=%s mtu=%d", addr, mtu);
-            gatt.discoverServices();
+            Timber.tag(TAG).i("ED:GATT_MTU addr=%s mtu=%d status=%d", addr, mtu, status);
+            negotiatedMtu = mtu;
+            if (mtuFallback != null) handler.removeCallbacks(mtuFallback);
+            if (!serviceDiscoveryStarted) {
+                serviceDiscoveryStarted = true;
+                gatt.discoverServices();
+            }
         }
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            serviceDiscoveryStarted = true;
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 Timber.tag(TAG).w("ED:GATT_DISCOVER_FAIL addr=%s status=%d", addr, status);
                 finishWithError(gatt, "service_discovery_failed");
@@ -482,6 +526,7 @@ public class GattServer {
                 finishWithError(gatt, "no_service");
                 return;
             }
+            Timber.tag(TAG).i("ED:GATT_SERVICES_OK addr=%s", addr);
 
             // Step 1: Write our manifest
             final BluetoothGattCharacteristic mc = svc.getCharacteristic(MANIFEST_CHAR_UUID);
@@ -494,6 +539,8 @@ public class GattServer {
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt,
                                            BluetoothGattCharacteristic ch, int status) {
+            if (sessionEnded) return;
+
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 Timber.tag(TAG).w("ED:GATT_WRITE_FAIL addr=%s uuid=%s status=%d",
                         addr, ch.getUuid(), status);
@@ -520,8 +567,11 @@ public class GattServer {
                 if (awaitingRequestResponse) {
                     // We just finished writing a BUNDLE_REQUEST → read the response
                     gatt.readCharacteristic(ch);
+                } else if (transferCompleted) {
+                    // TRANSFER_COMPLETE write confirmed — finish the session
+                    finishSession(gatt);
                 } else {
-                    // BUNDLE_PUSH or TRANSFER_COMPLETE completed → advance
+                    // BUNDLE_PUSH completed → advance
                     advanceTransfer(gatt);
                 }
             }
@@ -530,11 +580,36 @@ public class GattServer {
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
                                           BluetoothGattCharacteristic ch, int status) {
+            if (sessionEnded) return;
+
             if (MANIFEST_CHAR_UUID.equals(ch.getUuid())) {
                 if (status == BluetoothGatt.GATT_SUCCESS && ch.getValue() != null) {
-                    Timber.tag(TAG).d("ED:GATT_MANIFEST_READ_OK addr=%s len=%d",
-                            addr, ch.getValue().length);
-                    onRemoteManifestReceived(gatt, ch.getValue());
+                    final byte[] chunk = ch.getValue();
+                    manifestBuffer.write(chunk, 0, chunk.length);
+
+                    // ATT read response max payload = MTU - 1.
+                    // If chunk fills that capacity, there may be more data.
+                    final int attMaxPayload = negotiatedMtu - 1;
+                    if (chunk.length >= attMaxPayload && attMaxPayload > 0) {
+                        // Issue a long read with the accumulated offset
+                        Timber.tag(TAG).d("ED:GATT_MANIFEST_PART addr=%s offset=%d len=%d",
+                                addr, manifestBuffer.size(), chunk.length);
+                        // readCharacteristic triggers the server with offset=0,
+                        // but we need to pass the offset. Use the deprecated
+                        // readCharacteristic; the server handles offset in
+                        // onCharacteristicReadRequest. Android BLE stack handles
+                        // Read Blob Request automatically for long reads.
+                        // We call readCharacteristic again; the BLE stack
+                        // internally sends ATT Read Blob Request with offset.
+                        gatt.readCharacteristic(ch);
+                        return;
+                    }
+
+                    // Manifest fully received
+                    final byte[] fullManifest = manifestBuffer.toByteArray();
+                    Timber.tag(TAG).d("ED:GATT_MANIFEST_READ_OK addr=%s total_len=%d",
+                            addr, fullManifest.length);
+                    onRemoteManifestReceived(gatt, fullManifest);
                 } else {
                     Timber.tag(TAG).w("ED:GATT_MANIFEST_READ_FAIL addr=%s status=%d", addr, status);
                     finishWithError(gatt, "manifest_read_failed");
@@ -586,6 +661,13 @@ public class GattServer {
                         "ED:GATT_DIFF addr=%s remote=%d local=%d iNeed=%d theyNeed=%d",
                         addr, remoteIds.size(), localManifest.size(),
                         iNeedFromRemote.size(), remoteNeedsFromMe.size());
+                Timber.tag(TAG).i("MANIFEST_EXCHANGED addr=%s remote=%d local=%d",
+                    addr, remoteIds.size(), localManifest.size());
+
+                if (!iNeedFromRemote.isEmpty() || !remoteNeedsFromMe.isEmpty()) {
+                    Timber.tag(TAG).i("RELAY_TRIGGERED addr=%s missing=%d send=%d",
+                            addr, iNeedFromRemote.size(), remoteNeedsFromMe.size());
+                }
 
                 if (iNeedFromRemote.isEmpty() && remoteNeedsFromMe.isEmpty()) {
                     Timber.tag(TAG).d("ED:GATT_ALREADY_SYNCED addr=%s", addr);
@@ -612,6 +694,8 @@ public class GattServer {
          * Phase 3 — send TRANSFER_COMPLETE and disconnect
          */
         private void advanceTransfer(BluetoothGatt gatt) {
+            if (sessionEnded || transferCompleted) return;
+
             final BluetoothGattService svc = gatt.getService(SERVICE_UUID);
             if (svc == null) {
                 finishWithError(gatt, "service_lost");
@@ -631,6 +715,8 @@ public class GattServer {
                 if (transferCallback != null) {
                     final String bundleJson = transferCallback.getBundleJsonById(id);
                     if (bundleJson != null) {
+                        Timber.tag(TAG).i("MESSAGE_SENT id=%s to=%s", id, addr);
+                        Timber.tag(TAG).i("RELAY_SENT id=%s to=%s", id, addr);
                         enqueueAndSend(gatt, tc,
                                 GattTransferProtocol.TYPE_BUNDLE_PUSH,
                                 bundleJson.getBytes(StandardCharsets.UTF_8));
@@ -651,16 +737,13 @@ public class GattServer {
                 return; // onCharacteristicWrite → read → onCharacteristicRead continues
             }
 
-            // Phase 3: complete
+            // Phase 3: complete — set flag BEFORE sending to prevent re-entry
+            transferCompleted = true;
+            Timber.tag(TAG).i("ED:GATT_TRANSFER_COMPLETE addr=%s pushed=%d pulled=%d",
+                    addr, pushIdx, reqIdx);
             enqueueAndSend(gatt, tc,
                     GattTransferProtocol.TYPE_TRANSFER_COMPLETE, new byte[0]);
             awaitingRequestResponse = false;
-            // When the TRANSFER_COMPLETE write completes, advanceTransfer is called
-            // again, but pushIdx and reqIdx will be exhausted, and we'll fall
-            // through to here again. Prevent infinite loop:
-            // Actually, TRANSFER_COMPLETE write → onCharacteristicWrite →
-            // advanceTransfer is called, but we already sent TRANSFER_COMPLETE.
-            // Use a flag to prevent double-complete:
         }
 
         // ── Chunk queue for multi-chunk writes ──

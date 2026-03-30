@@ -37,18 +37,21 @@ public class BleScanner {
     private static final String TAG = "ED:BleScan";
 
     /** Scan window duration in milliseconds. */
-    public static final long SCAN_DURATION_MS = 10_000;
+    public static final long SCAN_DURATION_MS = 8_000;
 
     /** Pause between scans in milliseconds. */
-    public static final long SCAN_PAUSE_MS = 20_000;
+    public static final long SCAN_PAUSE_MS = 30_000;
 
     /** Peer record timeout: 2 minutes without a re-detection removes the peer. */
     private static final long PEER_TIMEOUT_MS = 120_000;
 
+    /** Minimum interval between GATT connect attempts to the same peer. */
+    private static final long GATT_RETRY_INTERVAL_MS = 60_000;
+
     private final Context context;
     private final Handler handler;
     private BluetoothLeScanner bleScanner;
-    private boolean running;
+    private volatile boolean running;
 
     /** Thread-safe map of device_id → PeerInfo. */
     private final Map<Integer, PeerInfo> peers = new ConcurrentHashMap<>();
@@ -59,9 +62,10 @@ public class BleScanner {
     /** Records a discovered peer. */
     public static class PeerInfo {
         public final int deviceId;
-        public final int manifestSize;
+        public int manifestSize;
         public final int rssi;
         public long lastSeenMs;
+        public long lastGattAttemptMs;
 
         public PeerInfo(int deviceId, int manifestSize, int rssi) {
             this.deviceId = deviceId;
@@ -129,7 +133,7 @@ public class BleScanner {
         if (running) return;
         running = true;
         handler.post(scanCycle);
-        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=10s/20s mode=LOW_LATENCY");
+        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=8s/30s mode=BALANCED");
     }
 
     /** Stops the periodic scan cycle and clears pending callbacks. */
@@ -190,7 +194,7 @@ public class BleScanner {
                     .build();
 
             final ScanSettings settings = new ScanSettings.Builder()
-                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                    .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                     .setReportDelay(0)
                     .build();
 
@@ -226,14 +230,28 @@ public class BleScanner {
             final int manifestSize = parsed[1];
             final int rssi = result.getRssi();
 
-            // Only trigger GATT for newly discovered peers (not already in map)
-            final boolean isNew = !peers.containsKey(deviceId);
-            final PeerInfo peer = new PeerInfo(deviceId, manifestSize, rssi);
-            peers.put(deviceId, peer);
-            Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d new=%b", deviceId, manifestSize, rssi, isNew);
+            final PeerInfo existing = peers.get(deviceId);
+            final boolean isNew = (existing == null);
+            final long now = System.currentTimeMillis();
 
-            // Trigger GATT manifest exchange for new peers
-            if (isNew && gattConnectRequester != null) {
+            final PeerInfo peer;
+            if (isNew) {
+                peer = new PeerInfo(deviceId, manifestSize, rssi);
+                peers.put(deviceId, peer);
+            } else {
+                peer = existing;
+                peer.lastSeenMs = now;
+                peer.manifestSize = manifestSize;
+            }
+
+            Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d new=%b",
+                    deviceId, manifestSize, rssi, isNew);
+
+            // Trigger GATT for new peers OR when per-peer retry interval has elapsed
+            final boolean retryReady = !isNew
+                    && (now - peer.lastGattAttemptMs > GATT_RETRY_INTERVAL_MS);
+            if ((isNew || retryReady) && gattConnectRequester != null) {
+                peer.lastGattAttemptMs = now;
                 gattConnectRequester.onPeerFoundForGatt(result.getDevice());
             }
         } catch (IllegalArgumentException e) {

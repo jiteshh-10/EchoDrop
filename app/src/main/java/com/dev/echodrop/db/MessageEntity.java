@@ -91,6 +91,15 @@ public class MessageEntity {
     @ColumnInfo(name = "hop_count", defaultValue = "0")
     private int hopCount;
 
+    /** Originating device ID for relay tracing. */
+    @NonNull
+    @ColumnInfo(name = "origin", defaultValue = "")
+    private String origin;
+
+    /** Original TTL in milliseconds (for persistence and relay diagnostics). */
+    @ColumnInfo(name = "ttl_ms", defaultValue = "0")
+    private long ttlMs;
+
     /** Comma-separated device IDs that have already seen this message (loop prevention). */
     @NonNull
     @ColumnInfo(name = "seen_by_ids", defaultValue = "")
@@ -104,7 +113,7 @@ public class MessageEntity {
     // ──────────────────── Constructors ────────────────────
 
     /** Maximum number of hops a message can travel before forwarding stops. */
-    public static final int MAX_HOP_COUNT = 5;
+    public static final int MAX_HOP_COUNT = 3;
 
     /**
      * Full constructor used by Room and tests.
@@ -123,6 +132,8 @@ public class MessageEntity {
         this.type = TYPE_BROADCAST;
         this.scopeId = "";
         this.hopCount = 0;
+        this.origin = "";
+        this.ttlMs = Math.max(0L, expiresAt - createdAt);
         this.seenByIds = "";
         this.senderAlias = "";
     }
@@ -325,6 +336,19 @@ public class MessageEntity {
 
     /** Sets the hop count. */
     public void setHopCount(int hopCount) { this.hopCount = hopCount; }
+
+    /** Returns the originating device ID. */
+    @NonNull
+    public String getOrigin() { return origin; }
+
+    /** Sets the originating device ID. */
+    public void setOrigin(@NonNull String origin) { this.origin = origin; }
+
+    /** Returns the original TTL in milliseconds. */
+    public long getTtlMs() { return ttlMs; }
+
+    /** Sets the original TTL in milliseconds. */
+    public void setTtlMs(long ttlMs) { this.ttlMs = Math.max(0L, ttlMs); }
 
     /** Returns the comma-separated list of device IDs that have seen this message. */
     @NonNull

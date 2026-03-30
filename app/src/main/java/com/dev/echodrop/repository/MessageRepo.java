@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.dev.echodrop.db.AppDatabase;
 import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
+import com.dev.echodrop.util.DeviceIdHelper;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +35,7 @@ public class MessageRepo {
 
     private final MessageDao dao;
     private final ExecutorService executor;
+    private Context appContext;
 
     /**
      * Callback for insert operations to communicate result back to caller.
@@ -48,6 +50,7 @@ public class MessageRepo {
 
     public MessageRepo(Context context) {
         this(AppDatabase.getInstance(context).messageDao());
+        this.appContext = context.getApplicationContext();
     }
 
     /**
@@ -63,6 +66,7 @@ public class MessageRepo {
     public MessageRepo(MessageDao dao, ExecutorService executor) {
         this.dao = dao;
         this.executor = executor;
+        this.appContext = null;
     }
 
     // ──────────────────── Read Operations ────────────────────
@@ -107,6 +111,13 @@ public class MessageRepo {
      */
     public void insert(MessageEntity entity, InsertCallback callback) {
         executor.execute(() -> {
+            if ((entity.getOrigin() == null || entity.getOrigin().isEmpty()) && appContext != null) {
+                entity.setOrigin(DeviceIdHelper.getDeviceId(appContext));
+            }
+            if (entity.getTtlMs() <= 0L) {
+                entity.setTtlMs(Math.max(0L, entity.getExpiresAt() - entity.getCreatedAt()));
+            }
+
             // Dedup check
             MessageEntity existing = dao.findByContentHash(entity.getContentHash());
             if (existing != null) {
