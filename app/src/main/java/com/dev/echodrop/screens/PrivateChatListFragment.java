@@ -1,6 +1,8 @@
 package com.dev.echodrop.screens;
 
-import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -11,6 +13,7 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -65,6 +68,7 @@ public class PrivateChatListFragment extends Fragment {
     private void setupRecyclerView() {
         adapter = new ChatListAdapter();
         adapter.setOnChatClickListener(this::navigateToConversation);
+        adapter.setOnChatLongPressListener(this::showRoomActionsDialog);
         binding.chatList.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.chatList.setAdapter(adapter);
     }
@@ -81,6 +85,7 @@ public class PrivateChatListFragment extends Fragment {
             final boolean empty = chats == null || chats.isEmpty();
             binding.emptyState.setVisibility(empty ? View.VISIBLE : View.GONE);
             binding.chatList.setVisibility(empty ? View.GONE : View.VISIBLE);
+            binding.roomActionHint.setVisibility(empty ? View.GONE : View.VISIBLE);
         });
     }
 
@@ -127,6 +132,44 @@ public class PrivateChatListFragment extends Fragment {
                     }
                     navigateToConversation(chat);
                 }));
+    }
+
+    private void showRoomActionsDialog(@NonNull ChatEntity chat) {
+        final String[] actions = new String[]{
+                getString(R.string.chat_room_action_copy_code),
+                getString(R.string.chat_room_action_leave_room)
+        };
+
+        new AlertDialog.Builder(requireContext(), R.style.Theme_EchoDrop_Dialog)
+                .setTitle(chat.getDisplayName())
+                .setItems(actions, (dialog, which) -> {
+                    if (which == 0) {
+                        copyRoomCode(chat.getCode());
+                    } else {
+                        showLeaveRoomDialog(chat);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void copyRoomCode(@NonNull String code) {
+        final ClipboardManager clipboard = (ClipboardManager)
+                requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboard.setPrimaryClip(ClipData.newPlainText("EchoDrop Room Code", ChatEntity.formatCode(code)));
+        Snackbar.make(binding.getRoot(), R.string.chat_code_copied, Snackbar.LENGTH_SHORT).show();
+    }
+
+    private void showLeaveRoomDialog(@NonNull ChatEntity chat) {
+        new AlertDialog.Builder(requireContext(), R.style.Theme_EchoDrop_Dialog)
+                .setTitle(R.string.chat_delete_title)
+                .setMessage(R.string.chat_delete_confirm)
+                .setPositiveButton(R.string.chat_room_action_leave_room, (dialog, which) -> {
+                    viewModel.deleteChat(chat.getId());
+                    Snackbar.make(binding.getRoot(), R.string.chat_deleted, Snackbar.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     // ──────────────────── Navigation ────────────────────

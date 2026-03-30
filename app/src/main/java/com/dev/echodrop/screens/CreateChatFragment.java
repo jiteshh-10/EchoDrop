@@ -84,7 +84,7 @@ public class CreateChatFragment extends Fragment {
         final ClipboardManager clipboard = (ClipboardManager)
                 requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
         final String formatted = ChatEntity.formatCode(currentCode);
-        clipboard.setPrimaryClip(ClipData.newPlainText("EchoDrop Chat Code", formatted));
+        clipboard.setPrimaryClip(ClipData.newPlainText("EchoDrop Room Code", formatted));
         Snackbar.make(binding.getRoot(), R.string.chat_code_copied, Snackbar.LENGTH_SHORT).show();
     }
 

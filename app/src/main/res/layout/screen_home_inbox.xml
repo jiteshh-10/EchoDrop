@@ -24,7 +24,7 @@
         android:background="@drawable/bg_search_input"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:padding="@dimen/spacing_1_5"
         app:layout_constraintTop_toBottomOf="@id/home_toolbar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -33,14 +33,15 @@
             android:layout_width="20dp"
             android:layout_height="20dp"
             android:contentDescription="@string/content_search"
-            android:src="@android:drawable/ic_menu_search"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_search"
             app:tint="@color/echo_text_secondary" />
 
         <EditText
             android:id="@+id/search_input"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/spacing_1_5"
             android:layout_weight="1"
             android:background="@android:color/transparent"
             android:fontFamily="sans-serif"
@@ -54,15 +55,15 @@
             android:id="@+id/sync_indicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/spacing_1"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <View
                 android:id="@+id/sync_dot"
-                android:layout_width="8dp"
-                android:layout_height="8dp"
-                android:layout_marginEnd="6dp"
+                android:layout_width="@dimen/status_dot_size"
+                android:layout_height="@dimen/status_dot_size"
+                android:layout_marginEnd="@dimen/spacing_0_75"
                 android:background="@drawable/bg_circle" />
 
             <TextView
@@ -206,7 +207,8 @@
                 android:layout_height="32dp"
                 android:layout_gravity="center"
                 android:contentDescription="@string/empty_state_title"
-                android:src="@android:drawable/ic_dialog_email"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_chat_bubble"
                 app:tint="@color/echo_muted_disabled" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -214,7 +216,7 @@
             android:id="@+id/empty_state_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="@dimen/spacing_2"
             android:fontFamily="sans-serif"
             android:text="@string/empty_state_title"
             android:textColor="@color/echo_text_primary"
@@ -225,7 +227,7 @@
             android:id="@+id/empty_state_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="@dimen/spacing_0_75"
             android:fontFamily="sans-serif"
             android:maxWidth="280dp"
             android:text="@string/empty_state_sub"
@@ -239,23 +241,25 @@
         android:layout_width="@dimen/fab_size"
         android:layout_height="@dimen/fab_size"
         android:contentDescription="@string/fab_post"
-        android:src="@android:drawable/ic_menu_edit"
-        android:tint="@color/echo_text_primary"
+        android:src="@drawable/ic_compose"
+        android:tint="@color/echo_on_primary"
+        app:maxImageSize="@dimen/icon_size_default"
         app:backgroundTint="@color/echo_primary_accent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_margin="24dp" />
+        android:layout_margin="@dimen/spacing_3" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_chats"
         android:layout_width="@dimen/fab_mini_size"
         android:layout_height="@dimen/fab_mini_size"
         android:contentDescription="@string/fab_chats"
-        android:src="@android:drawable/ic_dialog_email"
+        android:src="@drawable/ic_chat_bubble"
         android:tint="@color/echo_primary_accent"
+        app:maxImageSize="20dp"
         app:backgroundTint="@color/echo_card_surface"
         app:borderWidth="1dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_margin="24dp" />
+        android:layout_margin="@dimen/spacing_3" />
 </androidx.constraintlayout.widget.ConstraintLayout>

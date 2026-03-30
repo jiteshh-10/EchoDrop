@@ -80,7 +80,7 @@ public class TransferProtocolChatTest {
         MessageEntity restored = TransferProtocol.deserialize(data);
 
         assertEquals("CHAT", restored.getType());
-        assertEquals("ABCD5678", restored.getScopeId());
+        assertEquals("room:abcd5678", restored.getScopeId());
         assertTrue(restored.isChatBundle());
     }
 
@@ -102,7 +102,7 @@ public class TransferProtocolChatTest {
         assertEquals(3, restored.getHopCount());
         assertEquals("aa11bb22,cc33dd44", restored.getSeenByIds());
         assertEquals("CHAT", restored.getType());
-        assertEquals("WXYZ1234", restored.getScopeId());
+        assertEquals("room:wxyz1234", restored.getScopeId());
     }
 
     // ──────────────────── Frame round-trip ────────────────────
@@ -118,7 +118,7 @@ public class TransferProtocolChatTest {
         MessageEntity restored = TransferProtocol.readFrame(bais);
 
         assertEquals("CHAT", restored.getType());
-        assertEquals("MNPQ9876", restored.getScopeId());
+        assertEquals("room:mnpq9876", restored.getScopeId());
         assertTrue(restored.isChatBundle());
     }
 
@@ -156,7 +156,7 @@ public class TransferProtocolChatTest {
                 assertEquals("", m.getScopeId());
             } else if ("CHAT".equals(m.getType())) {
                 foundChat = true;
-                assertEquals("CODE1234", m.getScopeId());
+                assertEquals("room:code1234", m.getScopeId());
             }
         }
         assertTrue("Should contain a broadcast message", foundBroadcast);
