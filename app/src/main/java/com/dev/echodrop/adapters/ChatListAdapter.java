@@ -84,12 +84,17 @@ public class ChatListAdapter extends ListAdapter<ChatEntity, ChatListAdapter.Cha
         }
 
         void bind(@NonNull ChatEntity chat) {
+            final android.content.Context context = binding.getRoot().getContext();
             // Avatar initial
             binding.avatarInitial.setText(String.valueOf(chat.getInitial()));
 
             // Name — display name or formatted code
             binding.chatName.setText(chat.getDisplayName());
             binding.chatCode.setText(ChatEntity.formatCode(chat.getCode()));
+                binding.getRoot().setContentDescription(context.getString(
+                    com.dev.echodrop.R.string.a11y_room_item,
+                    chat.getDisplayName(),
+                    ChatEntity.formatCode(chat.getCode())));
 
             // Preview
             final String preview = chat.getLastMessagePreview();
@@ -116,6 +121,9 @@ public class ChatListAdapter extends ListAdapter<ChatEntity, ChatListAdapter.Cha
             // Unread badge
             if (chat.getUnreadCount() > 0) {
                 binding.unreadBadge.setText(String.valueOf(chat.getUnreadCount()));
+                binding.unreadBadge.setContentDescription(context.getString(
+                        com.dev.echodrop.R.string.a11y_room_unread,
+                        chat.getUnreadCount()));
                 binding.unreadBadge.setVisibility(android.view.View.VISIBLE);
             } else {
                 binding.unreadBadge.setVisibility(android.view.View.GONE);

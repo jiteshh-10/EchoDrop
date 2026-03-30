@@ -85,6 +85,7 @@ public class PrivateChatListFragment extends Fragment {
             final boolean empty = chats == null || chats.isEmpty();
             binding.emptyState.setVisibility(empty ? View.VISIBLE : View.GONE);
             binding.chatList.setVisibility(empty ? View.GONE : View.VISIBLE);
+            binding.roomActionHint.setVisibility(empty ? View.GONE : View.VISIBLE);
         });
     }
 

@@ -120,3 +120,31 @@ Status: Completed
 
 ## Next phase
 - Phase 5: Add discoverability and robustness polish (room action hints, accessibility labels, and focused UI tests for manage/leave flows).
+
+## Phase 5 - Discoverability and Accessibility Polish
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Added an in-screen room management hint to make long-press actions discoverable.
+- Added room item accessibility labels that include room name and room code.
+- Added unread badge accessibility labels for assistive technologies.
+- Added focused unit tests for room scope-id compatibility encoding/decoding.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/adapters/ChatListAdapter.java
+- app/src/main/java/com/dev/echodrop/screens/PrivateChatListFragment.java
+- app/src/main/res/layout/screen_chat_list.xml
+- app/src/main/res/values/strings.xml
+- app/src/test/java/com/dev/echodrop/util/RoomCodeCodecTest.java
+
+### Verified behavior intent
+- Users can discover room actions without guessing hidden gestures.
+- Screen readers now announce clearer room metadata and unread context.
+- Room scope-id codec behavior stays backward-compatible for prefixed and legacy code forms.
+
+### Risks / notes
+- Room manage actions are still dialog-driven and not yet available as visible inline buttons.
+
+## Next phase
+- Phase 6: QA hardening pass for room management flows (UI tests for long-press manage/leave and full wording sweep in docs).
