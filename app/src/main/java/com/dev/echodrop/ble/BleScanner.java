@@ -5,7 +5,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
@@ -28,7 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Periodic BLE scanner that discovers nearby EchoDrop peers.
  *
- * <p>Duty cycle: 10 s scan, 20 s pause — balances discovery speed
+ * <p>Duty cycle: 10 s scan, 8 s pause — favors lower latency in close-range
+ * chat while remaining less aggressive than always-on scanning.
  * with battery life. Detected peers are stored in a thread-safe map
  * keyed by device ID (4-byte int from the BLE payload).</p>
  *
@@ -39,16 +39,19 @@ public class BleScanner {
     private static final String TAG = "ED:BleScan";
 
     /** Scan window duration in milliseconds. */
-    public static final long SCAN_DURATION_MS = 8_000;
+    public static final long SCAN_DURATION_MS = 10_000;
 
     /** Pause between scans in milliseconds. */
-    public static final long SCAN_PAUSE_MS = 30_000;
+    public static final long SCAN_PAUSE_MS = 8_000;
 
     /** Peer record timeout: 2 minutes without a re-detection removes the peer. */
     private static final long PEER_TIMEOUT_MS = 120_000;
 
     /** Minimum interval between GATT connect attempts to the same peer. */
-    private static final long GATT_RETRY_INTERVAL_MS = 60_000;
+    private static final long GATT_RETRY_INTERVAL_MS = 12_000;
+
+    /** Minimum gap before reconnecting only because manifest changed. */
+    private static final long MANIFEST_CHANGE_RETRY_MS = 4_000;
 
     /** Minimum interval between repetitive peer-found logs for the same peer. */
     private static final long PEER_FOUND_LOG_INTERVAL_MS = 15_000;
@@ -142,7 +145,7 @@ public class BleScanner {
         if (running) return;
         running = true;
         handler.post(scanCycle);
-        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=8s/30s mode=BALANCED");
+        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=10s/8s mode=LOW_LATENCY");
     }
 
     /** Stops the periodic scan cycle and clears pending callbacks. */
@@ -198,18 +201,14 @@ public class BleScanner {
                 return;
             }
 
-            final ScanFilter filter = new ScanFilter.Builder()
-                    .setServiceUuid(new ParcelUuid(BleAdvertiser.SERVICE_UUID))
-                    .build();
-
             final ScanSettings settings = new ScanSettings.Builder()
-                    .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                     .setReportDelay(0)
                     .build();
 
-            final List<ScanFilter> filters = new ArrayList<>();
-            filters.add(filter);
-            bleScanner.startScan(filters, settings, scanCallback);
+            // Use an unfiltered scan for better OEM compatibility; we still parse only
+            // EchoDrop service data in processScanResult.
+            bleScanner.startScan(new ArrayList<>(), settings, scanCallback);
         } catch (SecurityException e) {
             Timber.tag(TAG).e(e, "ED:BLE_SCAN_PERM missing permissions");
         }
@@ -259,20 +258,26 @@ public class BleScanner {
                 peer.manifestSize = manifestSize;
             }
 
-                final boolean manifestChanged = !isNew && oldManifestSize != manifestSize;
-                final boolean shouldLogFound = isNew
+            final boolean manifestChanged = !isNew && oldManifestSize != manifestSize;
+            final boolean shouldLogFound = isNew
                     || manifestChanged
                     || (now - peer.lastFoundLogMs >= PEER_FOUND_LOG_INTERVAL_MS);
-                if (shouldLogFound) {
+            if (shouldLogFound) {
                 peer.lastFoundLogMs = now;
                 Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d new=%b",
-                    deviceId, manifestSize, rssi, isNew);
-                }
+                        deviceId, manifestSize, rssi, isNew);
+            }
 
-            // Trigger GATT for new peers OR when per-peer retry interval has elapsed
-            final boolean retryReady = !isNew
-                    && (now - peer.lastGattAttemptMs > GATT_RETRY_INTERVAL_MS);
-            if ((isNew || retryReady) && gattConnectRequester != null) {
+            if (isNew || manifestChanged) {
+                notifyPeerListener();
+            }
+
+            // Trigger faster sync when peer manifest changes, with a short safety gap.
+            final long sinceLastAttempt = now - peer.lastGattAttemptMs;
+            final boolean retryReady = !isNew && sinceLastAttempt >= GATT_RETRY_INTERVAL_MS;
+            final boolean manifestRetryReady = manifestChanged
+                    && sinceLastAttempt >= MANIFEST_CHANGE_RETRY_MS;
+            if ((isNew || manifestRetryReady || retryReady) && gattConnectRequester != null) {
                 peer.lastGattAttemptMs = now;
                 gattConnectRequester.onPeerFoundForGatt(result.getDevice());
             }

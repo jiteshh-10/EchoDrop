@@ -91,8 +91,11 @@ public class EchoService extends Service {
     /** Extended cooldown when last session exchanged zero bundles (already synced). */
     private static final long GATT_SYNCED_COOLDOWN_MS = 30_000;
 
-    /** Exponential backoff steps (ms): 0 → 5s → 15s → 60s → 120s. */
-    private static final long[] BACKOFF_STEPS_MS = { 5_000, 10_000, 20_000, 60_000, 120_000 };
+    /** Exponential backoff steps (ms) tuned for lower close-range latency. */
+    private static final long[] BACKOFF_STEPS_MS = { 1_500, 3_000, 6_000, 12_000, 20_000 };
+
+    /** If scanner misses peers on some OEMs, keep recent GATT activity visible briefly. */
+    private static final long RECENT_GATT_PEER_WINDOW_MS = 90_000L;
 
     /** Phase 1: hard-disable Wi-Fi Direct runtime path. */
     private static final boolean WIFI_DIRECT_ENABLED = false;
@@ -130,6 +133,9 @@ public class EchoService extends Service {
 
     /** Whether Wi-Fi P2P is currently enabled. */
     private volatile boolean p2pEnabled;
+
+    /** Timestamp of recent successful GATT traffic (inbound or outbound). */
+    private volatile long lastGattPeerSeenMs;
 
     /** Receiver for BT ON/OFF transitions to pause/resume BLE stack safely. */
     private BroadcastReceiver bluetoothStateReceiver;
@@ -252,6 +258,8 @@ public class EchoService extends Service {
                             }
                         }
 
+                        markRecentGattPeerActivity();
+
                         final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
                         final long rowId = dao.insert(entity); // IGNORE on duplicate content_hash
                         if (rowId > 0) {
@@ -319,6 +327,7 @@ public class EchoService extends Service {
                 Timber.tag(TAG).i("ED:GATT_SESSION_DONE addr=%s inserts=%b",
                         deviceAddress, lastSessionHadInserts);
                 lastSessionEndMs = System.currentTimeMillis();
+                markRecentGattPeerActivity();
                 if (lastSessionHadInserts) {
                     consecutiveEmptySessions = 0;
                 } else {
@@ -368,9 +377,10 @@ public class EchoService extends Service {
                 notifyPrerequisite();
             }
 
-            Timber.tag(TAG).d("ED:BLE_PEERS count=%d", peers.size());
+            final int effectivePeerCount = applyPeerCountFallback(peers.size());
+            Timber.tag(TAG).d("ED:BLE_PEERS count=%d", effectivePeerCount);
             if (bluetoothEnabled) {
-                notifyPeerCount(peers.size());
+                notifyPeerCount(effectivePeerCount);
             }
         });
 
@@ -657,6 +667,29 @@ public class EchoService extends Service {
                     prerequisiteListener.onPrerequisiteChanged(bt, p2p);
                 }
             });
+        }
+    }
+
+    /**
+     * Keeps nearby count stable on devices where BLE scan callbacks are intermittent
+     * but GATT sessions are active.
+     */
+    private int applyPeerCountFallback(int scannerCount) {
+        if (scannerCount > 0) {
+            return scannerCount;
+        }
+        final long age = System.currentTimeMillis() - lastGattPeerSeenMs;
+        if (age <= RECENT_GATT_PEER_WINDOW_MS) {
+            return 1;
+        }
+        return 0;
+    }
+
+    /** Marks recent GATT activity and bumps peer count if scanner currently shows zero. */
+    private void markRecentGattPeerActivity() {
+        lastGattPeerSeenMs = System.currentTimeMillis();
+        if (bluetoothEnabled && currentPeerCount == 0) {
+            notifyPeerCount(1);
         }
     }
 

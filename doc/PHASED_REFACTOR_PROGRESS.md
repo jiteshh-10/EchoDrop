@@ -284,3 +284,32 @@ Status: Completed
 
 ## Next phase
 - Phase 10: Field validation pass on two-device sessions (peer count parity, transfer latency, and diagnostics consistency).
+
+## Phase 10 - Close-Range Latency and Nearby-Count Reliability Tuning
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Increased BLE discovery aggressiveness to a low-latency duty cycle (`10s` scan / `8s` pause) and switched scanner mode to `LOW_LATENCY`.
+- Replaced strict UUID scan filters with unfiltered scanning plus service-data parsing to improve OEM compatibility (notably Realme-class scan behavior).
+- Reduced per-peer GATT retry interval and added fast reconnect on manifest-size changes with a short safety gap.
+- Reduced empty-session backoff ceilings in the service so close-range peers do not wait up to minutes for next sync.
+- Added a recent-GATT-activity fallback for nearby peer count so UI can still show at least one nearby device when scanner callbacks are intermittent.
+- Triggered immediate peer-list updates when new peers appear or manifest values change.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/ble/BleScanner.java
+- app/src/main/java/com/dev/echodrop/service/EchoService.java
+- app/src/test/java/com/dev/echodrop/ble/BleScannerTest.java
+
+### Verified behavior intent
+- Peer discovery/connect cadence is materially faster in close-range two-device sessions.
+- Nearby device count remains visible even on devices where BLE scan callbacks are less stable.
+- Existing message serialization/relay semantics are unchanged; only timing/discovery strategy is tuned.
+
+### Risks / notes
+- Low-latency scanning increases power usage versus prior balanced mode.
+- Unfiltered scans may increase callback volume in crowded RF environments, though payload parsing still restricts mesh processing to EchoDrop frames.
+
+## Next phase
+- Phase 11: Battery-aware adaptive scanning (fast mode when peer present, relaxed mode when idle) with on-device A/B timing measurements.
