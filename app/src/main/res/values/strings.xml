@@ -76,8 +76,11 @@
     <string name="post_char_counter">%1$d / 240</string>
     <string name="post_scope_label">Who sees this?</string>
     <string name="post_scope_nearby">Nearby</string>
-    <string name="post_scope_area">This area</string>
-    <string name="post_scope_event">This event</string>
+    <string name="post_scope_area">Zone</string>
+    <string name="post_scope_event">Event</string>
+    <string name="post_scope_custom_label">Scope label</string>
+    <string name="post_scope_custom_hint_zone">e.g. Building A</string>
+    <string name="post_scope_custom_hint_event">e.g. Tech Conference</string>
     <string name="post_mark_urgent">Mark as urgent?</string>
     <string name="post_marked_urgent">Marked as urgent</string>
     <string name="post_urgent_hint">Urgent posts are forwarded first</string>
@@ -89,6 +92,7 @@
     <string name="post_cancel">Cancel</string>
     <string name="post_submit">Post</string>
     <string name="post_snackbar">Message saved - will share when nearby devices are found</string>
+    <string name="error_scope_label_required">Add a scope label for this post</string>
 
     <string name="message_scope_nearby">Nearby</string>
     <string name="message_scope_area">This area</string>
@@ -111,6 +115,7 @@
     <string name="detail_visible_nearby">Visible to: People nearby</string>
     <string name="detail_visible_area">Visible to: This area</string>
     <string name="detail_visible_event">Visible to: This event</string>
+    <string name="detail_visible_scope_id">Visible to: %1$s</string>
 
     <!-- Dedup (Iteration 2) -->
     <string name="post_dedup_snackbar">You already posted something very similar</string>

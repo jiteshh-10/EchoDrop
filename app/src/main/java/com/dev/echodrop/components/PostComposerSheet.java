@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.FragmentPostComposerBinding;
 import com.dev.echodrop.db.MessageEntity;
+import com.dev.echodrop.util.ScopeLabelCodec;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.snackbar.Snackbar;
@@ -33,6 +34,10 @@ import com.google.android.material.snackbar.Snackbar;
  * </p>
  */
 public class PostComposerSheet extends BottomSheetDialogFragment {
+
+    private static final String SCOPE_PREFS = "scope_label_prefs";
+    private static final String KEY_ZONE_LABEL = "zone_label";
+    private static final String KEY_EVENT_LABEL = "event_label";
 
     public interface OnPostListener {
         void onPost(MessageEntity entity);
@@ -79,7 +84,12 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
         binding.scopeGroup.check(binding.chipScopeNearby.getId());
         binding.ttlGroup.check(binding.chipTtl4h.getId());
 
-        binding.scopeGroup.setOnCheckedChangeListener((group, checkedId) -> updatePostEnabled());
+        binding.scopeGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            updateScopeLabelUi();
+            updatePostEnabled();
+        });
+
+        updateScopeLabelUi();
     }
 
     private void styleChip(Chip chip) {
@@ -160,6 +170,20 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
             }
         });
         updateCharCounter(0);
+        binding.postScopeCustomInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                updatePostEnabled();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
     }
 
     private void updateCharCounter(int length) {
@@ -182,7 +206,10 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
     private void updatePostEnabled() {
         boolean hasText = binding.postInput.getText() != null && binding.postInput.getText().toString().trim().length() > 0;
         boolean scopeSelected = binding.scopeGroup.getCheckedChipId() != View.NO_ID;
-        binding.postSubmit.setEnabled(hasText && scopeSelected);
+        MessageEntity.Scope scope = getSelectedScope();
+        boolean hasRequiredScopeLabel = !ScopeLabelCodec.requiresCustomLabel(scope)
+                || getRawScopeLabel().length() > 0;
+        binding.postSubmit.setEnabled(hasText && scopeSelected && hasRequiredScopeLabel);
         binding.postSubmit.setAlpha(binding.postSubmit.isEnabled() ? 1f : 0.5f);
     }
 
@@ -196,8 +223,17 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
                 ? MessageEntity.Priority.ALERT : MessageEntity.Priority.NORMAL;
         long ttlMillis = getSelectedTtlMillis();
         long created = System.currentTimeMillis();
+        String rawScopeLabel = getRawScopeLabel();
+
+        if (ScopeLabelCodec.requiresCustomLabel(scope) && rawScopeLabel.isEmpty()) {
+            binding.postScopeCustomInput.requestFocus();
+            binding.postScopeCustomInput.setError(getString(R.string.error_scope_label_required));
+            return;
+        }
 
         MessageEntity entity = MessageEntity.create(text, scope, priority, created, created + ttlMillis);
+        entity.setScopeId(ScopeLabelCodec.buildCanonicalScopeId(scope, rawScopeLabel));
+        persistScopeLabel(scope, rawScopeLabel);
 
         if (listener != null) {
             listener.onPost(entity);
@@ -237,6 +273,53 @@ public class PostComposerSheet extends BottomSheetDialogFragment {
             return 24 * 60 * 60 * 1000L;
         }
         return 4 * 60 * 60 * 1000L;
+    }
+
+    private void updateScopeLabelUi() {
+        MessageEntity.Scope scope = getSelectedScope();
+        if (ScopeLabelCodec.requiresCustomLabel(scope)) {
+            binding.postScopeCustomLabel.setVisibility(View.VISIBLE);
+            binding.postScopeCustomInput.setVisibility(View.VISIBLE);
+            binding.postScopeCustomInput.setError(null);
+            binding.postScopeCustomInput.setHint(scope == MessageEntity.Scope.ZONE
+                    ? R.string.post_scope_custom_hint_zone
+                    : R.string.post_scope_custom_hint_event);
+            binding.postScopeCustomInput.setText(loadScopeLabel(scope));
+        } else {
+            binding.postScopeCustomLabel.setVisibility(View.GONE);
+            binding.postScopeCustomInput.setVisibility(View.GONE);
+            binding.postScopeCustomInput.setError(null);
+        }
+    }
+
+    @NonNull
+    private String getRawScopeLabel() {
+        return binding.postScopeCustomInput.getText() == null
+                ? ""
+                : binding.postScopeCustomInput.getText().toString().trim();
+    }
+
+    private void persistScopeLabel(@NonNull MessageEntity.Scope scope, @NonNull String rawLabel) {
+        if (!ScopeLabelCodec.requiresCustomLabel(scope) || rawLabel.isEmpty()) {
+            return;
+        }
+        final String key = scope == MessageEntity.Scope.ZONE ? KEY_ZONE_LABEL : KEY_EVENT_LABEL;
+        requireContext()
+                .getSharedPreferences(SCOPE_PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString(key, rawLabel)
+                .apply();
+    }
+
+    @NonNull
+    private String loadScopeLabel(@NonNull MessageEntity.Scope scope) {
+        if (!ScopeLabelCodec.requiresCustomLabel(scope)) {
+            return "";
+        }
+        final String key = scope == MessageEntity.Scope.ZONE ? KEY_ZONE_LABEL : KEY_EVENT_LABEL;
+        return requireContext()
+                .getSharedPreferences(SCOPE_PREFS, Context.MODE_PRIVATE)
+                .getString(key, "");
     }
 
     @Override

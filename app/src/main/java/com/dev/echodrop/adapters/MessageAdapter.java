@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.ItemMessageCardBinding;
 import com.dev.echodrop.db.MessageEntity;
+import com.dev.echodrop.util.ScopeLabelCodec;
 
 import java.util.concurrent.TimeUnit;
 
@@ -72,7 +73,7 @@ public class MessageAdapter extends ListAdapter<MessageEntity, MessageAdapter.Me
         void bind(MessageEntity message) {
             Context context = binding.getRoot().getContext();
             binding.messagePreview.setText(message.getText());
-            binding.scopeBadge.setText(getScopeLabel(context, message.getScopeEnum()));
+            binding.scopeBadge.setText(ScopeLabelCodec.toDisplayTag(message));
             if (message.getScopeEnum() == MessageEntity.Scope.LOCAL) {
                 binding.scopeBadge.setBackgroundResource(R.drawable.bg_badge_positive);
                 binding.scopeBadge.setTextColor(ContextCompat.getColor(context, R.color.echo_positive_accent));
@@ -100,16 +101,6 @@ public class MessageAdapter extends ListAdapter<MessageEntity, MessageAdapter.Me
             }
 
             binding.unreadBorder.setVisibility(message.isRead() ? View.INVISIBLE : View.VISIBLE);
-        }
-
-        private String getScopeLabel(Context context, MessageEntity.Scope scope) {
-            if (scope == MessageEntity.Scope.LOCAL) {
-                return context.getString(R.string.message_scope_nearby);
-            }
-            if (scope == MessageEntity.Scope.ZONE) {
-                return context.getString(R.string.message_scope_area);
-            }
-            return context.getString(R.string.message_scope_event);
         }
 
         private String formatTtl(long expiresAt) {

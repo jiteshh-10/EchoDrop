@@ -116,6 +116,32 @@
             </com.google.android.material.chip.ChipGroup>
 
             <TextView
+                android:id="@+id/post_scope_custom_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:fontFamily="sans-serif"
+                android:text="@string/post_scope_custom_label"
+                android:textColor="@color/echo_text_secondary"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <EditText
+                android:id="@+id/post_scope_custom_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_search_input"
+                android:hint="@string/post_scope_custom_hint_zone"
+                android:inputType="textCapWords"
+                android:maxLength="40"
+                android:padding="12dp"
+                android:textColor="@color/echo_text_primary"
+                android:textColorHint="@color/echo_text_secondary"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/urgent_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
