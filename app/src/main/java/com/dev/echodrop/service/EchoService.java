@@ -94,6 +94,9 @@ public class EchoService extends Service {
     /** Exponential backoff steps (ms) tuned for lower close-range latency. */
     private static final long[] BACKOFF_STEPS_MS = { 1_500, 3_000, 6_000, 12_000, 20_000 };
 
+    /** Safety floor even for urgent reconnect attempts to avoid connect churn. */
+    private static final long URGENT_CONNECT_MIN_GAP_MS = 1_500L;
+
     /** If scanner misses peers on some OEMs, keep recent GATT activity visible briefly. */
     private static final long RECENT_GATT_PEER_WINDOW_MS = 90_000L;
 
@@ -349,7 +352,7 @@ public class EchoService extends Service {
         });
 
         // ── BLE scanner → GATT connect ──
-        scanner.setGattConnectRequester(device -> {
+        scanner.setGattConnectRequester((device, urgent) -> {
             if (!bluetoothEnabled) return;
 
             // Exponential backoff cooldown
@@ -357,10 +360,19 @@ public class EchoService extends Service {
             final int backoffIdx = Math.min(consecutiveEmptySessions,
                     BACKOFF_STEPS_MS.length - 1);
             final long cooldown = BACKOFF_STEPS_MS[backoffIdx];
-            if (elapsed < cooldown) {
+            if (urgent && elapsed < URGENT_CONNECT_MIN_GAP_MS) {
+                Timber.tag(TAG).d("ED:GATT_URGENT_COOLDOWN addr=%s elapsed=%dms min=%dms",
+                        device.getAddress(), elapsed, URGENT_CONNECT_MIN_GAP_MS);
+                return;
+            }
+            if (!urgent && elapsed < cooldown) {
                 Timber.tag(TAG).d("ED:GATT_COOLDOWN addr=%s elapsed=%dms cooldown=%dms backoff=%d",
                         device.getAddress(), elapsed, cooldown, consecutiveEmptySessions);
                 return;
+            }
+            if (urgent && elapsed < cooldown) {
+                Timber.tag(TAG).d("ED:GATT_FASTPATH addr=%s elapsed=%dms cooldown=%dms backoff=%d",
+                        device.getAddress(), elapsed, cooldown, consecutiveEmptySessions);
             }
 
             Timber.tag(TAG).d("ED:GATT_CONNECT_REQUEST addr=%s", device.getAddress());

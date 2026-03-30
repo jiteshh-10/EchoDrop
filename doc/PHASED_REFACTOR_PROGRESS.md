@@ -313,3 +313,52 @@ Status: Completed
 
 ## Next phase
 - Phase 11: Battery-aware adaptive scanning (fast mode when peer present, relaxed mode when idle) with on-device A/B timing measurements.
+
+## Phase 11 - Ultra-Low Latency Connect Fast-Path and Transport Limits Documentation
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Tightened BLE scan duty cycle to `12s` active scan / `3s` pause to reduce wait time for the next discovery callback in close-range sessions.
+- Reduced generic per-peer reconnect interval from `12s` to `6s`.
+- Reduced manifest-change reconnect floor from `4s` to `1.5s`.
+- Extended scanner-to-service connect callback to include urgency metadata (`urgent=true` for new peers or manifest change).
+- Added urgent connect fast-path in service: urgent events can bypass empty-session exponential backoff after a short anti-churn floor (`1.5s`).
+- Kept standard exponential backoff for non-urgent reconnects to avoid excessive idle churn.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/ble/BleScanner.java
+- app/src/main/java/com/dev/echodrop/service/EchoService.java
+- app/src/test/java/com/dev/echodrop/ble/BleScannerTest.java
+
+### Verified behavior intent
+- New messages should propagate faster after a remote manifest bump, even when previous sessions were empty.
+- Normal idle-sync sessions still respect cooldown/backoff.
+- Build and focused scanner unit tests pass with updated constants.
+
+### Risks / notes
+- This is intentionally aggressive for latency and will consume more battery than slower scan cadences.
+- In high RF-density environments, more frequent scans/connect attempts can increase callback volume.
+
+## Current Mesh Operating Envelope (Code-Backed)
+
+### Hard limits
+- Message relay hop limit: `3` (`MessageEntity.MAX_HOP_COUNT`), enforced on receive/forward path in service.
+- Manifest entry ceiling: `18` IDs per manifest (`ManifestManager.MAX_ENTRIES`) to fit BLE payload constraints.
+- GATT chunk size: `512` bytes max packet with `509` bytes max payload (`GattTransferProtocol`).
+- Session timeout: `30s` (`GattTransferProtocol.SESSION_TIMEOUT_MS`).
+- Local message storage cap: `200` rows (`MessageRepo.STORAGE_CAP`) with eviction policy (BULK then NORMAL; ALERT preserved).
+- Chat bundle TTL: `24h` (`ChatRepo.CHAT_BUNDLE_TTL_MS`) by default.
+
+### Room/device scaling characteristics
+- Room membership has no explicit hard cap in schema/DAO; any device with the room code can participate.
+- Room code space is `32^8` combinations (8 chars from 32-symbol alphabet), approximately `1.10e12` possible codes.
+- Practical throughput depends on BLE radio conditions, OEM stack behavior, and connect/session scheduling, not a fixed participant constant.
+
+### Practical interpretation for field use
+- Best low-latency behavior: small to medium nearby sets where peers are consistently discoverable.
+- As nearby peer count grows, contention and repeated session setup overhead become the dominant limiters.
+- Multi-hop reach is bounded by hop count; topologies requiring more than 3 relays will not propagate beyond that boundary.
+
+## Next phase
+- Phase 12: adaptive latency mode (burst scan/connect on recent traffic, relaxed mode when idle) plus measured battery/latency baselines per OEM.

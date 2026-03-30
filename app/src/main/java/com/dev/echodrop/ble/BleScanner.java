@@ -27,8 +27,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Periodic BLE scanner that discovers nearby EchoDrop peers.
  *
- * <p>Duty cycle: 10 s scan, 8 s pause — favors lower latency in close-range
- * chat while remaining less aggressive than always-on scanning.
+ * <p>Duty cycle: 12 s scan, 3 s pause — favors lower end-to-end sync latency
+ * in close-range sessions while still restarting scans periodically for OEM
+ * stability.
  * with battery life. Detected peers are stored in a thread-safe map
  * keyed by device ID (4-byte int from the BLE payload).</p>
  *
@@ -39,19 +40,19 @@ public class BleScanner {
     private static final String TAG = "ED:BleScan";
 
     /** Scan window duration in milliseconds. */
-    public static final long SCAN_DURATION_MS = 10_000;
+    public static final long SCAN_DURATION_MS = 12_000;
 
     /** Pause between scans in milliseconds. */
-    public static final long SCAN_PAUSE_MS = 8_000;
+    public static final long SCAN_PAUSE_MS = 3_000;
 
     /** Peer record timeout: 2 minutes without a re-detection removes the peer. */
     private static final long PEER_TIMEOUT_MS = 120_000;
 
     /** Minimum interval between GATT connect attempts to the same peer. */
-    private static final long GATT_RETRY_INTERVAL_MS = 12_000;
+    private static final long GATT_RETRY_INTERVAL_MS = 6_000;
 
     /** Minimum gap before reconnecting only because manifest changed. */
-    private static final long MANIFEST_CHANGE_RETRY_MS = 4_000;
+    private static final long MANIFEST_CHANGE_RETRY_MS = 1_500;
 
     /** Minimum interval between repetitive peer-found logs for the same peer. */
     private static final long PEER_FOUND_LOG_INTERVAL_MS = 15_000;
@@ -91,9 +92,13 @@ public class BleScanner {
         void onPeersUpdated(List<PeerInfo> currentPeers);
     }
 
-    /** Listener for triggering GATT manifest exchange on new peer discovery. */
+    /** Listener for triggering GATT manifest exchange on peer discovery updates. */
     public interface GattConnectRequester {
-        void onPeerFoundForGatt(BluetoothDevice device);
+        /**
+         * @param urgent true for new peers or manifest changes where lower-latency
+         *               connect attempts are preferred.
+         */
+        void onPeerFoundForGatt(BluetoothDevice device, boolean urgent);
     }
 
     private final ScanCallback scanCallback = new ScanCallback() {
@@ -145,7 +150,7 @@ public class BleScanner {
         if (running) return;
         running = true;
         handler.post(scanCycle);
-        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=10s/8s mode=LOW_LATENCY");
+        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=12s/3s mode=LOW_LATENCY");
     }
 
     /** Stops the periodic scan cycle and clears pending callbacks. */
@@ -279,7 +284,8 @@ public class BleScanner {
                     && sinceLastAttempt >= MANIFEST_CHANGE_RETRY_MS;
             if ((isNew || manifestRetryReady || retryReady) && gattConnectRequester != null) {
                 peer.lastGattAttemptMs = now;
-                gattConnectRequester.onPeerFoundForGatt(result.getDevice());
+                final boolean urgent = isNew || manifestChanged;
+                gattConnectRequester.onPeerFoundForGatt(result.getDevice(), urgent);
             }
         } catch (IllegalArgumentException e) {
             Timber.tag(TAG).w(e, "ED:BLE_SCAN_PARSE invalid payload");
