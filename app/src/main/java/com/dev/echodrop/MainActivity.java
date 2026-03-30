@@ -40,6 +40,19 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PREFS_NAME = "echodrop_prefs";
     private static final String PREF_ONBOARDING_COMPLETE = "onboarding_complete";
+        private static volatile boolean timberInitialized;
+
+        private static synchronized void ensureTimberInitialized() {
+                if (timberInitialized) {
+                        return;
+                }
+                if (BuildConfig.DEBUG) {
+                        Timber.plant(new Timber.DebugTree());
+                }
+                // Always plant diagnostics tree for in-app log viewing.
+                Timber.plant(new DiagnosticsLog.DiagTree());
+                timberInitialized = true;
+        }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,12 +61,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Initialize Timber logging
-        if (BuildConfig.DEBUG) {
-            Timber.plant(new Timber.DebugTree());
-        }
-        // Always plant diagnostics tree for in-app log viewing
-        Timber.plant(new DiagnosticsLog.DiagTree());
+                // Initialize Timber exactly once per app process.
+                ensureTimberInitialized();
 
         // StrictMode for debug builds — catch disk/network on main thread
         if (BuildConfig.DEBUG) {

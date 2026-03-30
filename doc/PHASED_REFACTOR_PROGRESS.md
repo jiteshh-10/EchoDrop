@@ -257,3 +257,30 @@ Status: Completed
 
 ## Next phase
 - Phase 9: Final visual QA sweep (touch targets, state colors, and per-screen accessibility contrast checks).
+
+## Phase 9 - Messaging Service Smoothing and Log De-dup
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Added one-time Timber initialization guard in activity startup to prevent duplicate tree planting across activity recreations.
+- Added service start-request coalescing and early-return guard when already running to avoid repeated foreground service start calls.
+- Throttled repeated `ED:SERVICE_ALREADY_RUNNING` logs to reduce diagnostics noise.
+- Added BLE self-peer filtering by local device ID to prevent self-connect churn.
+- Throttled repetitive `ED:BLE_PEER_FOUND` logs per peer while still logging new peers and manifest-size changes.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/MainActivity.java
+- app/src/main/java/com/dev/echodrop/service/EchoService.java
+- app/src/main/java/com/dev/echodrop/ble/BleScanner.java
+
+### Verified behavior intent
+- Log volume no longer multiplies when activity recreates.
+- Duplicate service start attempts are coalesced before entering `onStartCommand`.
+- Mesh transfer path remains unchanged, but with reduced self-noise and lower startup churn.
+
+### Risks / notes
+- `ED:BLE_PEER_FOUND` is now rate-limited for repeat sightings; diagnostics still capture all peer additions and manifest changes.
+
+## Next phase
+- Phase 10: Field validation pass on two-device sessions (peer count parity, transfer latency, and diagnostics consistency).

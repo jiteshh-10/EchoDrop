@@ -15,6 +15,8 @@ import android.os.ParcelUuid;
 
 import androidx.annotation.VisibleForTesting;
 
+import com.dev.echodrop.util.DeviceIdHelper;
+
 import timber.log.Timber;
 
 import java.util.ArrayList;
@@ -48,8 +50,12 @@ public class BleScanner {
     /** Minimum interval between GATT connect attempts to the same peer. */
     private static final long GATT_RETRY_INTERVAL_MS = 60_000;
 
+    /** Minimum interval between repetitive peer-found logs for the same peer. */
+    private static final long PEER_FOUND_LOG_INTERVAL_MS = 15_000;
+
     private final Context context;
     private final Handler handler;
+    private final int localDeviceId;
     private BluetoothLeScanner bleScanner;
     private volatile boolean running;
 
@@ -66,12 +72,14 @@ public class BleScanner {
         public final int rssi;
         public long lastSeenMs;
         public long lastGattAttemptMs;
+        public long lastFoundLogMs;
 
         public PeerInfo(int deviceId, int manifestSize, int rssi) {
             this.deviceId = deviceId;
             this.manifestSize = manifestSize;
             this.rssi = rssi;
             this.lastSeenMs = System.currentTimeMillis();
+            this.lastFoundLogMs = 0L;
         }
     }
 
@@ -126,6 +134,7 @@ public class BleScanner {
     public BleScanner(Context context) {
         this.context = context.getApplicationContext();
         this.handler = new Handler(Looper.getMainLooper());
+        this.localDeviceId = parseLocalDeviceId(this.context);
     }
 
     /** Starts the periodic scan cycle. */
@@ -230,9 +239,15 @@ public class BleScanner {
             final int manifestSize = parsed[1];
             final int rssi = result.getRssi();
 
+            // Ignore our own advertisement to prevent self-connect churn.
+            if (deviceId == localDeviceId) {
+                return;
+            }
+
             final PeerInfo existing = peers.get(deviceId);
             final boolean isNew = (existing == null);
             final long now = System.currentTimeMillis();
+            final int oldManifestSize = existing != null ? existing.manifestSize : -1;
 
             final PeerInfo peer;
             if (isNew) {
@@ -244,8 +259,15 @@ public class BleScanner {
                 peer.manifestSize = manifestSize;
             }
 
-            Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d new=%b",
+                final boolean manifestChanged = !isNew && oldManifestSize != manifestSize;
+                final boolean shouldLogFound = isNew
+                    || manifestChanged
+                    || (now - peer.lastFoundLogMs >= PEER_FOUND_LOG_INTERVAL_MS);
+                if (shouldLogFound) {
+                peer.lastFoundLogMs = now;
+                Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d new=%b",
                     deviceId, manifestSize, rssi, isNew);
+                }
 
             // Trigger GATT for new peers OR when per-peer retry interval has elapsed
             final boolean retryReady = !isNew
@@ -256,6 +278,14 @@ public class BleScanner {
             }
         } catch (IllegalArgumentException e) {
             Timber.tag(TAG).w(e, "ED:BLE_SCAN_PARSE invalid payload");
+        }
+    }
+
+    private static int parseLocalDeviceId(Context context) {
+        try {
+            return (int) Long.parseLong(DeviceIdHelper.getDeviceId(context), 16);
+        } catch (Exception e) {
+            return Integer.MIN_VALUE;
         }
     }
 

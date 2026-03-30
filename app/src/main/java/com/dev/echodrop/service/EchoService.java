@@ -18,6 +18,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import timber.log.Timber;
 
@@ -69,11 +70,23 @@ public class EchoService extends Service {
     /** Singleton guard: true while onStartCommand has run and service is alive. */
     private static volatile boolean isRunning;
 
+    /** Last wall-clock-independent start request timestamp for coalescing duplicate starts. */
+    private static volatile long lastStartRequestElapsedMs;
+
+    /** Last time we logged the already-running message (throttled). */
+    private static volatile long lastAlreadyRunningLogElapsedMs;
+
     /** Returns whether the service is currently running. */
     public static boolean isRunning() { return isRunning; }
 
     /** Cooldown before allowing a new GATT session after one ends. */
     private static final long GATT_SESSION_COOLDOWN_MS = 5_000;
+
+    /** Coalesce duplicate start requests fired by multiple UI paths in quick succession. */
+    private static final long START_REQUEST_COALESCE_MS = 1_500L;
+
+    /** Suppress repeated ED:SERVICE_ALREADY_RUNNING spam when UI re-enters quickly. */
+    private static final long ALREADY_RUNNING_LOG_THROTTLE_MS = 15_000L;
 
     /** Extended cooldown when last session exchanged zero bundles (already synced). */
     private static final long GATT_SYNCED_COOLDOWN_MS = 30_000;
@@ -404,7 +417,11 @@ public class EchoService extends Service {
 
         // Singleton guard: skip re-init if already running
         if (isRunning) {
-            Timber.tag(TAG).d("ED:SERVICE_ALREADY_RUNNING");
+            final long nowElapsed = SystemClock.elapsedRealtime();
+            if (nowElapsed - lastAlreadyRunningLogElapsedMs >= ALREADY_RUNNING_LOG_THROTTLE_MS) {
+                lastAlreadyRunningLogElapsedMs = nowElapsed;
+                Timber.tag(TAG).d("ED:SERVICE_ALREADY_RUNNING");
+            }
             return START_STICKY;
         }
         isRunning = true;
@@ -839,6 +856,17 @@ public class EchoService extends Service {
             Timber.tag(TAG).w("ED:SERVICE_SKIP_START perms=denied");
             return;
         }
+
+        final long nowElapsed = SystemClock.elapsedRealtime();
+        if (nowElapsed - lastStartRequestElapsedMs < START_REQUEST_COALESCE_MS) {
+            return;
+        }
+        lastStartRequestElapsedMs = nowElapsed;
+
+        if (isRunning) {
+            return;
+        }
+
         final Intent intent = new Intent(context, EchoService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
