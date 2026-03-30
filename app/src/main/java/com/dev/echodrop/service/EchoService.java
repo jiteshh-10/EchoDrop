@@ -26,6 +26,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.room.InvalidationTracker;
 
 import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
@@ -39,11 +40,14 @@ import com.dev.echodrop.repository.ChatRepo;
 import com.dev.echodrop.transfer.WifiDirectManager;
 import com.dev.echodrop.util.BlockedDeviceStore;
 import com.dev.echodrop.util.DeviceIdHelper;
+import com.dev.echodrop.util.MessageStorageCapManager;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -79,9 +83,6 @@ public class EchoService extends Service {
     /** Returns whether the service is currently running. */
     public static boolean isRunning() { return isRunning; }
 
-    /** Cooldown before allowing a new GATT session after one ends. */
-    private static final long GATT_SESSION_COOLDOWN_MS = 5_000;
-
     /** Coalesce duplicate start requests fired by multiple UI paths in quick succession. */
     private static final long START_REQUEST_COALESCE_MS = 1_500L;
 
@@ -100,8 +101,20 @@ public class EchoService extends Service {
     /** If scanner misses peers on some OEMs, keep recent GATT activity visible briefly. */
     private static final long RECENT_GATT_PEER_WINDOW_MS = 90_000L;
 
-    /** Phase 1: hard-disable Wi-Fi Direct runtime path. */
-    private static final boolean WIFI_DIRECT_ENABLED = false;
+    /** Retry failed GATT sessions quickly for interruption recovery. */
+    private static final long GATT_ERROR_RETRY_DELAY_MS = 1_500;
+
+    /** Prevent retry storms for the same address. */
+    private static final long GATT_ERROR_RETRY_GUARD_MS = 4_000;
+
+    /** Periodic BLE stack watchdog interval. */
+    private static final long HEALTH_CHECK_INTERVAL_MS = 15_000;
+
+    /** Throttle immediate relay fan-out to avoid connect storms. */
+    private static final long IMMEDIATE_RELAY_THROTTLE_MS = 1_000;
+
+    /** Keep Wi-Fi Direct state monitoring active for OEM prerequisite handling. */
+    private static final boolean WIFI_DIRECT_ENABLED = true;
 
     /** Phase 2 relay max hops. */
     private static final int PHASE2_MAX_HOPS = MessageEntity.MAX_HOP_COUNT;
@@ -139,6 +152,48 @@ public class EchoService extends Service {
 
     /** Timestamp of recent successful GATT traffic (inbound or outbound). */
     private volatile long lastGattPeerSeenMs;
+
+    /** Tracks last retry scheduling time per failed GATT peer address. */
+    private final ConcurrentHashMap<String, Long> lastGattRetryByAddress =
+            new ConcurrentHashMap<>();
+
+    /** Last timestamp when immediate relay fan-out was triggered. */
+    private volatile long lastImmediateRelayMs;
+
+    /** Room observer to keep GATT manifest aligned with table updates. */
+    private InvalidationTracker.Observer messageTableObserver;
+
+    /** Watchdog keeps scanner/advertiser/server running if OEMs stop them. */
+    private final Runnable healthWatchdog = new Runnable() {
+        @Override
+        public void run() {
+            if (!isRunning) {
+                return;
+            }
+
+            if (!bluetoothEnabled || !hasBlePermissions(EchoService.this)) {
+                notifyPrerequisite();
+                mainHandler.postDelayed(this, HEALTH_CHECK_INTERVAL_MS);
+                return;
+            }
+
+            boolean restartNeeded = false;
+            if (advertiser != null && !advertiser.isRunning()) {
+                restartNeeded = true;
+            }
+            if (scanner != null && !scanner.isRunning()) {
+                restartNeeded = true;
+            }
+
+            if (restartNeeded) {
+                Timber.tag(TAG).w("ED:BLE_STACK_WATCHDOG_RECOVERY");
+                startBleStack();
+                refreshGattManifest();
+            }
+
+            mainHandler.postDelayed(this, HEALTH_CHECK_INTERVAL_MS);
+        }
+    };
 
     /** Receiver for BT ON/OFF transitions to pause/resume BLE stack safely. */
     private BroadcastReceiver bluetoothStateReceiver;
@@ -199,6 +254,16 @@ public class EchoService extends Service {
         }
         registerBluetoothStateReceiver();
 
+        messageTableObserver = new InvalidationTracker.Observer("messages") {
+            @Override
+            public void onInvalidated(@NonNull Set<String> tables) {
+                refreshGattManifest();
+            }
+        };
+        AppDatabase.getInstance(this)
+                .getInvalidationTracker()
+                .addObserver(messageTableObserver);
+
         bluetoothEnabled = isBluetoothOn();
 
         // ── GATT transfer callback ──
@@ -218,8 +283,14 @@ public class EchoService extends Service {
                         }
 
                         final String originId = entity.getOrigin() != null
-                                ? entity.getOrigin().trim()
-                                : "";
+                            ? entity.getOrigin().trim()
+                            : "";
+                        final String localId = DeviceIdHelper.getDeviceId(EchoService.this);
+                        if (!originId.isEmpty() && originId.equalsIgnoreCase(localId)) {
+                            Timber.tag(TAG).d("ED:GATT_RECV_SKIP_SELF id=%s origin=%s",
+                                entity.getId(), originId);
+                            return;
+                        }
                         if (!originId.isEmpty() && BlockedDeviceStore.isBlocked(EchoService.this, originId)) {
                             Timber.tag(TAG).i("ED:GATT_RECV_SKIP_BLOCKED id=%s origin=%s",
                                     entity.getId(), originId);
@@ -244,7 +315,6 @@ public class EchoService extends Service {
 
                         // Increment hop count and add our device ID to seenBy
                         entity.setHopCount(entity.getHopCount() + 1);
-                        final String localId = DeviceIdHelper.getDeviceId(EchoService.this);
                         entity.addSeenBy(localId);
                         if (entity.getOrigin() == null || entity.getOrigin().isEmpty()) {
                             entity.setOrigin(localId);
@@ -253,20 +323,23 @@ public class EchoService extends Service {
                             entity.setTtlMs(Math.max(0L, entity.getExpiresAt() - entity.getCreatedAt()));
                         }
 
-                        // CHAT bundles need chat-table processing for private chat UX.
-                        if (entity.isChatBundle() && chatRepo != null) {
-                            final boolean chatProcessed = chatRepo.processIncomingChatBundle(entity);
-                            if (chatProcessed) {
-                                Timber.tag(TAG).i("ED:GATT_RECV_CHAT code=%s", entity.getScopeId());
-                            }
-                        }
-
-                        markRecentGattPeerActivity();
-
                         final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
                         final long rowId = dao.insert(entity); // IGNORE on duplicate content_hash
                         if (rowId > 0) {
+                            // Process chat bundles only after durable dedupe accepts the bundle.
+                            // This prevents duplicate chat rows when a seen bundle is re-received.
+                            if (entity.isChatBundle() && chatRepo != null) {
+                                final boolean chatProcessed = chatRepo.processIncomingChatBundle(entity);
+                                if (chatProcessed) {
+                                    Timber.tag(TAG).i("ED:GATT_RECV_CHAT code=%s", entity.getScopeId());
+                                }
+                            }
+
+                            MessageStorageCapManager.enforce(dao, EchoService.this);
                             lastSessionHadInserts = true;
+                            markRecentGattPeerActivity();
+                            refreshGattManifest();
+                            triggerImmediateRelay("gatt_insert");
                             Timber.tag(TAG).i("DB_INSERT id=%s row=%d", entity.getId(), rowId);
                             Timber.tag(TAG).i("ED:GATT_RECV_INSERT id=%s hops=%d",
                                     entity.getId(), entity.getHopCount());
@@ -348,12 +421,27 @@ public class EchoService extends Service {
                 lastSessionEndMs = System.currentTimeMillis();
                 consecutiveEmptySessions++;
                 notifyTransferState(false);
+
+                if (shouldScheduleGattRetry(deviceAddress)) {
+                    mainHandler.postDelayed(() -> {
+                        if (!bluetoothEnabled || scanner == null) {
+                            return;
+                        }
+                        Timber.tag(TAG).d("ED:GATT_RETRY_SCHEDULED addr=%s", deviceAddress);
+                        scanner.requestImmediateSyncForAddress(deviceAddress);
+                    }, GATT_ERROR_RETRY_DELAY_MS);
+                }
             }
         });
 
         // ── BLE scanner → GATT connect ──
         scanner.setGattConnectRequester((device, urgent) -> {
             if (!bluetoothEnabled) return;
+
+            if (gattServer != null && gattServer.getConnectingCount() > 0) {
+                Timber.tag(TAG).d("ED:GATT_CONNECT_SKIP busy=true");
+                return;
+            }
 
             // Exponential backoff cooldown
             final long elapsed = System.currentTimeMillis() - lastSessionEndMs;
@@ -458,6 +546,7 @@ public class EchoService extends Service {
             wifiDirectManager.initialize();
         }
         startBleStack();
+        startHealthWatchdog();
         refreshGattManifest();
 
         bluetoothEnabled = isBluetoothOn();
@@ -473,9 +562,16 @@ public class EchoService extends Service {
     public void onDestroy() {
         isRunning = false;
         super.onDestroy();
+        stopHealthWatchdog();
         stopBleStack();
         if (wifiDirectManager != null) {
             wifiDirectManager.teardown();
+        }
+        if (messageTableObserver != null) {
+            AppDatabase.getInstance(this)
+                    .getInvalidationTracker()
+                    .removeObserver(messageTableObserver);
+            messageTableObserver = null;
         }
         unregisterBluetoothStateReceiver();
         if (dbExecutor != null) dbExecutor.shutdownNow();
@@ -620,6 +716,39 @@ public class EchoService extends Service {
                 Timber.tag(TAG).e(e, "ED:GATT_MANIFEST_REFRESH_ERR");
             }
         });
+    }
+
+    private void triggerImmediateRelay(@NonNull String reason) {
+        final long now = System.currentTimeMillis();
+        if ((now - lastImmediateRelayMs) < IMMEDIATE_RELAY_THROTTLE_MS) {
+            return;
+        }
+        lastImmediateRelayMs = now;
+        mainHandler.post(() -> {
+            if (scanner == null || !bluetoothEnabled) {
+                return;
+            }
+            Timber.tag(TAG).d("ED:IMMEDIATE_RELAY reason=%s", reason);
+            scanner.requestImmediateSync();
+        });
+    }
+
+    private boolean shouldScheduleGattRetry(@NonNull String address) {
+        if (address.trim().isEmpty()) {
+            return false;
+        }
+        final long now = System.currentTimeMillis();
+        final Long prev = lastGattRetryByAddress.put(address, now);
+        return prev == null || (now - prev) >= GATT_ERROR_RETRY_GUARD_MS;
+    }
+
+    private void startHealthWatchdog() {
+        mainHandler.removeCallbacks(healthWatchdog);
+        mainHandler.postDelayed(healthWatchdog, HEALTH_CHECK_INTERVAL_MS);
+    }
+
+    private void stopHealthWatchdog() {
+        mainHandler.removeCallbacks(healthWatchdog);
     }
 
     // ══════════════════════════════════════════════════════════

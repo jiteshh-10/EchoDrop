@@ -1,56 +1,54 @@
-# EchoDrop — Known Limitations
+# EchoDrop - Known Limitations
 
-Current state as of **Iteration 9** (Stability, UX Polish & Demo Readiness).
+Current state as of 2026-03-30.
 
 ---
 
-## Networking
+## Networking and Transport
 
-| # | Limitation | Impact | Mitigation |
-|---|-----------|--------|------------|
-| 1 | **BLE payload size ≤ 31 bytes** | Only device ID + manifest size fits in advertisement; full messages require Wi-Fi Direct transfer. | By design — BLE is for discovery only. |
-| 2 | **Wi-Fi Direct auto-connect picks first peer** | In a multi-peer environment, not all peers may be reached in a single cycle. | Subsequent scan cycles will discover and connect to other peers. |
-| 3 | **No Internet relay** | Messages can only propagate to devices within physical BLE range (~10 m). | This is a core design constraint, not a bug. |
-| 4 | **Single concurrent transfer** | Only one Wi-Fi Direct peer-to-peer link is possible at a time. | Transfer completes quickly; next peer is connected on next cycle. |
-| 5 | **Peer device ID unavailable over Wi-Fi Direct** | BundleSender passes empty string for peer ID, relying on content hash dedup. | Works correctly; minor inefficiency in checking already-seen messages. |
+| # | Limitation | Impact | Notes |
+|---|------------|--------|-------|
+| 1 | Proximity-dependent delivery | Messages only move when devices encounter each other | Core DTN behavior, not a defect |
+| 2 | OEM Bluetooth and background variance | Discovery cadence differs across manufacturers | Mitigated by battery guidance and diagnostics |
+| 3 | Single active peer-transfer constraints | Throughput can vary in dense environments | Subsequent cycles continue propagation |
+| 4 | Physical-world relay uncertainty | Sparse movement can delay delivery significantly | TTL and repeated encounters are expected controls |
 
-## Storage
+## Persistence and Storage
 
-| # | Limitation | Impact | Mitigation |
-|---|-----------|--------|------------|
-| 6 | **200-row storage cap** | Oldest NORMAL/BULK messages are evicted when full. ALERT messages are never evicted. | Sufficient for the target use case; cap prevents unbounded growth. |
-| 7 | **Destructive migration on schema change** | Upgrading the DB version drops all existing data. | Acceptable for pre-release; proper migration scripts needed before Play Store release. |
-| 8 | **No backup/export** | Messages cannot be exported or backed up. | By design — ephemeral messaging. |
+| # | Limitation | Impact | Notes |
+|---|------------|--------|-------|
+| 5 | Destructive DB migration in pre-release | Schema upgrades clear local data | Uses `fallbackToDestructiveMigration` intentionally |
+| 6 | Saved state is local to installation | Uninstall/reinstall clears saved and blocked-device state | Privacy-aligned local-first model |
+| 7 | No cloud backup/export workflow | User cannot restore message history across devices | Intentional for current privacy posture |
 
-## Security & Privacy
+## Moderation and Safety
 
-| # | Limitation | Impact | Mitigation |
-|---|-----------|--------|------------|
-| 9 | **Chat encryption uses chat code as key** | Anyone who knows the 8-character code can decrypt chat messages. | Users should share codes in person; codes are not broadcast. |
-| 10 | **No end-to-end encryption for broadcast messages** | Public messages are plaintext on every carrier device. | By design — broadcasts are meant to be public. |
-| 11 | **Device ID is a random 4-byte integer** | Not cryptographically unique; collisions theoretically possible. | Probability is very low for the expected peer density. |
+| # | Limitation | Impact | Notes |
+|---|------------|--------|-------|
+| 8 | Report is local-only moderation | Block/report state does not federate to other peers | No backend moderation plane by design |
+| 9 | Report depends on origin metadata | Messages with missing origin cannot be origin-blocked from detail flow | UI handles this with user feedback |
+| 10 | Blocklist is identifier-based only | No reason codes or incident history yet | Candidate for future policy extension |
 
-## UX / UI
+## UX and Product
 
-| # | Limitation | Impact | Mitigation |
-|---|-----------|--------|------------|
-| 12 | **System fonts only** | DM Sans and JetBrains Mono are proxied by system `sans-serif` and `monospace`. Exact typefaces vary by device manufacturer. | Consistent weights and sizes are enforced via styles; visual difference is minimal. |
-| 13 | **No push notifications for chat messages** | Chat messages only appear when the app syncs; there is no real-time notification for individual chats. | The foreground service notification indicates the app is running. |
-| 14 | **No message editing or deletion (by sender)** | Once posted, a message propagates and cannot be recalled. | TTL ensures automatic expiry; "Got it" allows local deletion. |
-| 15 | **No profile or identity** | Users are anonymous; there is no display name or avatar for broadcast messages. | Intentional for privacy; chat names are local nicknames only. |
+| # | Limitation | Impact | Notes |
+|---|------------|--------|-------|
+| 11 | No sender-side recall after propagation | Posted broadcast cannot be remotely revoked | TTL and local dismiss are current controls |
+| 12 | Saved view is message-level only | No folders/tags/search in Saved screen yet | Current scope is fast retrieval |
+| 13 | Room identity remains lightweight | No user profile layer for broadcast personas | Privacy-first anonymous model |
 
-## Platform
+## Validation and Testing
 
-| # | Limitation | Impact | Mitigation |
-|---|-----------|--------|------------|
-| 16 | **Android only** | No iOS, web, or desktop client. | BLE + Wi-Fi Direct APIs are Android-specific. |
-| 17 | **minSdk 24 (Android 7.0)** | Devices below Android 7.0 are not supported. | < 3% of active Android devices as of 2024. |
-| 18 | **OEM battery restrictions** | Samsung, Xiaomi, OnePlus and others aggressively kill background services. | Battery optimization guide provided in Settings; user must manually whitelist. |
-| 19 | **BLE permissions on Android 12+** | BLUETOOTH_SCAN, BLUETOOTH_ADVERTISE, and BLUETOOTH_CONNECT are required at runtime. | Permission request flow handles this; service will not start without grants. |
+| # | Limitation | Impact | Notes |
+|---|------------|--------|-------|
+| 14 | Most validation is unit-test heavy | Physical transport behavior still needs real-device runs | Unit suite is green; field validation remains required |
+| 15 | Connected test coverage is narrow | Instrumented suite is minimal compared with JVM suite | Expansion recommended for transport-heavy scenarios |
 
-## Testing
+---
 
-| # | Limitation | Impact | Mitigation |
-|---|-----------|--------|------------|
-| 20 | **No instrumented (on-device) tests** | All 446 tests are local JVM unit tests (JUnit + Robolectric + Mockito). | Real BLE/Wi-Fi Direct behavior can only be verified on physical devices. |
-| 21 | **Downloadable fonts crash in Robolectric** | Any test that inflates Activity/Fragment with Google Fonts provider will fail in local JVM. | Tests avoid full Activity inflation; fragment logic is tested independently. |
+## Recommended Next Improvements
+
+1. Add non-destructive Room migration path before production release.
+2. Add integration tests for Save/Report/Saved workflows.
+3. Add optional local moderation audit metadata (reason + timestamp).
+4. Expand connected-device matrix for OEM-specific background behavior.

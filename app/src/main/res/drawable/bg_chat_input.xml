@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Pill-shaped input field background for chat conversation. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <solid android:color="@color/echo_card_surface" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/echo_border" />
     <corners android:radius="@dimen/chat_input_corner" />
 </shape>

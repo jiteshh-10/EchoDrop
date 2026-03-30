@@ -34,9 +34,9 @@
                 android:id="@+id/message_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:textColor="@color/echo_text_primary"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:lineSpacingMultiplier="1.3"
                 tools:text="Yes! Let me grab my stuff." />
 
@@ -46,7 +46,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end"
                 android:layout_marginTop="2dp"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:textColor="@color/echo_text_muted"
                 android:textSize="10sp"
                 tools:text="3:43 PM" />

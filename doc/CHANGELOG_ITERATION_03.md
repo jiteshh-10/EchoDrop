@@ -1,5 +1,7 @@
 # Changelog — Iteration 3: Priority Handling + Inbox Semantics
 
+> Historical scope note: this file documents Iteration 3 only. For current release behavior, see `README.md`, `CHANGELOG.md`, `doc/CHANGELOG_ITERATION_10.md`, and `doc/PROJECT_STATUS_MAR30_2026.md`.
+
 > **Date:** 2026-02-25  
 > **Branch:** `iteration-3`  
 > **Status:** ✅ Complete  

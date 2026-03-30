@@ -1,5 +1,7 @@
 # Changelog — Iteration 4: Private Chat — Local Only, Encrypted, No Sync
 
+> Historical scope note: this file documents Iteration 4 only. For current release behavior, see `README.md`, `CHANGELOG.md`, `doc/CHANGELOG_ITERATION_10.md`, and `doc/PROJECT_STATUS_MAR30_2026.md`.
+
 > **Date:** 2026-02-26  
 > **Branch:** `iteration-4`  
 > **Status:** ✅ Complete  

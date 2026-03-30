@@ -7,8 +7,10 @@ import android.os.StrictMode;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.splashscreen.SplashScreen;
+import androidx.fragment.app.FragmentManager;
 
 import com.dev.echodrop.screens.BatteryGuideFragment;
+import com.dev.echodrop.screens.BlockedDevicesFragment;
 import com.dev.echodrop.screens.ChatConversationFragment;
 import com.dev.echodrop.screens.CreateChatFragment;
 import com.dev.echodrop.screens.DiagnosticsFragment;
@@ -17,7 +19,9 @@ import com.dev.echodrop.screens.HomeInboxFragment;
 import com.dev.echodrop.screens.HowItWorksFragment;
 import com.dev.echodrop.screens.MessageDetailFragment;
 import com.dev.echodrop.screens.OnboardingConsentFragment;
+import com.dev.echodrop.screens.PermissionsFragment;
 import com.dev.echodrop.screens.PrivateChatListFragment;
+import com.dev.echodrop.screens.SavedMessagesFragment;
 import com.dev.echodrop.screens.SettingsFragment;
 import com.dev.echodrop.service.EchoService;
 import com.dev.echodrop.util.DiagnosticsLog;
@@ -40,29 +44,18 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String PREFS_NAME = "echodrop_prefs";
     private static final String PREF_ONBOARDING_COMPLETE = "onboarding_complete";
-        private static volatile boolean timberInitialized;
-
-        private static synchronized void ensureTimberInitialized() {
-                if (timberInitialized) {
-                        return;
-                }
-                if (BuildConfig.DEBUG) {
-                        Timber.plant(new Timber.DebugTree());
-                }
-                // Always plant diagnostics tree for in-app log viewing.
-                Timber.plant(new DiagnosticsLog.DiagTree());
-                timberInitialized = true;
-        }
+    private static volatile boolean timberInitialized;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-                // Initialize Timber exactly once per app process.
-                ensureTimberInitialized();
+        ensureTimberInitialized();
+        // Initialize Timber exactly once per app process.
+        ensureTimberInitialized();
 
         // StrictMode for debug builds — catch disk/network on main thread
         if (BuildConfig.DEBUG) {
@@ -107,6 +100,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static void ensureTimberInitialized() {
+        if (timberInitialized) {
+            return;
+        }
+        synchronized (MainActivity.class) {
+            if (timberInitialized) {
+                return;
+            }
+            if (BuildConfig.DEBUG) {
+                Timber.plant(new Timber.DebugTree());
+            }
+            Timber.plant(new DiagnosticsLog.DiagTree());
+            timberInitialized = true;
+        }
+    }
+
     @Override
     protected void onNewIntent(android.content.Intent intent) {
         super.onNewIntent(intent);
@@ -144,13 +153,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showPermissions() {
-        // Permissions are now handled inline from HomeInbox — redirect
-        showHomeInbox();
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new PermissionsFragment())
+                .addToBackStack("permissions")
+                .commit();
     }
 
     public void showHowItWorks() {
-        // How It Works is no longer a separate screen — redirect
-        showHomeInbox();
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container,
+                        HowItWorksFragment.newInstance(false))
+                .addToBackStack("howItWorks")
+                .commit();
     }
 
     public void showHowItWorksFromSettings() {
@@ -168,6 +190,9 @@ public class MainActivity extends AppCompatActivity {
     public void showHomeInbox() {
         // Mark onboarding as complete when reaching home for the first time
         markOnboardingComplete();
+        getSupportFragmentManager().popBackStack(
+                null,
+                FragmentManager.POP_BACK_STACK_INCLUSIVE);
         getSupportFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(
@@ -242,6 +267,28 @@ public class MainActivity extends AppCompatActivity {
                         R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
                 .replace(R.id.fragment_container, new SettingsFragment())
                 .addToBackStack("settings")
+                .commit();
+    }
+
+    public void showBlockedDevices() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new BlockedDevicesFragment())
+                .addToBackStack("blockedDevices")
+                .commit();
+    }
+
+    public void showSavedMessages() {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new SavedMessagesFragment())
+                .addToBackStack("saved")
                 .commit();
     }
 

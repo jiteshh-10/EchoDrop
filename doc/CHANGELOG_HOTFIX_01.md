@@ -1,5 +1,7 @@
 # Changelog — Hotfix 01: Runtime Permissions & End-to-End Transfer Pipeline
 
+> Historical scope note: this file documents Hotfix 01 only. For current release behavior, see `README.md`, `CHANGELOG.md`, `doc/CHANGELOG_ITERATION_10.md`, and `doc/PROJECT_STATUS_MAR30_2026.md`.
+
 > Date: 2026-02-26  
 > Branch: main  
 > Status: ✅ Complete  

@@ -303,3 +303,33 @@ Context: Spec says "pill shape" badges. Previously used 20dp corners.
 Decided: Set badge corner radius to 100dp.
 Why: 100dp on a 22dp-high badge guarantees fully rounded ends regardless of width. Overdrawing corners is cropped by the view bounds.
 Impact: Badges visually match pill specification.
+
+## Decision: Persist saved state in Room message table — iter-10
+Context: Saved messages must survive app process restarts and be queryable without additional local stores.
+Decided: Added boolean `saved` column on `messages` with DAO methods `setSaved` and `getSavedMessages(now)`.
+Why: Reuses existing message lifecycle and indexing semantics, avoids split state between DB and SharedPreferences.
+Impact: Saved UI becomes fully reactive via existing LiveData/Room observer path.
+
+## Decision: Report action blocks by origin ID and purges local origin rows — iter-10
+Context: Report should immediately reduce harmful or noisy content from the same sender.
+Decided: Report flow writes to `BlockedDeviceStore` and deletes rows by `origin` through `deleteByOrigin(originId)`.
+Why: Fast local moderation with deterministic behavior and no extra moderation backend dependency.
+Impact: Reported origin content disappears immediately; future receives are filtered by existing blocked-origin checks.
+
+## Decision: Keep unblock control centralized in Settings — iter-10
+Context: Multiple unblock surfaces can create inconsistent state ownership.
+Decided: Message detail supports block/report only; unblock remains in Settings blocked-device management.
+Why: Single ownership model for reversal actions improves discoverability and reduces duplicated UI logic.
+Impact: Users always manage unblock actions from one predictable location.
+
+## Decision: Add dedicated Saved screen instead of overloading inbox tabs — iter-10
+Context: Reusing inbox tabs for saved state would mix semantic filters and persistence intent.
+Decided: Implemented `SavedMessagesFragment` with its own toolbar entry and empty state.
+Why: Clear mental model: inbox is live flow, saved is explicit user curation.
+Impact: Lower coupling in `HomeInboxFragment` filter logic and cleaner future expansion path.
+
+## Decision: Centralize animated toolbar logo setup in utility class — iter-10
+Context: App bar animation was needed on multiple fragments and risked copy-paste drift.
+Decided: Added `ToolbarLogoAnimator.apply(Toolbar)` utility to apply drawable + start animation.
+Why: Shared helper keeps branding behavior consistent across Home, Detail, and Saved screens.
+Impact: Future toolbar branding changes are localized to one utility path.

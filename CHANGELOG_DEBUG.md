@@ -1,162 +1,71 @@
-# EchoDrop — Debug Branch Changelog
+# EchoDrop - Debug Branch Changelog
 
-> **Branch:** `debug`
-> **Base:** `main` @ `e836ab0` (iter-9-complete, 446 tests)
-> **Date:** February 2026
-> **Summary:** Transport pipeline fixes for real-device reliability, bidirectional sync, in-app diagnostics, splash screen, and Settings UX improvements.
+> Branch: `debug`
+> Baseline parent: `main` at iteration-9 hardening
+> Scope: reliability fixes, transport hardening, diagnostics additions, and follow-up merge context
 
 ---
 
-## Commits
+## Post-debug follow-up on main (2026-03-30)
+
+The following items were delivered after the debug-branch hardening and are now part of mainline behavior:
+
+- Message detail action stack updated to Save, Report, Got it.
+- Saved-message persistence added in Room and exposed through a dedicated Saved screen.
+- Report action integrated with blocked-device moderation (`BlockedDeviceStore`) and origin-level local cleanup.
+- Animated app-bar bulb logo introduced and reused via shared toolbar utility.
+- Documentation and status artifacts refreshed for Mar 30, 2026 release context.
+
+This file remains the canonical record of the debug-branch reliability tranche below.
+
+---
+
+## Debug branch commits (historical)
 
 | # | Hash | Description |
 |---|------|-------------|
-| 1 | `e044ad9` | Timber migration, BLE LOW_LATENCY, EchoService retry, onboarding persistence |
-| 2 | `c692d4b` | Bidirectional sync, CHAT filter, GO address retry, diagnostics, permissions |
-| 3 | `361c759` | senderAlias, splash screen, Settings links (How it works + Diagnostics) |
-
-**26 files changed, +995 / −161 lines**
+| 1 | `e044ad9` | Timber migration, BLE scan tuning, service retry handling, onboarding persistence wiring |
+| 2 | `c692d4b` | Bidirectional sync path, chat bundle filtering, GO address retry, diagnostics support |
+| 3 | `361c759` | senderAlias propagation, splash integration, settings routing for docs/diagnostics |
 
 ---
 
-## Problems Addressed
+## Problems solved in debug branch
 
-Real-device testing on Samsung + Realme revealed:
-
-1. **Chat messages appeared as base64 strings on the home feed** — encrypted CHAT bundles were not filtered from the broadcast inbox.
-2. **One-way syncing** — only the initiating device sent messages; the server never responded with its own.
-3. **Unreliable discovery** — devices showed "No devices nearby" most of the time; the `discovering` guard prevented re-discovery after system timeout.
-4. **Alerts one-directional** — related to one-way sync; the receiving device had no mechanism to push its messages back.
-5. **WiFi Direct GO address null** — `groupOwnerAddress` was sometimes null on connection, causing NPE.
-6. **Missing NEARBY_WIFI_DEVICES permission** — Android 13+ requires this for WiFi Direct; was not requested.
-7. **No on-device diagnostic visibility** — Timber logs only visible via `adb logcat`.
+1. Chat ciphertext occasionally appeared in broadcast feed due to missing type filter.
+2. One-way transfer sessions left response payloads unsynchronized.
+3. Wi-Fi Direct group-owner address race caused intermittent failures.
+4. Discovery cadence and reconnect behavior were unstable on real OEM devices.
+5. Permission coverage for modern Android Wi-Fi/BLE combinations was incomplete.
+6. Diagnostics visibility depended on external logcat rather than in-app tooling.
 
 ---
 
-## Changes by Area
+## Key technical outcomes from debug branch
 
-### 1. Transport Pipeline — Bidirectional Sync
+### Transport and sync
+- Added bidirectional transfer callback path and response-session handling.
+- Added receiver-side response generation and dedup-safe processing.
+- Improved Wi-Fi Direct state transition reliability and reconnect behavior.
 
-**Files:** `BundleSender.java`, `BundleReceiver.java`, `EchoService.java`
+### Data routing
+- Excluded CHAT bundles from public home feed query path.
+- Preserved all-message query path for DTN forwarding semantics.
+- Improved sender alias propagation through forwarding copies.
 
-- **BundleSender:** Added `BidirectionalCallback` interface extending `SendCallback` with `onResponseReceived(List<MessageEntity>)`. After writing a session the sender now reads a response session (15 s socket timeout) from the server.
-- **BundleReceiver:** After reading and processing incoming messages, the receiver queries the local DAO for its own active messages, filters out what the peer just sent (hash dedup), creates forwarding copies (incremented hop count, stamped `seenByIds`), and writes a response session back on the same TCP connection.
-- **BundleReceiver:** Extracted `processOneMessage()` helper. Added public `processReceivedMessages(List<MessageEntity>)` for the sender side to process the response.
-- **EchoService:** `sendAllMessagesWithRetry()` now uses `BidirectionalCallback`; on response, calls `bundleReceiver.processReceivedMessages()` to insert peer messages.
-
-### 2. Chat Bundle Filtering (Base64 Fix)
-
-**File:** `MessageDao.java`
-
-- `getActiveMessages(long now)` now appends `AND type != 'CHAT'` — encrypted chat bundles are excluded from the home broadcast feed.
-- Added `getAllActiveMessages(long now)` that returns **all** messages including CHAT for DTN forwarding purposes.
-
-### 3. WiFi Direct Reliability
-
-**File:** `WifiDirectManager.java`
-
-- **GO address retry:** When `groupOwnerAddress` is null in `onConnectionInfoAvailable()`, retries `requestConnectionInfo()` up to 3 times with 500 ms delay before disconnecting.
-- **Re-discovery:** Removed the `if (discovering) return` guard from `discoverPeers()` so discovery can be re-initiated after the system's internal timeout fires.
-- Added `isInitialized()` accessor.
-
-### 4. EchoService Improvements
-
-**File:** `EchoService.java`
-
-- **Init order fix:** WiFi Direct + BundleReceiver now initialize **before** BLE advertiser + scanner start, preventing a race where BLE finds peers before WiFi Direct is ready.
-- **NEARBY_WIFI_DEVICES permission:** `hasBlePermissions()` and `getBlePermissions()` now include `NEARBY_WIFI_DEVICES` on API 33+.
-- **Reconnect cooldown:** After a transfer completes and disconnects, re-discovery is scheduled after a 15-second cooldown (`REDISCOVERY_COOLDOWN_MS`) if BLE peers are still present.
-- **Shared Handler:** Replaced per-use `Handler` instances with a single `mainHandler` field.
-
-### 5. BLE Improvements
-
-**Files:** `BleAdvertiser.java`, `BleScanner.java`
-
-- Migrated all logging from `android.util.Log` to Timber with structured `ED:` tag prefixes.
-- Scanner now uses `ScanSettings.SCAN_MODE_LOW_LATENCY` for faster peer detection.
-
-### 6. Onboarding Persistence
-
-**File:** `MainActivity.java`
-
-- Added `SharedPreferences`-backed `isOnboardingComplete()` / `markOnboardingComplete()`.
-- On launch, skips onboarding and goes directly to `HomeInboxFragment` if already completed.
-
-### 7. Chat Name Propagation (senderAlias)
-
-**Files:** `MessageEntity.java`, `TransferProtocol.java`, `ChatRepo.java`, `BundleReceiver.java`, `AppDatabase.java`
-
-- **MessageEntity:** New `sender_alias` column (default `""`). Added getter/setter. `createChatBundle()` overload accepts `chatName`.
-- **TransferProtocol:** `serialize()` / `deserialize()` now include `senderAlias` as an additional 2-byte-len + UTF-8 field after `scopeId`.
-- **ChatRepo.sendMessage():** Looks up the chat name and embeds it in the outgoing DTN bundle.
-- **ChatRepo.processIncomingChatBundle():** If the local chat has no name but the received bundle carries one, adopts it.
-- **BundleReceiver:** Copies `senderAlias` when creating forwarding copies in the response session.
-- **AppDatabase:** Version bumped from 4 → 5 (destructive migration).
-
-### 8. In-App Diagnostics
-
-**Files:** `DiagnosticsLog.java` *(new)*, `DiagnosticsFragment.java` *(new)*, `screen_diagnostics.xml` *(new)*
-
-- **DiagnosticsLog:** Thread-safe in-memory ring buffer (500 entries max). Timestamped entries formatted as `HH:mm:ss.SSS [tag] message`. Static API: `log()`, `getEntries()`, `getAllText()`, `clear()`, `size()`.
-- **DiagnosticsLog.DiagTree:** Custom `Timber.Tree` that captures all `ED:`-prefixed log messages into the ring buffer.
-- **DiagnosticsFragment:** Auto-refreshes every 2 s, monospace display, auto-scroll, copy-to-clipboard, clear buttons.
-- **MainActivity:** Plants `DiagTree` alongside `DebugTree`.
-- **Accessible via:** Settings → Diagnostics log **and** Discovery Status → Logs button.
-
-### 9. Splash Screen
-
-**Files:** `build.gradle`, `themes.xml`, `AndroidManifest.xml`, `MainActivity.java`
-
-- Added `androidx.core:core-splashscreen:1.0.1` dependency.
-- New `Theme.EchoDrop.Splash` style (background `echo_bg_main`, icon `ic_launcher`, post-splash `Theme.EchoDrop`).
-- Activity theme set to splash in manifest; `SplashScreen.installSplashScreen(this)` called before `super.onCreate()`.
-
-### 10. Settings UX
-
-**Files:** `screen_settings.xml`, `SettingsFragment.java`, `HowItWorksFragment.java`, `MainActivity.java`, `strings.xml`
-
-- **How it works row:** New settings entry navigates to `HowItWorksFragment` in "from settings" mode — shows "Got it" button that pops back instead of navigating to HomeInbox.
-- **Diagnostics log row:** New settings entry navigates directly to `DiagnosticsFragment`.
-- `HowItWorksFragment.newInstance(boolean fromSettings)` factory method added.
-- `MainActivity.showHowItWorksFromSettings()` navigation method added.
-
-### 11. Other
-
-- `PermissionsFragment.java`: Added missing permission request.
-- `ManifestManager.java`: Removed unused import.
-- `DiscoveryStatusFragment.java`: Added live connection/transfer state indicators, wired "Logs" button.
-- `screen_discovery_status.xml`: Added "Logs" button to toolbar.
+### Platform hardening
+- Added splash setup and improved launch-time consistency.
+- Added in-app diagnostics ring buffer and diagnostics screen entry points.
+- Expanded settings routes for How It Works and diagnostics access.
 
 ---
 
-## Test Status
+## Validation status
 
-| Metric | Value |
-|--------|-------|
-| Total tests | **446** |
-| Failures | **0** |
-| Test suites | 30 |
-| Build | ✅ `assembleDebug` passes |
+Debug-branch validation baseline:
+- Unit tests: PASS in that cycle
+- Build: PASS in that cycle
 
-All existing tests continue to pass with no modifications required.
-
----
-
-## Checklist Cross-Reference
-
-| # | Item | Status |
-|---|------|--------|
-| 1 | NEARBY_WIFI_DEVICES permission (manifest + runtime + service) | ✅ Done |
-| 2 | PermissionsFragment requests all permissions | ✅ Done |
-| 3 | BLE legacy advertising | ✅ Already using `startAdvertising` (legacy) |
-| 4 | WiFi Direct GO address retry when null | ✅ Done (3×500 ms) |
-| 5 | In-app diagnostics logging | ✅ Done (DiagnosticsLog + Fragment) |
-| 6 | Chat name metadata in DTN bundle | ✅ Done (senderAlias) |
-| 7 | WiFi Direct init race fix | ✅ Done (init before BLE) |
-| 8 | Bidirectional sync | ✅ Done (response session) |
-| 9 | CHAT bundles filtered from home feed | ✅ Done (DAO filter) |
-| 10 | Onboarding persistence | ✅ Done (SharedPreferences) |
-| 11 | Move "How it works" to Settings | ✅ Done |
-| 12 | Splash screen | ✅ Done (AndroidX SplashScreen) |
-| 13 | WiFi Direct reconnect strategy | ✅ Done (15 s cooldown) |
-| 14 | Discovery flag reset | ✅ Done (removed guard) |
+Current project (main, Mar 30 2026) should be validated against:
+- `:app:assembleDebug`
+- `:app:testDebugUnitTest`

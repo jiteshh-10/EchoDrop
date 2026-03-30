@@ -1,5 +1,7 @@
 # EchoDrop — Iteration 2 Changelog
 
+> Historical scope note: this file documents Iteration 2 only. For current release behavior, see `README.md`, `CHANGELOG.md`, `doc/CHANGELOG_ITERATION_10.md`, and `doc/PROJECT_STATUS_MAR30_2026.md`.
+
 > **Iteration Name:** Local Persistence + Message Lifecycle  
 > **Branch:** `iteration-2`  
 > **Status:** ✅ Complete — `BUILD SUCCESSFUL` — 191 tests, 0 failures

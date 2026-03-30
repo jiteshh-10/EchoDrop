@@ -248,3 +248,60 @@ Suggested attachment names:
 - `logs/tc2_delayed_A_B_C.txt`
 - `logs/toggle_bt_recovery.txt`
 - `logs/duplicate_flood.txt`
+
+## 11. Message Curation and Moderation Matrix (Mar 30, 2026)
+
+### MC-1 Save toggle persistence
+
+Setup:
+- Ensure at least one active broadcast message exists.
+
+Action:
+- Open message detail -> tap Save -> navigate back -> open Saved screen.
+
+Expected:
+- Message appears in Saved list.
+- Re-open detail from Saved and confirm button state is "unsave".
+
+Pass criteria:
+- Saved list updates reactively with no app restart required.
+
+### MC-2 Unsave path
+
+Action:
+- From message detail, tap Unsave.
+
+Expected:
+- Message disappears from Saved list on next observer update.
+- Inbox visibility remains unaffected unless separately dismissed/deleted.
+
+Pass criteria:
+- Saved query output matches expected post-toggle state.
+
+### MC-3 Report to blocked-origin flow
+
+Setup:
+- Use a message containing non-empty `origin` metadata.
+
+Action:
+- Open detail -> tap Report.
+
+Expected:
+- Origin ID is added to blocked store.
+- Local messages with that origin are removed.
+- Return navigation to previous screen occurs.
+
+Pass criteria:
+- Reported origin no longer appears in inbox from existing local rows.
+
+### MC-4 Settings unblock interoperability
+
+Action:
+- After MC-3, open Settings blocked-device management and unblock the same origin.
+
+Expected:
+- Unblock action succeeds and blocked summary updates.
+- Subsequent receive-path filtering behavior follows updated blocklist state.
+
+Pass criteria:
+- Blocklist add/remove lifecycle remains consistent across Message Detail and Settings surfaces.

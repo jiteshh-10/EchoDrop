@@ -21,7 +21,10 @@ import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.ChatRepo;
 import com.dev.echodrop.repository.MessageRepo;
+import com.dev.echodrop.util.AppPreferences;
 import com.dev.echodrop.util.DeviceIdHelper;
+import com.dev.echodrop.util.MessageNotificationHelper;
+import com.dev.echodrop.util.MessageStorageCapManager;
 import com.dev.echodrop.util.RoomCodeCodec;
 
 import java.io.IOException;
@@ -189,6 +192,7 @@ public class BundleReceiver {
         int insertedCount = 0;
         int chatCount = 0;
         final String localDeviceId = DeviceIdHelper.getDeviceId(context);
+        final List<MessageEntity> insertedMessages = new ArrayList<>();
 
         try {
             final InputStream in = client.getInputStream();
@@ -205,6 +209,7 @@ public class BundleReceiver {
             for (final MessageEntity entity : messages) {
                 if (processOneMessage(entity, localDeviceId, now)) {
                     insertedCount++;
+                    insertedMessages.add(entity);
                     if (entity.isChatBundle() && chatRepo != null) {
                         final boolean processed = chatRepo.processIncomingChatBundle(entity);
                         if (processed) {
@@ -249,7 +254,7 @@ public class BundleReceiver {
             }
 
             if (insertedCount > 0) {
-                showNotification(messages, insertedCount);
+                showNotification(insertedMessages, insertedCount);
             }
 
             final int finalCount = insertedCount;
@@ -287,6 +292,18 @@ public class BundleReceiver {
             return false;
         }
 
+        if (entity.getHopCount() > MessageEntity.MAX_HOP_COUNT) {
+            Timber.tag(TAG).d("ED:RECV_SKIP_HOP id=%s hop=%d max=%d",
+                    entity.getId(), entity.getHopCount(), MessageEntity.MAX_HOP_COUNT);
+            return false;
+        }
+
+        final String origin = entity.getOrigin() == null ? "" : entity.getOrigin().trim();
+        if (!origin.isEmpty() && origin.equalsIgnoreCase(localDeviceId)) {
+            Timber.tag(TAG).d("ED:RECV_SKIP_SELF id=%s origin=%s", entity.getId(), origin);
+            return false;
+        }
+
         // Validate checksum (only for non-chat bundles)
         if (!entity.isChatBundle() && !TransferProtocol.validateChecksum(entity)) {
             Timber.tag(TAG).w("ED:RECV_CHECKSUM_FAIL id=%s", entity.getId());
@@ -302,10 +319,18 @@ public class BundleReceiver {
         // Stamp this device into the seen-by list
         entity.addSeenBy(localDeviceId);
 
+        // Receiving this bundle adds one traversal hop.
+        entity.setHopCount(entity.getHopCount() + 1);
+
+        if (entity.getOrigin() == null || entity.getOrigin().trim().isEmpty()) {
+            entity.setOrigin(localDeviceId);
+        }
+
         // Insert into messages table (for DTN forwarding)
         final MessageDao dao = AppDatabase.getInstance(context).messageDao();
         final long rowId = dao.insert(entity);
         if (rowId != -1) {
+            MessageStorageCapManager.enforce(dao, context);
             Timber.tag(TAG).i("ED:RECV_INSERT id=%s hop=%d type=%s",
                     entity.getId(), entity.getHopCount(), entity.getType());
             return true;
@@ -358,9 +383,27 @@ public class BundleReceiver {
     /** Shows a notification for newly arrived messages. */
     private void showNotification(@NonNull final List<MessageEntity> messages,
                                   final int insertedCount) {
+        if (!AppPreferences.isMessageAlertsEnabled(context)
+                || !MessageNotificationHelper.canPostNotifications(context)) {
+            return;
+        }
+
+        final String localDeviceId = DeviceIdHelper.getDeviceId(context);
+        final List<MessageEntity> incomingOnly = new ArrayList<>();
+        for (final MessageEntity msg : messages) {
+            final String origin = msg.getOrigin() == null ? "" : msg.getOrigin().trim();
+            if (!localDeviceId.equals(origin)) {
+                incomingOnly.add(msg);
+            }
+        }
+
+        if (incomingOnly.isEmpty()) {
+            return;
+        }
+
         // Find the first chat bundle to use for deep-link navigation
         MessageEntity firstChat = null;
-        for (final MessageEntity msg : messages) {
+        for (final MessageEntity msg : incomingOnly) {
             if (msg.isChatBundle()) {
                 firstChat = msg;
                 break;
@@ -402,7 +445,7 @@ public class BundleReceiver {
             body = context.getString(R.string.chat_notification_body);
         } else {
             title = context.getString(R.string.transfer_notification_title);
-            for (final MessageEntity msg : messages) {
+            for (final MessageEntity msg : incomingOnly) {
                 if (!msg.getText().isEmpty()) {
                     body = msg.getText();
                     if (body.length() > 60) {

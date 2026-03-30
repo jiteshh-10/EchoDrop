@@ -1,5 +1,7 @@
 # EchoDrop — Iteration 0-1 Changelog
 
+> Historical scope note: this file documents Iteration 0-1 only. For current release behavior, see `README.md`, `CHANGELOG.md`, `doc/CHANGELOG_ITERATION_10.md`, and `doc/PROJECT_STATUS_MAR30_2026.md`.
+
 > **Iteration Name:** Foundations + Visual Baseline  
 > **Branch:** `iteration_0_1_foundations`  
 > **Status:** ✅ Complete — `BUILD SUCCESSFUL`

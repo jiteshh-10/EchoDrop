@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,7 +19,10 @@ import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.FragmentMessageDetailBinding;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.MessageRepo;
+import com.dev.echodrop.util.BlockedDeviceStore;
+import com.dev.echodrop.util.DeviceIdHelper;
 import com.dev.echodrop.util.ScopeLabelCodec;
+import com.dev.echodrop.util.ToolbarLogoAnimator;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -47,6 +51,7 @@ public class MessageDetailFragment extends Fragment {
     private FragmentMessageDetailBinding binding;
     private MessageRepo repo;
     private String messageId;
+    private MessageEntity currentMessage;
     private final Handler ttlHandler = new Handler(Looper.getMainLooper());
     private Runnable ttlUpdateRunnable;
 
@@ -82,19 +87,61 @@ public class MessageDetailFragment extends Fragment {
         }
 
         setupToolbar();
-        setupGotItButton();
+        setupActionButtons();
         observeMessage();
     }
 
     private void setupToolbar() {
+        ToolbarLogoAnimator.apply(binding.detailToolbar);
         binding.detailToolbar.setNavigationOnClickListener(v -> navigateBack());
     }
 
-    private void setupGotItButton() {
+    private void setupActionButtons() {
+        binding.detailSaveBtn.setOnClickListener(v -> toggleSavedState());
+        binding.detailReportBtn.setOnClickListener(v -> reportCurrentMessage());
         binding.detailGotItBtn.setOnClickListener(v -> {
             repo.deleteById(messageId);
             navigateBack();
         });
+    }
+
+    private void toggleSavedState() {
+        if (currentMessage == null) {
+            return;
+        }
+        final boolean save = !currentMessage.isSaved();
+        currentMessage.setSaved(save);
+        updateSaveButton(save);
+        repo.setSaved(currentMessage.getId(), save);
+        showToast(save ? R.string.detail_saved_snackbar : R.string.detail_unsaved_snackbar);
+    }
+
+    private void reportCurrentMessage() {
+        if (currentMessage == null) {
+            return;
+        }
+
+        final String originId = currentMessage.getOrigin() == null
+                ? ""
+                : currentMessage.getOrigin().trim();
+
+        if (originId.isEmpty()) {
+            showToast(R.string.detail_report_missing_origin);
+            return;
+        }
+
+        final String localId = DeviceIdHelper.getDeviceId(requireContext());
+        if (originId.equalsIgnoreCase(localId)) {
+            showToast(R.string.detail_report_self_forbidden);
+            return;
+        }
+
+        final boolean blockedNow = BlockedDeviceStore.addBlockedId(requireContext(), originId);
+        repo.deleteByOrigin(originId);
+        showToast(blockedNow
+                ? R.string.detail_report_blocked
+                : R.string.detail_report_blocked_exists);
+        navigateBack();
     }
 
     private void observeMessage() {
@@ -112,8 +159,12 @@ public class MessageDetailFragment extends Fragment {
     }
 
     private void bindMessage(@NonNull MessageEntity message) {
+        currentMessage = message;
+
         // Message text
         binding.detailMessageText.setText(message.getText());
+
+        updateSaveButton(message.isSaved());
 
         // Scope badge
         bindScopeBadge(message);
@@ -242,10 +293,19 @@ public class MessageDetailFragment extends Fragment {
         }
     }
 
+    private void updateSaveButton(boolean saved) {
+        binding.detailSaveBtn.setText(saved ? R.string.detail_unsave : R.string.detail_save);
+    }
+
+    private void showToast(int messageRes) {
+        Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show();
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         stopTtlUpdates();
+        currentMessage = null;
         binding = null;
     }
 }

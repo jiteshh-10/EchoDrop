@@ -36,6 +36,14 @@ public interface MessageDao {
     LiveData<List<MessageEntity>> getActiveMessages(long now);
 
     /**
+     * Returns non-expired saved BROADCAST messages, ordered like inbox.
+     */
+    @Query("SELECT * FROM messages WHERE saved = 1 AND expires_at > :now AND type != 'CHAT' " +
+            "ORDER BY CASE priority WHEN 'ALERT' THEN 0 WHEN 'NORMAL' THEN 1 ELSE 2 END ASC, " +
+            "created_at DESC")
+    LiveData<List<MessageEntity>> getSavedMessages(long now);
+
+    /**
      * Returns ALL non-expired messages (including CHAT bundles) for DTN forwarding.
      */
     @Query("SELECT * FROM messages WHERE expires_at > :now " +
@@ -115,6 +123,18 @@ public interface MessageDao {
     @Query("DELETE FROM messages WHERE id = :messageId")
     void deleteById(String messageId);
 
+    /**
+     * Deletes all messages from a specific origin device ID.
+     */
+    @Query("DELETE FROM messages WHERE origin = :originId")
+    void deleteByOrigin(String originId);
+
+    /**
+     * Marks a message as saved or unsaved.
+     */
+    @Query("UPDATE messages SET saved = :saved WHERE id = :messageId")
+    void setSaved(String messageId, boolean saved);
+
     // ──────────────────── TTL Cleanup ────────────────────
 
     /**
@@ -174,8 +194,23 @@ public interface MessageDao {
     int countByPriority(String priority);
 
     /**
+     * Approximate storage used by cached bundles in bytes.
+     * Includes text payload + key metadata with a fixed per-row overhead.
+     */
+    @Query("SELECT IFNULL(SUM(" +
+            "LENGTH(text) + " +
+            "LENGTH(content_hash) + " +
+            "IFNULL(LENGTH(scope_id), 0) + " +
+            "IFNULL(LENGTH(origin), 0) + " +
+            "IFNULL(LENGTH(seen_by_ids), 0) + " +
+            "IFNULL(LENGTH(sender_alias), 0)" +
+            "), 0) + (COUNT(*) * 64) FROM messages")
+    long estimateStorageBytes();
+
+    /**
      * Mark a message as read.
      */
     @Query("UPDATE messages SET read = 1 WHERE id = :messageId")
     void markAsRead(String messageId);
 }
+

@@ -14,6 +14,7 @@ import com.dev.echodrop.db.ChatMessageEntity;
 import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.util.DeviceIdHelper;
+import com.dev.echodrop.util.MessageStorageCapManager;
 import com.dev.echodrop.util.RoomCodeCodec;
 
 import java.util.List;
@@ -186,7 +187,10 @@ public class ChatRepo {
                 if (application != null) {
                     bundle.setOrigin(DeviceIdHelper.getDeviceId(application));
                 }
-                messageDao.insert(bundle);
+                final long rowId = messageDao.insert(bundle);
+                if (rowId > 0 && application != null) {
+                    MessageStorageCapManager.enforce(messageDao, application);
+                }
             }
         });
     }

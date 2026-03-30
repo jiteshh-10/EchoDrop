@@ -1,5 +1,7 @@
 # Changelog — Iteration 8: Private Chat Sync (Proximity-Based)
 
+> Historical scope note: this file documents Iteration 8 only. For current release behavior, see `README.md`, `CHANGELOG.md`, `doc/CHANGELOG_ITERATION_10.md`, and `doc/PROJECT_STATUS_MAR30_2026.md`.
+
 > **Branch:** `iteration-8`
 > **Date:** 2026
 > **Tests:** 446 (41 new) — 0 failures — 100% pass rate

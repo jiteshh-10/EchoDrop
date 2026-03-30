@@ -11,10 +11,13 @@
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/echo_elevated_surface"
+        app:logo="@drawable/anim_toolbar_logo"
+        app:logoDescription="@string/content_app_logo"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:title="@string/detail_title"
+        app:titleTextAppearance="@style/TextAppearance.EchoDrop.H1"
         app:titleTextColor="@color/echo_text_primary"
         app:navigationIcon="@drawable/ic_back"
         app:navigationIconTint="@color/echo_text_primary" />
@@ -60,10 +63,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/spacing_1"
-            android:fontFamily="sans-serif"
+            android:fontFamily="monospace"
             android:text="@string/detail_urgent_banner"
             android:textColor="@color/echo_alert_accent"
-            android:textSize="14sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -94,7 +97,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_badge_primary"
-                    android:fontFamily="sans-serif"
+                    android:fontFamily="monospace"
                     android:paddingLeft="8dp"
                     android:paddingTop="3dp"
                     android:paddingRight="8dp"
@@ -119,10 +122,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_3"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:lineSpacingExtra="4dp"
                 android:textColor="@color/echo_text_primary"
-                android:textSize="16sp" />
+                android:textSize="15sp" />
 
             <!-- Visible To Label -->
             <TextView
@@ -130,9 +133,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_3"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:textColor="@color/echo_text_secondary"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
 
             <!-- TTL Section -->
             <com.google.android.material.card.MaterialCardView
@@ -155,9 +158,9 @@
                         android:id="@+id/detail_ttl_label"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
+                        android:fontFamily="monospace"
                         android:textColor="@color/echo_text_primary"
-                        android:textSize="14sp" />
+                        android:textSize="13sp" />
 
                     <ProgressBar
                         android:id="@+id/detail_ttl_progress"
@@ -213,10 +216,30 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <View
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/echo_divider" />
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/detail_save_btn"
+                style="@style/Widget.EchoDrop.Button.Secondary"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height_ghost"
+                android:layout_marginEnd="@dimen/spacing_1"
+                android:layout_weight="1"
+                android:text="@string/detail_save" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/detail_report_btn"
+                style="@style/Widget.EchoDrop.Button.Danger"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height_ghost"
+                android:layout_marginStart="@dimen/spacing_1"
+                android:layout_weight="1"
+                android:text="@string/detail_report" />
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/detail_got_it_btn"

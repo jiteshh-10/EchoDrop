@@ -63,9 +63,9 @@
                 android:id="@+id/toolbar_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="monospace"
                 android:textColor="@color/echo_text_primary"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:maxLines="1"
                 android:ellipsize="end"
                 tools:text="Study Group" />
@@ -107,7 +107,7 @@
             android:id="@+id/sync_dot"
             android:layout_width="@dimen/spacing_0_75"
             android:layout_height="@dimen/spacing_0_75"
-            android:background="@drawable/bg_chat_avatar" />
+            android:background="@drawable/bg_circle" />
 
         <TextView
             android:id="@+id/sync_text"
@@ -115,7 +115,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/spacing_0_75"
             android:text="@string/chat_sync_hint"
-            android:fontFamily="sans-serif"
+            android:fontFamily="monospace"
             android:textColor="@color/echo_text_muted"
             android:textSize="11sp" />
     </LinearLayout>
@@ -147,9 +147,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/chat_conv_empty"
-        android:fontFamily="sans-serif"
+        android:fontFamily="monospace"
         android:textColor="@color/echo_text_muted"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="@id/message_list"
         app:layout_constraintBottom_toBottomOf="@id/message_list"
@@ -191,9 +191,9 @@
             android:background="@drawable/bg_chat_input"
             android:hint="@string/chat_input_hint"
             android:textColorHint="@color/echo_text_muted"
-            android:fontFamily="sans-serif"
+            android:fontFamily="monospace"
             android:textColor="@color/echo_text_primary"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:paddingHorizontal="@dimen/spacing_2"
             android:paddingVertical="@dimen/spacing_1"
             android:inputType="textCapSentences|textMultiLine"

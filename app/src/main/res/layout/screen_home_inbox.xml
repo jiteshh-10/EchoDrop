@@ -10,9 +10,21 @@
         android:layout_width="0dp"
         android:layout_height="@dimen/app_bar_height"
         android:background="@color/echo_elevated_surface"
+        app:logo="@drawable/anim_toolbar_logo"
+        app:logoDescription="@string/content_app_logo"
         android:title="@string/home_title"
         android:titleTextColor="@color/echo_text_primary"
+        app:titleTextAppearance="@style/TextAppearance.EchoDrop.H1"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <View
+        android:id="@+id/top_divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/echo_divider"
+        app:layout_constraintTop_toBottomOf="@id/home_toolbar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -25,7 +37,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="@dimen/spacing_1_5"
-        app:layout_constraintTop_toBottomOf="@id/home_toolbar"
+        app:layout_constraintTop_toBottomOf="@id/top_divider"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -73,7 +85,7 @@
                 android:fontFamily="monospace"
                 android:text="@string/sync_no_devices"
                 android:textColor="@color/echo_text_secondary"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -100,7 +112,7 @@
                 android:id="@+id/tab_all"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:text="@string/tab_all"
                 android:textColor="@color/echo_primary_accent"
                 android:textSize="14sp" />
@@ -108,7 +120,7 @@
             <View
                 android:id="@+id/tab_all_indicator"
                 android:layout_width="match_parent"
-                android:layout_height="2dp"
+                android:layout_height="3dp"
                 android:background="@color/echo_primary_accent" />
         </LinearLayout>
 
@@ -124,7 +136,7 @@
                 android:id="@+id/tab_alerts"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:text="@string/tab_alerts"
                 android:textColor="@color/echo_text_secondary"
                 android:textSize="14sp" />
@@ -132,7 +144,7 @@
             <View
                 android:id="@+id/tab_alerts_indicator"
                 android:layout_width="match_parent"
-                android:layout_height="2dp"
+                android:layout_height="3dp"
                 android:background="@color/echo_primary_accent"
                 android:visibility="invisible" />
         </LinearLayout>
@@ -149,7 +161,7 @@
                 android:id="@+id/tab_chats"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:text="@string/tab_chats"
                 android:textColor="@color/echo_text_secondary"
                 android:textSize="14sp" />
@@ -157,7 +169,7 @@
             <View
                 android:id="@+id/tab_chats_indicator"
                 android:layout_width="match_parent"
-                android:layout_height="2dp"
+                android:layout_height="3dp"
                 android:background="@color/echo_primary_accent"
                 android:visibility="invisible" />
         </LinearLayout>
@@ -200,7 +212,9 @@
             android:layout_width="80dp"
             android:layout_height="80dp"
             app:cardBackgroundColor="@color/echo_card_surface"
-            app:cardCornerRadius="40dp">
+            app:cardCornerRadius="14dp"
+            app:strokeColor="@color/echo_border"
+            app:strokeWidth="1dp">
 
             <ImageView
                 android:layout_width="32dp"
@@ -217,7 +231,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_2"
-            android:fontFamily="sans-serif"
+            android:fontFamily="monospace"
             android:text="@string/empty_state_title"
             android:textColor="@color/echo_text_primary"
             android:textSize="16sp"
@@ -240,26 +254,16 @@
         android:id="@+id/fab_post"
         android:layout_width="@dimen/fab_size"
         android:layout_height="@dimen/fab_size"
+        android:layout_marginEnd="@dimen/spacing_2"
+        android:layout_marginBottom="@dimen/spacing_3"
         android:contentDescription="@string/fab_post"
         android:src="@drawable/ic_compose"
         android:tint="@color/echo_on_primary"
         app:maxImageSize="@dimen/icon_size_default"
         app:backgroundTint="@color/echo_primary_accent"
+        app:elevation="10dp"
+        app:useCompatPadding="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_margin="@dimen/spacing_3" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_chats"
-        android:layout_width="@dimen/fab_mini_size"
-        android:layout_height="@dimen/fab_mini_size"
-        android:contentDescription="@string/fab_chats"
-        android:src="@drawable/ic_chat_bubble"
-        android:tint="@color/echo_primary_accent"
-        app:maxImageSize="20dp"
-        app:backgroundTint="@color/echo_card_surface"
-        app:borderWidth="1dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_margin="@dimen/spacing_3" />
+        android:layout_margin="@dimen/spacing_2" />
 </androidx.constraintlayout.widget.ConstraintLayout>

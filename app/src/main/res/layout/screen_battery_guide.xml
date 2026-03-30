@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Battery guide screen layout (Iteration 5) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -7,7 +6,6 @@
     android:background="@color/echo_bg_main"
     android:orientation="vertical">
 
-    <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/battery_toolbar"
         android:layout_width="match_parent"
@@ -16,9 +14,9 @@
         app:navigationIcon="@drawable/ic_back"
         app:navigationContentDescription="@string/content_back"
         app:title="@string/battery_title"
+        app:titleTextAppearance="@style/TextAppearance.EchoDrop.H1"
         app:titleTextColor="@color/echo_text_primary" />
 
-    <!-- Divider -->
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -28,7 +26,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -36,30 +35,35 @@
             android:orientation="vertical"
             android:padding="@dimen/spacing_2">
 
-            <!-- Intro card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_oem_card"
+                android:background="@drawable/bg_info_note"
                 android:orientation="vertical"
                 android:padding="@dimen/card_padding">
 
                 <TextView
+                    style="@style/TextAppearance.EchoDrop.Badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="keep mesh alive"
+                    android:textColor="@color/echo_primary_accent" />
+
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.Body"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:lineSpacingMultiplier="1.5"
+                    android:layout_marginTop="@dimen/spacing_0_75"
                     android:text="@string/battery_intro"
-                    android:textColor="@color/echo_text_secondary"
-                    android:textSize="14sp" />
+                    android:textColor="@color/echo_text_secondary" />
             </LinearLayout>
 
-            <!-- Samsung section -->
             <LinearLayout
                 android:id="@+id/section_samsung"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_2"
-                android:background="@drawable/bg_oem_card"
+                android:background="@drawable/bg_stat_card"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -70,23 +74,25 @@
                     android:gravity="center_vertical"
                     android:minHeight="@dimen/min_touch_target"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="@dimen/oem_card_padding">
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingTop="@dimen/spacing_1"
+                    android:paddingRight="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/spacing_1">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/battery_samsung"
-                        android:textColor="@color/echo_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:text="@string/battery_samsung" />
 
                     <ImageView
                         android:id="@+id/arrow_samsung"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:contentDescription="@string/content_chevron"
-                        android:src="@drawable/ic_expand" />
+                        android:src="@drawable/ic_expand"
+                        app:tint="@color/echo_text_secondary" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -94,44 +100,32 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingRight="@dimen/oem_card_padding"
                     android:paddingBottom="@dimen/oem_card_padding"
                     android:visibility="gone">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/step_indent"
-                        android:lineSpacingMultiplier="1.5"
-                        android:text="@string/battery_samsung_step1"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="13sp" />
+                        android:text="@string/battery_samsung_step1" />
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/step_indent"
                         android:layout_marginTop="@dimen/spacing_1"
-                        android:lineSpacingMultiplier="1.5"
-                        android:text="@string/battery_samsung_step2"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="13sp" />
+                        android:text="@string/battery_samsung_step2" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="@dimen/spacing_0_25"
-                android:background="@color/echo_divider" />
-
-            <!-- Xiaomi / MIUI section -->
             <LinearLayout
                 android:id="@+id/section_xiaomi"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_oem_card"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -142,23 +136,25 @@
                     android:gravity="center_vertical"
                     android:minHeight="@dimen/min_touch_target"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="@dimen/oem_card_padding">
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingTop="@dimen/spacing_1"
+                    android:paddingRight="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/spacing_1">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/battery_xiaomi"
-                        android:textColor="@color/echo_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:text="@string/battery_xiaomi" />
 
                     <ImageView
                         android:id="@+id/arrow_xiaomi"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:contentDescription="@string/content_chevron"
-                        android:src="@drawable/ic_expand" />
+                        android:src="@drawable/ic_expand"
+                        app:tint="@color/echo_text_secondary" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -166,44 +162,32 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingRight="@dimen/oem_card_padding"
                     android:paddingBottom="@dimen/oem_card_padding"
                     android:visibility="gone">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/step_indent"
-                        android:lineSpacingMultiplier="1.5"
-                        android:text="@string/battery_xiaomi_step1"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="13sp" />
+                        android:text="@string/battery_xiaomi_step1" />
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/step_indent"
                         android:layout_marginTop="@dimen/spacing_1"
-                        android:lineSpacingMultiplier="1.5"
-                        android:text="@string/battery_xiaomi_step2"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="13sp" />
+                        android:text="@string/battery_xiaomi_step2" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="@dimen/spacing_0_25"
-                android:background="@color/echo_divider" />
-
-            <!-- OnePlus / OxygenOS section -->
             <LinearLayout
                 android:id="@+id/section_oneplus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_oem_card"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -214,23 +198,25 @@
                     android:gravity="center_vertical"
                     android:minHeight="@dimen/min_touch_target"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="@dimen/oem_card_padding">
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingTop="@dimen/spacing_1"
+                    android:paddingRight="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/spacing_1">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/battery_oneplus"
-                        android:textColor="@color/echo_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:text="@string/battery_oneplus" />
 
                     <ImageView
                         android:id="@+id/arrow_oneplus"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:contentDescription="@string/content_chevron"
-                        android:src="@drawable/ic_expand" />
+                        android:src="@drawable/ic_expand"
+                        app:tint="@color/echo_text_secondary" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -238,34 +224,25 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingRight="@dimen/oem_card_padding"
                     android:paddingBottom="@dimen/oem_card_padding"
                     android:visibility="gone">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/step_indent"
-                        android:lineSpacingMultiplier="1.5"
-                        android:text="@string/battery_oneplus_step1"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="13sp" />
+                        android:text="@string/battery_oneplus_step1" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="@dimen/spacing_0_25"
-                android:background="@color/echo_divider" />
-
-            <!-- Realme / ColorOS section -->
             <LinearLayout
                 android:id="@+id/section_realme"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_oem_card"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -276,23 +253,25 @@
                     android:gravity="center_vertical"
                     android:minHeight="@dimen/min_touch_target"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="@dimen/oem_card_padding">
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingTop="@dimen/spacing_1"
+                    android:paddingRight="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/spacing_1">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/battery_realme"
-                        android:textColor="@color/echo_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:text="@string/battery_realme" />
 
                     <ImageView
                         android:id="@+id/arrow_realme"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:contentDescription="@string/content_chevron"
-                        android:src="@drawable/ic_expand" />
+                        android:src="@drawable/ic_expand"
+                        app:tint="@color/echo_text_secondary" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -300,44 +279,33 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingRight="@dimen/oem_card_padding"
                     android:paddingBottom="@dimen/oem_card_padding"
                     android:visibility="gone">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/step_indent"
-                        android:lineSpacingMultiplier="1.5"
-                        android:text="@string/battery_realme_step1"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="13sp" />
+                        android:text="@string/battery_realme_step1" />
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/step_indent"
                         android:layout_marginTop="@dimen/spacing_1"
-                        android:lineSpacingMultiplier="1.5"
-                        android:text="@string/battery_realme_step2"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="13sp" />
+                        android:text="@string/battery_realme_step2" />
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="@dimen/spacing_0_25"
-                android:background="@color/echo_divider" />
-
-            <!-- Stock Android section -->
             <LinearLayout
                 android:id="@+id/section_stock"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_oem_card"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:layout_marginBottom="@dimen/spacing_2"
+                android:background="@drawable/bg_stat_card"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -348,23 +316,25 @@
                     android:gravity="center_vertical"
                     android:minHeight="@dimen/min_touch_target"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="@dimen/oem_card_padding">
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingTop="@dimen/spacing_1"
+                    android:paddingRight="@dimen/oem_card_padding"
+                    android:paddingBottom="@dimen/spacing_1">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/battery_stock"
-                        android:textColor="@color/echo_text_primary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:text="@string/battery_stock" />
 
                     <ImageView
                         android:id="@+id/arrow_stock"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:contentDescription="@string/content_chevron"
-                        android:src="@drawable/ic_expand" />
+                        android:src="@drawable/ic_expand"
+                        app:tint="@color/echo_text_secondary" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -372,30 +342,40 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingHorizontal="@dimen/oem_card_padding"
+                    android:paddingLeft="@dimen/oem_card_padding"
+                    android:paddingRight="@dimen/oem_card_padding"
                     android:paddingBottom="@dimen/oem_card_padding"
                     android:visibility="gone">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/step_indent"
-                        android:lineSpacingMultiplier="1.5"
-                        android:text="@string/battery_stock_step1"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="13sp" />
+                        android:text="@string/battery_stock_step1" />
                 </LinearLayout>
             </LinearLayout>
-
         </LinearLayout>
     </ScrollView>
 
-    <!-- Done button -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_done"
-        style="@style/Widget.EchoDrop.Button.Primary"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="@dimen/button_height_primary"
-        android:layout_margin="@dimen/spacing_2"
-        android:text="@string/battery_done" />
+        android:layout_height="wrap_content"
+        android:paddingLeft="@dimen/spacing_2"
+        android:paddingTop="@dimen/spacing_1"
+        android:paddingRight="@dimen/spacing_2"
+        android:paddingBottom="@dimen/spacing_2">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/echo_divider" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_done"
+            style="@style/Widget.EchoDrop.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height_primary"
+            android:layout_marginTop="@dimen/spacing_2"
+            android:text="@string/battery_done" />
+    </LinearLayout>
 </LinearLayout>

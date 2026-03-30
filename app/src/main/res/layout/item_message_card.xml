@@ -36,10 +36,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:fontFamily="sans-serif"
+            android:fontFamily="monospace"
             android:maxLines="2"
             android:textColor="@color/echo_text_primary"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -53,7 +53,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_badge_primary"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:paddingLeft="6dp"
                 android:paddingTop="2dp"
                 android:paddingRight="6dp"
@@ -67,7 +67,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_badge_alert"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:paddingLeft="6dp"
                 android:paddingTop="2dp"
                 android:paddingRight="6dp"
@@ -89,9 +89,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:textColor="@color/echo_text_secondary"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 

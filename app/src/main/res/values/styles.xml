@@ -1,130 +1,145 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- ═══ Typography — Iteration 9: DM Sans + JetBrains Mono ═══ -->
-    <!-- DM Sans mapped to sans-serif (clean geometric), JetBrains Mono mapped to monospace -->
+    <!-- HTML-aligned typography -->
 
-    <!-- Display — 24sp, weight 600, onboarding headline only -->
+    <!-- Display -->
     <style name="TextAppearance.EchoDrop.Display" parent="TextAppearance.Material3.DisplaySmall">
-        <item name="fontFamily">sans-serif-medium</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:textSize">24sp</item>
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">22sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/echo_text_primary</item>
-        <item name="android:letterSpacing">-0.01</item>
-        <item name="android:lineSpacingMultiplier">1.3</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
     </style>
 
-    <!-- H1 App Title — 20sp, Medium (500), tight tracking -->
+    <!-- H1 -->
     <style name="TextAppearance.EchoDrop.H1" parent="TextAppearance.Material3.TitleLarge">
-        <item name="fontFamily">sans-serif-medium</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:textSize">20sp</item>
-        <item name="android:textColor">@color/echo_text_primary</item>
-        <item name="android:letterSpacing">-0.01</item>
-        <item name="android:lineSpacingMultiplier">1.3</item>
-    </style>
-
-    <!-- H2 / Headline — 18sp, weight 500, screen titles -->
-    <style name="TextAppearance.EchoDrop.H2" parent="TextAppearance.Material3.TitleMedium">
-        <item name="fontFamily">sans-serif-medium</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
         <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/echo_text_primary</item>
-        <item name="android:letterSpacing">-0.01</item>
-        <item name="android:lineSpacingMultiplier">1.3</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:lineSpacingMultiplier">1.25</item>
     </style>
 
-    <!-- Body Large — 16sp, Regular, onboarding copy -->
+    <!-- H2 -->
+    <style name="TextAppearance.EchoDrop.H2" parent="TextAppearance.Material3.TitleMedium">
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/echo_text_primary</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:lineSpacingMultiplier">1.25</item>
+    </style>
+
+    <!-- Body Large -->
     <style name="TextAppearance.EchoDrop.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
         <item name="fontFamily">sans-serif</item>
         <item name="android:fontFamily">sans-serif</item>
-        <item name="android:textSize">16sp</item>
+        <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/echo_text_primary</item>
         <item name="android:letterSpacing">0</item>
-        <item name="android:lineSpacingMultiplier">1.5</item>
+        <item name="android:lineSpacingMultiplier">1.6</item>
     </style>
 
-    <!-- Body — 14sp, Regular, all primary content -->
+    <!-- Body -->
     <style name="TextAppearance.EchoDrop.Body" parent="TextAppearance.Material3.BodyMedium">
         <item name="fontFamily">sans-serif</item>
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/echo_text_primary</item>
         <item name="android:letterSpacing">0</item>
-        <item name="android:lineSpacingMultiplier">1.5</item>
+        <item name="android:lineSpacingMultiplier">1.6</item>
     </style>
 
-    <!-- Caption — 12sp, Regular, timestamps/metadata/badges -->
+    <!-- Caption -->
     <style name="TextAppearance.EchoDrop.Small" parent="TextAppearance.Material3.BodySmall">
         <item name="fontFamily">sans-serif</item>
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:textSize">12sp</item>
         <item name="android:textColor">@color/echo_text_secondary</item>
         <item name="android:letterSpacing">0.01</item>
-        <item name="android:lineSpacingMultiplier">1.4</item>
+        <item name="android:lineSpacingMultiplier">1.5</item>
     </style>
 
-    <!-- Mono — 13sp, weight 500, codes/countdowns/debug -->
+    <!-- Mono -->
     <style name="TextAppearance.EchoDrop.Mono" parent="TextAppearance.Material3.BodyMedium">
         <item name="fontFamily">monospace</item>
         <item name="android:fontFamily">monospace</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">11sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/echo_text_primary</item>
         <item name="android:letterSpacing">0</item>
         <item name="android:lineSpacingMultiplier">1.4</item>
     </style>
 
-    <!-- Button — 14sp, weight 500 -->
+    <!-- Button -->
     <style name="TextAppearance.EchoDrop.Button" parent="TextAppearance.Material3.LabelLarge">
-        <item name="fontFamily">sans-serif-medium</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:textSize">14sp</item>
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/echo_text_primary</item>
-        <item name="android:letterSpacing">0</item>
+        <item name="android:letterSpacing">0.02</item>
     </style>
 
-    <!-- Badge — 11sp, weight 500, pill-shaped labels -->
+    <!-- Badge -->
     <style name="TextAppearance.EchoDrop.Badge" parent="TextAppearance.Material3.LabelSmall">
-        <item name="fontFamily">sans-serif-medium</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:textSize">11sp</item>
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">9sp</item>
         <item name="android:letterSpacing">0.02</item>
     </style>
 
     <!-- ═══ Button Styles ═══ -->
 
-    <!-- Primary button: accent bg, white text, 52dp, 12dp radius -->
+    <!-- Primary button -->
     <style name="Widget.EchoDrop.Button.Primary" parent="Widget.Material3.Button">
-        <item name="android:minHeight">52dp</item>
-        <item name="cornerRadius">12dp</item>
+        <item name="android:minHeight">50dp</item>
+        <item name="cornerRadius">10dp</item>
         <item name="backgroundTint">@color/echo_primary_accent</item>
         <item name="android:textColor">@color/echo_on_primary</item>
-        <item name="android:textSize">14sp</item>
-        <item name="fontFamily">sans-serif-medium</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
     </style>
 
-    <!-- Secondary button: transparent bg, accent border, accent text -->
+    <!-- Secondary button -->
     <style name="Widget.EchoDrop.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
-        <item name="android:minHeight">52dp</item>
-        <item name="cornerRadius">12dp</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="cornerRadius">10dp</item>
         <item name="strokeColor">@color/echo_btn_secondary_border</item>
         <item name="strokeWidth">1dp</item>
         <item name="android:textColor">@color/echo_primary_accent</item>
-        <item name="android:textSize">14sp</item>
-        <item name="fontFamily">sans-serif-medium</item>
-        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">11sp</item>
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
     </style>
 
-    <!-- Ghost button: no bg, no border, secondary text -->
+    <!-- Danger outlined button -->
+    <style name="Widget.EchoDrop.Button.Danger" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">44dp</item>
+        <item name="cornerRadius">10dp</item>
+        <item name="strokeColor">@color/echo_alert_border_tint</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">@color/echo_alert_accent</item>
+        <item name="android:textSize">11sp</item>
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+
+    <!-- Ghost button -->
     <style name="Widget.EchoDrop.Button.Ghost" parent="Widget.Material3.Button.TextButton">
         <item name="android:minHeight">44dp</item>
-        <item name="android:textColor">@color/echo_text_secondary</item>
-        <item name="android:textSize">14sp</item>
-        <item name="fontFamily">sans-serif</item>
-        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">@color/echo_primary_accent</item>
+        <item name="android:textSize">11sp</item>
+        <item name="fontFamily">monospace</item>
+        <item name="android:fontFamily">monospace</item>
     </style>
 
     <!-- ═══ BottomSheet ═══ -->
@@ -146,8 +161,8 @@
 
     <style name="ShapeAppearance.EchoDrop.BottomSheet" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSizeTopLeft">20dp</item>
-        <item name="cornerSizeTopRight">20dp</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
         <item name="cornerSizeBottomLeft">0dp</item>
         <item name="cornerSizeBottomRight">0dp</item>
     </style>

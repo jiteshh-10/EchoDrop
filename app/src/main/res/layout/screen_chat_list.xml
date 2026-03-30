@@ -36,21 +36,23 @@
             android:layout_weight="1"
             android:layout_marginStart="@dimen/spacing_1"
             android:text="@string/chat_list_title"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="monospace"
             android:textColor="@color/echo_text_primary"
-            android:textSize="18sp" />
+            android:textSize="17sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/btn_join"
             android:layout_width="wrap_content"
-            android:layout_height="@dimen/min_touch_target"
+            android:layout_height="34dp"
             android:gravity="center"
-            android:paddingHorizontal="@dimen/spacing_2"
+            android:paddingLeft="@dimen/spacing_2"
+            android:paddingRight="@dimen/spacing_2"
+            android:background="@drawable/bg_badge_primary"
             android:text="@string/chat_join_button"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="monospace"
             android:textColor="@color/echo_primary_accent"
-            android:textSize="14sp"
-            android:background="?attr/selectableItemBackground" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <View
@@ -69,9 +71,9 @@
         android:layout_marginHorizontal="@dimen/spacing_2"
         android:layout_marginTop="8dp"
         android:text="@string/chat_manage_hint"
-        android:fontFamily="sans-serif"
+        android:fontFamily="monospace"
         android:textColor="@color/echo_text_muted"
-        android:textSize="12sp"
+        android:textSize="11sp"
         app:layout_constraintTop_toBottomOf="@id/toolbar_divider"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -107,9 +109,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/chat_empty_title"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="monospace"
             android:textColor="@color/echo_text_secondary"
-            android:textSize="16sp" />
+            android:textSize="15sp" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -128,11 +130,14 @@
         android:id="@+id/fab_new_chat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="@dimen/spacing_2"
+        android:layout_marginEnd="@dimen/spacing_2"
+        android:layout_marginBottom="@dimen/spacing_3"
         android:text="@string/chat_fab_new"
         android:textColor="@color/echo_on_primary"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="monospace"
         app:backgroundTint="@color/echo_primary_accent"
+        app:elevation="10dp"
+        app:icon="@drawable/ic_compose"
         app:iconTint="@color/echo_on_primary"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
