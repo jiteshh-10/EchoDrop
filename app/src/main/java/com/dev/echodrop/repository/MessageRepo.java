@@ -80,6 +80,13 @@ public class MessageRepo {
     }
 
     /**
+     * Returns saved, non-expired messages as LiveData.
+     */
+    public LiveData<List<MessageEntity>> getSavedMessages() {
+        return dao.getSavedMessages(System.currentTimeMillis());
+    }
+
+    /**
      * Returns a reactive count of non-expired ALERT messages.
      */
     public LiveData<Integer> getAlertCount() {
@@ -162,10 +169,24 @@ public class MessageRepo {
     }
 
     /**
+     * Delete all messages from the given origin device.
+     */
+    public void deleteByOrigin(String originId) {
+        executor.execute(() -> dao.deleteByOrigin(originId));
+    }
+
+    /**
      * Mark a message as read.
      */
     public void markAsRead(String messageId) {
         executor.execute(() -> dao.markAsRead(messageId));
+    }
+
+    /**
+     * Toggle saved state for a specific message.
+     */
+    public void setSaved(String messageId, boolean saved) {
+        executor.execute(() -> dao.setSaved(messageId, saved));
     }
 
     // ──────────────────── TTL Cleanup ────────────────────

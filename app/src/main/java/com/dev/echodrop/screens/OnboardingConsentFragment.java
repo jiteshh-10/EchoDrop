@@ -34,7 +34,7 @@ public class OnboardingConsentFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        binding.onboardingPrimaryButton.setOnClickListener(v -> navigateToHowItWorks());
+        binding.onboardingPrimaryButton.setOnClickListener(v -> navigateToPermissions());
         binding.onboardingSecondaryLink.setOnClickListener(v -> navigateToHowItWorks());
         binding.onboardingSkip.setOnClickListener(v -> navigateToHome());
 
@@ -88,6 +88,12 @@ public class OnboardingConsentFragment extends Fragment {
     private void navigateToHowItWorks() {
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).showHowItWorks();
+        }
+    }
+
+    private void navigateToPermissions() {
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showPermissions();
         }
     }
 

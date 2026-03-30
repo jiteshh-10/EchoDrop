@@ -75,6 +75,9 @@ public class MessageEntity {
     @ColumnInfo(name = "read")
     private boolean read;
 
+    @ColumnInfo(name = "saved", defaultValue = "0")
+    private boolean saved;
+
     @NonNull
     @ColumnInfo(name = "content_hash")
     private String contentHash;
@@ -130,6 +133,7 @@ public class MessageEntity {
         this.createdAt = createdAt;
         this.expiresAt = expiresAt;
         this.read = read;
+        this.saved = false;
         this.contentHash = contentHash;
         this.type = TYPE_BROADCAST;
         this.scopeId = "";
@@ -311,6 +315,10 @@ public class MessageEntity {
     public boolean isRead() { return read; }
 
     public void setRead(boolean read) { this.read = read; }
+
+    public boolean isSaved() { return saved; }
+
+    public void setSaved(boolean saved) { this.saved = saved; }
 
     @NonNull
     public String getContentHash() { return contentHash; }

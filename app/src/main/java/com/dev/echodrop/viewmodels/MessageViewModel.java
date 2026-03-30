@@ -23,12 +23,14 @@ public class MessageViewModel extends AndroidViewModel {
 
     private final MessageRepo repo;
     private final LiveData<List<MessageEntity>> messages;
+    private final LiveData<List<MessageEntity>> savedMessages;
     private final LiveData<Integer> alertCount;
 
     public MessageViewModel(@NonNull Application application) {
         super(application);
         repo = new MessageRepo(application);
         messages = repo.getActiveMessages();
+        savedMessages = repo.getSavedMessages();
         alertCount = repo.getAlertCount();
     }
 
@@ -39,6 +41,7 @@ public class MessageViewModel extends AndroidViewModel {
         super(application);
         this.repo = repo;
         this.messages = repo.getActiveMessages();
+        this.savedMessages = repo.getSavedMessages();
         this.alertCount = repo.getAlertCount();
     }
 
@@ -48,6 +51,13 @@ public class MessageViewModel extends AndroidViewModel {
      */
     public LiveData<List<MessageEntity>> getMessages() {
         return messages;
+    }
+
+    /**
+     * Returns LiveData of saved, non-expired messages.
+     */
+    public LiveData<List<MessageEntity>> getSavedMessages() {
+        return savedMessages;
     }
 
     /**

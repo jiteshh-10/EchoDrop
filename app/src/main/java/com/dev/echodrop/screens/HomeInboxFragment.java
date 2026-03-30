@@ -43,7 +43,7 @@ import com.dev.echodrop.databinding.ScreenHomeInboxBinding;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.MessageRepo;
 import com.dev.echodrop.service.EchoService;
-import com.dev.echodrop.util.MessageNotificationHelper;
+import com.dev.echodrop.util.ToolbarLogoAnimator;
 import com.dev.echodrop.viewmodels.MessageViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -246,11 +246,16 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     }
 
     private void setupToolbar() {
+        ToolbarLogoAnimator.apply(binding.homeToolbar);
         binding.homeToolbar.inflateMenu(R.menu.home_menu);
         binding.homeToolbar.setOnMenuItemClickListener(this::onMenuItemClicked);
     }
 
     private boolean onMenuItemClicked(MenuItem item) {
+        if (item.getItemId() == R.id.action_saved) {
+            navigateToSaved();
+            return true;
+        }
         if (item.getItemId() == R.id.action_settings) {
             navigateToSettings();
             return true;
@@ -486,7 +491,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
      * Overrides the normal peer count display until prerequisites are met.
      */
     private void updatePrerequisiteWarning(boolean btOn, boolean p2pOn) {
-        if (btOn) {
+        if (btOn && p2pOn) {
             // Prerequisites met — restore normal peer count display
             // Let the next peer count callback handle it
             return;
@@ -499,7 +504,7 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         binding.syncDot.setVisibility(View.VISIBLE);
         binding.syncDot.setBackgroundTintList(
                 ContextCompat.getColorStateList(requireContext(), R.color.echo_amber_accent));
-        binding.syncText.setText(R.string.sync_bt_off);
+        binding.syncText.setText(btOn ? R.string.sync_wifi_off : R.string.sync_bt_off);
         binding.syncText.setTextColor(
                 ContextCompat.getColor(requireContext(), R.color.echo_amber_accent));
     }
@@ -513,11 +518,10 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     @Override
     public void onPost(MessageEntity entity) {
         if (viewModel != null) {
-            final android.content.Context appContext = requireContext().getApplicationContext();
             viewModel.addMessage(entity, new MessageRepo.InsertCallback() {
                 @Override
                 public void onInserted() {
-                    MessageNotificationHelper.notifyOutgoingBroadcast(appContext, entity.getText());
+                    // Receiver-only notification policy: local sends do not notify.
                 }
 
                 @Override
@@ -567,6 +571,13 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     private void navigateToChatList() {
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).showChatList();
+        }
+    }
+
+    /** Navigate to the Saved messages screen. */
+    private void navigateToSaved() {
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showSavedMessages();
         }
     }
 }

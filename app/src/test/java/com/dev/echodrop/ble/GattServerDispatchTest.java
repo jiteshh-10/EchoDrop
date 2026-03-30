@@ -17,8 +17,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Unit tests for GATT packet helpers and server-side dispatch behavior.
@@ -103,6 +106,50 @@ public class GattServerDispatchTest {
                 new byte[0]);
 
         assertEquals("22:33:44:55:66:77", callback.completedAddress);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void buildManifestPayload_largeSet_usesCompactBinaryAndParsesBack() throws Exception {
+        final Set<String> ids = new HashSet<>();
+        for (int i = 0; i < 20; i++) {
+            ids.add(UUID.randomUUID().toString());
+        }
+
+        final Field manifestField = GattServer.class.getDeclaredField("localManifest");
+        manifestField.setAccessible(true);
+        manifestField.set(gattServer, ids);
+
+        final Method buildPayload = GattServer.class.getDeclaredMethod("buildManifestPayload");
+        buildPayload.setAccessible(true);
+        final byte[] payload = (byte[]) buildPayload.invoke(gattServer);
+
+        assertNotNull(payload);
+        assertTrue(payload.length <= GattTransferProtocol.MAX_CHUNK_SIZE);
+        assertTrue(payload[0] != '{');
+
+        final Method parsePayload = GattServer.class.getDeclaredMethod(
+                "parseRemoteManifest", byte[].class);
+        parsePayload.setAccessible(true);
+        final Set<String> parsed = (Set<String>) parsePayload.invoke(gattServer, payload);
+
+        assertEquals(ids, parsed);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void parseRemoteManifest_legacyJsonStillSupported() throws Exception {
+        final Method parsePayload = GattServer.class.getDeclaredMethod(
+                "parseRemoteManifest", byte[].class);
+        parsePayload.setAccessible(true);
+
+        final byte[] json = "{\"have\":[\"id-a\",\"id-b\"]}"
+                .getBytes(StandardCharsets.UTF_8);
+        final Set<String> parsed = (Set<String>) parsePayload.invoke(gattServer, json);
+
+        assertEquals(2, parsed.size());
+        assertTrue(parsed.contains("id-a"));
+        assertTrue(parsed.contains("id-b"));
     }
 
     private static final class TestTransferCallback implements GattServer.TransferCallback {

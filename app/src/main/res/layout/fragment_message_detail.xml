@@ -11,6 +11,8 @@
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/echo_elevated_surface"
+        app:logo="@drawable/anim_toolbar_logo"
+        app:logoDescription="@string/content_app_logo"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -213,6 +215,31 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/detail_save_btn"
+                style="@style/Widget.EchoDrop.Button.Secondary"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height_ghost"
+                android:layout_marginEnd="@dimen/spacing_1"
+                android:layout_weight="1"
+                android:text="@string/detail_save" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/detail_report_btn"
+                style="@style/Widget.EchoDrop.Button.Danger"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height_ghost"
+                android:layout_marginStart="@dimen/spacing_1"
+                android:layout_weight="1"
+                android:text="@string/detail_report" />
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/detail_got_it_btn"

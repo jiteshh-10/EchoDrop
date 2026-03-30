@@ -23,7 +23,10 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <h3>Protocol (client-initiated):</h3>
  * <ol>
  *   <li>Client connects, requests MTU 517, discovers services</li>
- *   <li>Client writes its manifest JSON to {@link #MANIFEST_CHAR_UUID}</li>
+ *   <li>Client writes its manifest payload to {@link #MANIFEST_CHAR_UUID}</li>
  *   <li>Client reads the remote manifest from {@link #MANIFEST_CHAR_UUID}</li>
  *   <li>Bidirectional diff: {@code remoteNeedsFromMe} + {@code iNeedFromRemote}</li>
  *   <li>Client pushes bundles via TRANSFER_CHAR (TYPE_BUNDLE_PUSH) for remoteNeedsFromMe</li>
@@ -49,7 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <h3>Server side:</h3>
  * <ul>
- *   <li>MANIFEST_CHAR READ → returns local manifest JSON</li>
+ *   <li>MANIFEST_CHAR READ → returns local manifest payload (JSON or compact binary)</li>
  *   <li>MANIFEST_CHAR WRITE → no-op (acknowledgement only)</li>
  *   <li>TRANSFER_CHAR WRITE (BUNDLE_PUSH) → calls {@code onBundleReceived}</li>
  *   <li>TRANSFER_CHAR WRITE (BUNDLE_REQUEST) → looks up bundle, prepares read response</li>
@@ -67,6 +70,22 @@ public class GattServer {
     /** Characteristic UUID for manifest exchange. */
     public static final UUID MANIFEST_CHAR_UUID =
             UUID.fromString("ed000002-0000-1000-8000-00805f9b34fb");
+
+        /** Compact binary manifest version marker. */
+        private static final byte MANIFEST_BINARY_V1 = 0x01;
+
+        /** Binary manifest header: version (1) + count (2). */
+        private static final int MANIFEST_BINARY_HEADER_SIZE = 3;
+
+        /** Binary manifest ID width (UUID bytes). */
+        private static final int MANIFEST_BINARY_ID_BYTES = 16;
+
+        /** Keep payload within a conservative characteristic write size budget. */
+        private static final int MANIFEST_WRITE_BUDGET_BYTES = 512;
+
+        /** Max IDs that fit in compact binary payload under the write budget. */
+        private static final int MAX_BINARY_MANIFEST_IDS =
+            (MANIFEST_WRITE_BUDGET_BYTES - MANIFEST_BINARY_HEADER_SIZE) / MANIFEST_BINARY_ID_BYTES;
 
     private final Context context;
     private final Handler handler;
@@ -206,7 +225,7 @@ public class GattServer {
             final UUID charUuid = characteristic.getUuid();
 
             if (MANIFEST_CHAR_UUID.equals(charUuid)) {
-                final byte[] manifest = buildManifestJson();
+                final byte[] manifest = buildManifestPayload();
                 sendReadResponse(device, requestId, offset, manifest);
                 Timber.tag(TAG).d("ED:GATT_SRV_READ_MANIFEST addr=%s offset=%d len=%d",
                         device.getAddress(), offset, manifest.length);
@@ -281,7 +300,9 @@ public class GattServer {
             gattServer.sendResponse(device, requestId,
                     BluetoothGatt.GATT_SUCCESS, offset, new byte[0]);
         } else {
-            final byte[] chunk = new byte[data.length - offset];
+            final int remaining = data.length - offset;
+            final int chunkLen = Math.min(remaining, GattTransferProtocol.MAX_CHUNK_SIZE);
+            final byte[] chunk = new byte[chunkLen];
             System.arraycopy(data, offset, chunk, 0, chunk.length);
             gattServer.sendResponse(device, requestId,
                     BluetoothGatt.GATT_SUCCESS, offset, chunk);
@@ -496,6 +517,11 @@ public class GattServer {
                 if (mtuFallback != null) handler.removeCallbacks(mtuFallback);
                 handler.removeCallbacks(timeoutRunnable);
                 connectingDevices.remove(addr);
+
+                if (!sessionEnded && transferCallback != null) {
+                    transferCallback.onGattError(addr, "unexpected_disconnect_status_" + status);
+                }
+
                 gatt.close();
                 Timber.tag(TAG).i("ED:GATT_CLI_DISCONNECTED addr=%s status=%d", addr, status);
             }
@@ -530,8 +556,10 @@ public class GattServer {
 
             // Step 1: Write our manifest
             final BluetoothGattCharacteristic mc = svc.getCharacteristic(MANIFEST_CHAR_UUID);
-            mc.setValue(buildManifestJson());
-            gatt.writeCharacteristic(mc);
+            mc.setValue(buildManifestPayload());
+            if (!startWrite(gatt, mc, "manifest")) {
+                return;
+            }
         }
 
         // ── Characteristic callbacks ──
@@ -551,7 +579,9 @@ public class GattServer {
             if (MANIFEST_CHAR_UUID.equals(ch.getUuid())) {
                 // Manifest written → read remote manifest
                 Timber.tag(TAG).d("ED:GATT_MANIFEST_WRITE_OK addr=%s", addr);
-                gatt.readCharacteristic(ch);
+                if (!startRead(gatt, ch, "manifest")) {
+                    return;
+                }
                 return;
             }
 
@@ -559,14 +589,18 @@ public class GattServer {
                 // Chunk was written — send next chunk if available
                 if (!chunkQueue.isEmpty()) {
                     ch.setValue(chunkQueue.poll());
-                    gatt.writeCharacteristic(ch);
+                    if (!startWrite(gatt, ch, "transfer_chunk")) {
+                        return;
+                    }
                     return;
                 }
 
                 // All chunks for this packet sent
                 if (awaitingRequestResponse) {
                     // We just finished writing a BUNDLE_REQUEST → read the response
-                    gatt.readCharacteristic(ch);
+                    if (!startRead(gatt, ch, "transfer_response")) {
+                        return;
+                    }
                 } else if (transferCompleted) {
                     // TRANSFER_COMPLETE write confirmed — finish the session
                     finishSession(gatt);
@@ -589,7 +623,8 @@ public class GattServer {
 
                     // ATT read response max payload = MTU - 1.
                     // If chunk fills that capacity, there may be more data.
-                    final int attMaxPayload = negotiatedMtu - 1;
+                    final int attMaxPayload = Math.max(0,
+                            Math.min(negotiatedMtu - 1, GattTransferProtocol.MAX_CHUNK_SIZE));
                     if (chunk.length >= attMaxPayload && attMaxPayload > 0) {
                         // Issue a long read with the accumulated offset
                         Timber.tag(TAG).d("ED:GATT_MANIFEST_PART addr=%s offset=%d len=%d",
@@ -601,7 +636,9 @@ public class GattServer {
                         // Read Blob Request automatically for long reads.
                         // We call readCharacteristic again; the BLE stack
                         // internally sends ATT Read Blob Request with offset.
-                        gatt.readCharacteristic(ch);
+                        if (!startRead(gatt, ch, "manifest_blob")) {
+                            return;
+                        }
                         return;
                     }
 
@@ -633,14 +670,7 @@ public class GattServer {
 
         private void onRemoteManifestReceived(BluetoothGatt gatt, byte[] data) {
             try {
-                final String json = new String(data, StandardCharsets.UTF_8);
-                final JSONObject obj = new JSONObject(json);
-                final JSONArray arr = obj.getJSONArray("have");
-
-                final Set<String> remoteIds = new HashSet<>();
-                for (int i = 0; i < arr.length(); i++) {
-                    remoteIds.add(arr.getString(i));
-                }
+                final Set<String> remoteIds = parseRemoteManifest(data);
 
                 // Bidirectional diff
                 iNeedFromRemote = new ArrayList<>();
@@ -671,7 +701,9 @@ public class GattServer {
 
                 if (iNeedFromRemote.isEmpty() && remoteNeedsFromMe.isEmpty()) {
                     Timber.tag(TAG).d("ED:GATT_ALREADY_SYNCED addr=%s", addr);
-                    finishSession(gatt);
+                    pushIdx = 0;
+                    reqIdx = 0;
+                    advanceTransfer(gatt);
                     return;
                 }
 
@@ -757,7 +789,9 @@ public class GattServer {
                 // Single-chunk packet
                 final byte[] pkt = buildPacket(type, payload);
                 tc.setValue(pkt);
-                gatt.writeCharacteristic(tc);
+                if (!startWrite(gatt, tc, "transfer_single_chunk")) {
+                    return;
+                }
             } else {
                 // Multi-chunk
                 int offset = 0;
@@ -779,7 +813,9 @@ public class GattServer {
                 }
                 // Send the first chunk immediately
                 tc.setValue(chunkQueue.poll());
-                gatt.writeCharacteristic(tc);
+                if (!startWrite(gatt, tc, "transfer_first_chunk")) {
+                    return;
+                }
             }
         }
 
@@ -830,14 +866,54 @@ public class GattServer {
             }
             gatt.disconnect();
         }
+
+        private boolean startWrite(BluetoothGatt gatt,
+                                   BluetoothGattCharacteristic characteristic,
+                                   String operation) {
+            final boolean started = gatt.writeCharacteristic(characteristic);
+            if (!started) {
+                Timber.tag(TAG).w("ED:GATT_WRITE_START_FAIL addr=%s op=%s uuid=%s",
+                        addr, operation, characteristic.getUuid());
+                finishWithError(gatt, operation + "_write_start_failed");
+            }
+            return started;
+        }
+
+        private boolean startRead(BluetoothGatt gatt,
+                                  BluetoothGattCharacteristic characteristic,
+                                  String operation) {
+            final boolean started = gatt.readCharacteristic(characteristic);
+            if (!started) {
+                Timber.tag(TAG).w("ED:GATT_READ_START_FAIL addr=%s op=%s uuid=%s",
+                        addr, operation, characteristic.getUuid());
+                finishWithError(gatt, operation + "_read_start_failed");
+            }
+            return started;
+        }
     }
 
     // ══════════════════════════════════════════════════════════
     //  COMMON HELPERS
     // ══════════════════════════════════════════════════════════
 
+    /**
+     * Builds a manifest payload for GATT exchange.
+     * Uses JSON while it fits in the write budget, otherwise switches to compact binary.
+     */
+    private byte[] buildManifestPayload() {
+        final byte[] json = buildManifestJsonPayload();
+        if (json.length <= MANIFEST_WRITE_BUDGET_BYTES) {
+            return json;
+        }
+
+        final byte[] compact = buildManifestBinaryPayload();
+        Timber.tag(TAG).w("ED:GATT_MANIFEST_FMT format=binary local=%d json_len=%d bin_len=%d",
+                localManifest.size(), json.length, compact.length);
+        return compact;
+    }
+
     /** Builds manifest JSON bytes: {"have":["id1","id2",...]} */
-    private byte[] buildManifestJson() {
+    private byte[] buildManifestJsonPayload() {
         try {
             final JSONObject obj = new JSONObject();
             final JSONArray arr = new JSONArray();
@@ -849,6 +925,121 @@ public class GattServer {
         } catch (Exception e) {
             Timber.tag(TAG).e(e, "ED:GATT_MANIFEST_BUILD_ERR");
             return "{\"have\":[]}".getBytes(StandardCharsets.UTF_8);
+        }
+    }
+
+    /** Builds compact binary manifest payload with UUID-packed IDs. */
+    private byte[] buildManifestBinaryPayload() {
+        final List<String> ids = new ArrayList<>(localManifest);
+        Collections.sort(ids);
+
+        final int count = Math.min(ids.size(), MAX_BINARY_MANIFEST_IDS);
+        if (ids.size() > count) {
+            Timber.tag(TAG).w("ED:GATT_MANIFEST_TRUNCATED total=%d sent=%d",
+                    ids.size(), count);
+        }
+
+        final ByteBuffer buffer = ByteBuffer.allocate(
+                MANIFEST_BINARY_HEADER_SIZE + (count * MANIFEST_BINARY_ID_BYTES));
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        buffer.put(MANIFEST_BINARY_V1);
+        buffer.putShort((short) count);
+        for (int i = 0; i < count; i++) {
+            buffer.put(idToBytes(ids.get(i)));
+        }
+        return buffer.array();
+    }
+
+    /** Parses remote manifest in JSON (legacy) or compact binary format. */
+    private Set<String> parseRemoteManifest(byte[] data) throws Exception {
+        if (data == null || data.length == 0) {
+            return new HashSet<>();
+        }
+
+        if (looksLikeJsonManifest(data)) {
+            final String json = new String(data, StandardCharsets.UTF_8);
+            final JSONObject obj = new JSONObject(json);
+            final JSONArray arr = obj.getJSONArray("have");
+            final Set<String> ids = new HashSet<>();
+            for (int i = 0; i < arr.length(); i++) {
+                ids.add(arr.getString(i));
+            }
+            return ids;
+        }
+
+        return parseBinaryManifest(data);
+    }
+
+    private Set<String> parseBinaryManifest(byte[] data) {
+        if (data.length < MANIFEST_BINARY_HEADER_SIZE) {
+            throw new IllegalArgumentException("Manifest binary too short");
+        }
+
+        final ByteBuffer buffer = ByteBuffer.wrap(data);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        final byte version = buffer.get();
+        if (version != MANIFEST_BINARY_V1) {
+            throw new IllegalArgumentException("Unsupported manifest binary version=" + version);
+        }
+
+        final int count = buffer.getShort() & 0xFFFF;
+        final int expected = MANIFEST_BINARY_HEADER_SIZE + (count * MANIFEST_BINARY_ID_BYTES);
+        if (data.length < expected) {
+            throw new IllegalArgumentException(
+                    "Manifest binary truncated expected=" + expected + " got=" + data.length);
+        }
+
+        final Set<String> ids = new HashSet<>(count);
+        final byte[] raw = new byte[MANIFEST_BINARY_ID_BYTES];
+        for (int i = 0; i < count; i++) {
+            buffer.get(raw);
+            ids.add(bytesToUuid(raw));
+        }
+        return ids;
+    }
+
+    private boolean looksLikeJsonManifest(byte[] data) {
+        int idx = 0;
+        while (idx < data.length) {
+            final byte b = data[idx];
+            if (!Character.isWhitespace((char) b)) {
+                return b == '{' || b == '[';
+            }
+            idx++;
+        }
+        return false;
+    }
+
+    private static byte[] idToBytes(String id) {
+        try {
+            final UUID uuid = UUID.fromString(id);
+            final ByteBuffer buffer = ByteBuffer.allocate(MANIFEST_BINARY_ID_BYTES);
+            buffer.order(ByteOrder.BIG_ENDIAN);
+            buffer.putLong(uuid.getMostSignificantBits());
+            buffer.putLong(uuid.getLeastSignificantBits());
+            return buffer.array();
+        } catch (Exception ignored) {
+            return hash16(id);
+        }
+    }
+
+    private static String bytesToUuid(byte[] bytes) {
+        final ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        final long msb = buffer.getLong();
+        final long lsb = buffer.getLong();
+        return new UUID(msb, lsb).toString();
+    }
+
+    private static byte[] hash16(String input) {
+        try {
+            final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            final byte[] full = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            final byte[] out = new byte[MANIFEST_BINARY_ID_BYTES];
+            System.arraycopy(full, 0, out, 0, MANIFEST_BINARY_ID_BYTES);
+            return out;
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 missing", e);
         }
     }
 

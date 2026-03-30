@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelUuid;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 
 import timber.log.Timber;
@@ -37,16 +38,19 @@ public class BleScanner {
     private static final String TAG = "ED:BleScan";
 
     /** Scan window duration in milliseconds. */
-    public static final long SCAN_DURATION_MS = 8_000;
+    public static final long SCAN_DURATION_MS = 10_000;
 
     /** Pause between scans in milliseconds. */
-    public static final long SCAN_PAUSE_MS = 30_000;
+    public static final long SCAN_PAUSE_MS = 3_000;
 
     /** Peer record timeout: 2 minutes without a re-detection removes the peer. */
     private static final long PEER_TIMEOUT_MS = 120_000;
 
     /** Minimum interval between GATT connect attempts to the same peer. */
-    private static final long GATT_RETRY_INTERVAL_MS = 60_000;
+    private static final long GATT_RETRY_INTERVAL_MS = 10_000;
+
+    /** Immediate-sync requests only target peers seen recently. */
+    private static final long IMMEDIATE_SYNC_PEER_STALE_MS = 20_000;
 
     private final Context context;
     private final Handler handler;
@@ -63,15 +67,31 @@ public class BleScanner {
     public static class PeerInfo {
         public final int deviceId;
         public int manifestSize;
-        public final int rssi;
+        public int rssi;
         public long lastSeenMs;
         public long lastGattAttemptMs;
+        @NonNull
+        public String address;
+        @androidx.annotation.Nullable
+        public BluetoothDevice device;
+
+        public PeerInfo(int deviceId, int manifestSize, int rssi,
+                        @NonNull BluetoothDevice device) {
+            this.deviceId = deviceId;
+            this.manifestSize = manifestSize;
+            this.rssi = rssi;
+            this.lastSeenMs = System.currentTimeMillis();
+            this.address = device.getAddress();
+            this.device = device;
+        }
 
         public PeerInfo(int deviceId, int manifestSize, int rssi) {
             this.deviceId = deviceId;
             this.manifestSize = manifestSize;
             this.rssi = rssi;
             this.lastSeenMs = System.currentTimeMillis();
+            this.address = "";
+            this.device = null;
         }
     }
 
@@ -133,7 +153,7 @@ public class BleScanner {
         if (running) return;
         running = true;
         handler.post(scanCycle);
-        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=8s/30s mode=BALANCED");
+        Timber.tag(TAG).i("ED:BLE_SCAN_START duty=10s/3s mode=LOW_LATENCY");
     }
 
     /** Stops the periodic scan cycle and clears pending callbacks. */
@@ -165,6 +185,36 @@ public class BleScanner {
         return Collections.unmodifiableList(new ArrayList<>(peers.values()));
     }
 
+    /**
+     * Immediately attempts GATT sync to all recently seen peers.
+     * Used after new bundle inserts to reduce relay latency.
+     */
+    public void requestImmediateSync() {
+        if (!running || gattConnectRequester == null) return;
+        final long now = System.currentTimeMillis();
+        for (final PeerInfo peer : peers.values()) {
+            if ((now - peer.lastSeenMs) > IMMEDIATE_SYNC_PEER_STALE_MS) continue;
+            if (peer.device == null) continue;
+            peer.lastGattAttemptMs = now;
+            gattConnectRequester.onPeerFoundForGatt(peer.device);
+        }
+    }
+
+    /**
+     * Immediately attempts GATT sync to one known address, if present.
+     */
+    public void requestImmediateSyncForAddress(@NonNull String address) {
+        if (!running || gattConnectRequester == null || address.trim().isEmpty()) return;
+        final long now = System.currentTimeMillis();
+        for (final PeerInfo peer : peers.values()) {
+            if (!address.equalsIgnoreCase(peer.address)) continue;
+            if (peer.device == null) return;
+            peer.lastGattAttemptMs = now;
+            gattConnectRequester.onPeerFoundForGatt(peer.device);
+            return;
+        }
+    }
+
     /** Returns the number of currently known peers. */
     public int getPeerCount() {
         return peers.size();
@@ -194,7 +244,7 @@ public class BleScanner {
                     .build();
 
             final ScanSettings settings = new ScanSettings.Builder()
-                    .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                     .setReportDelay(0)
                     .build();
 
@@ -236,12 +286,15 @@ public class BleScanner {
 
             final PeerInfo peer;
             if (isNew) {
-                peer = new PeerInfo(deviceId, manifestSize, rssi);
+                peer = new PeerInfo(deviceId, manifestSize, rssi, result.getDevice());
                 peers.put(deviceId, peer);
             } else {
                 peer = existing;
                 peer.lastSeenMs = now;
                 peer.manifestSize = manifestSize;
+                peer.rssi = rssi;
+                peer.address = result.getDevice().getAddress();
+                peer.device = result.getDevice();
             }
 
             Timber.tag(TAG).d("ED:BLE_PEER_FOUND id=0x%08X manifest=%dB rssi=%d new=%b",
@@ -254,6 +307,8 @@ public class BleScanner {
                 peer.lastGattAttemptMs = now;
                 gattConnectRequester.onPeerFoundForGatt(result.getDevice());
             }
+
+            notifyPeerListener();
         } catch (IllegalArgumentException e) {
             Timber.tag(TAG).w(e, "ED:BLE_SCAN_PARSE invalid payload");
         }

@@ -32,6 +32,7 @@ import com.dev.echodrop.databinding.ScreenSettingsBinding;
 import com.dev.echodrop.service.EchoService;
 import com.dev.echodrop.util.AppPreferences;
 import com.dev.echodrop.util.BlockedDeviceStore;
+import com.dev.echodrop.util.DeviceIdHelper;
 import com.dev.echodrop.util.MessageStorageCapManager;
 import com.dev.echodrop.viewmodels.ChatViewModel;
 import com.google.android.material.slider.Slider;
@@ -331,7 +332,11 @@ public class SettingsFragment extends Fragment {
 
     private void setupBlockDevices() {
         refreshBlockedSummary();
-        binding.blockDeviceRow.setOnClickListener(v -> showBlockDialog());
+        binding.blockDeviceRow.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).showBlockedDevices();
+            }
+        });
     }
 
     private void setupRooms() {
@@ -372,6 +377,14 @@ public class SettingsFragment extends Fragment {
                 .setPositiveButton(R.string.settings_block_device_save, (d, w) -> {
                     final String id = input.getText() != null ? input.getText().toString().trim() : "";
                     if (id.isEmpty()) return;
+
+                    if (id.equalsIgnoreCase(DeviceIdHelper.getDeviceId(requireContext()))) {
+                        Toast.makeText(requireContext(),
+                                R.string.settings_block_device_self_forbidden,
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
                     final boolean added = BlockedDeviceStore.addBlockedId(requireContext(), id);
                     Toast.makeText(requireContext(),
                             added ? R.string.settings_block_device_added : R.string.settings_block_device_exists,

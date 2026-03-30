@@ -52,7 +52,7 @@ public final class GattTransferProtocol {
     // ──────────────────── Timeouts ────────────────────
 
     /** Overall session timeout: disconnect if idle for this long. */
-    public static final long SESSION_TIMEOUT_MS = 30_000;
+    public static final long SESSION_TIMEOUT_MS = 45_000;
 
     /** How long to wait for a BUNDLE_ACK after writing (reserved). */
     public static final long ACK_TIMEOUT_MS = 5_000;

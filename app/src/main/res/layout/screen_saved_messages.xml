@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/echo_bg_main">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/saved_toolbar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/app_bar_height"
+        android:background="@color/echo_elevated_surface"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:logo="@drawable/anim_toolbar_logo"
+        app:logoDescription="@string/content_app_logo"
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationIconTint="@color/echo_text_primary"
+        app:title="@string/saved_title"
+        app:titleTextAppearance="@style/TextAppearance.EchoDrop.H1"
+        app:titleTextColor="@color/echo_text_primary" />
+
+    <View
+        android:id="@+id/saved_top_divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/echo_divider"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/saved_toolbar" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/saved_message_list"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingBottom="40dp"
+        android:scrollbars="none"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/saved_top_divider" />
+
+    <LinearLayout
+        android:id="@+id/saved_empty_state"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/saved_top_divider">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            app:cardBackgroundColor="@color/echo_card_surface"
+            app:cardCornerRadius="14dp"
+            app:strokeColor="@color/echo_border"
+            app:strokeWidth="1dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/content_saved"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_saved"
+                app:tint="@color/echo_muted_disabled" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/saved_empty_state_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_2"
+            android:fontFamily="monospace"
+            android:text="@string/saved_empty_title"
+            android:textColor="@color/echo_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/saved_empty_state_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_0_75"
+            android:fontFamily="sans-serif"
+            android:maxWidth="280dp"
+            android:text="@string/saved_empty_sub"
+            android:textAlignment="center"
+            android:textColor="@color/echo_text_secondary"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

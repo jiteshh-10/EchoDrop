@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_splash_logo">
+
+    <target
+        android:name="coreDot"
+        android:animation="@animator/splash_glow_core" />
+
+    <target
+        android:name="midLeft"
+        android:animation="@animator/splash_glow_mid" />
+
+    <target
+        android:name="midRight"
+        android:animation="@animator/splash_glow_mid" />
+
+    <target
+        android:name="outerLeft"
+        android:animation="@animator/splash_glow_outer" />
+
+    <target
+        android:name="outerRight"
+        android:animation="@animator/splash_glow_outer" />
+</animated-vector>

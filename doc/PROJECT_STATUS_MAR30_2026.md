@@ -1,126 +1,91 @@
 # EchoDrop Implementation Status (Mar 30, 2026)
 
 ## Overview
-This document consolidates all delivered work up to Mar 30, 2026 for EchoDrop Lite, including Phase 1, Phase 2, Phase 3 hardening, validation assets, test updates, and known remaining risks.
+This document summarizes the current state of EchoDrop after the Mar 30, 2026 feature cycle, including message curation, moderation integration, and documentation alignment.
 
-Current transport model is BLE advertise/scan + GATT transfer for DTN store-carry-forward behavior.
+---
 
-## Completed Scope
+## Current Delivery State
 
-### Phase 1 (BLE + GATT Core)
-- Enforced BLE + GATT transfer path as primary runtime behavior.
-- Added/standardized structured logs for connection and transfer visibility.
-- Foreground service orchestration active with notification controls.
-- Added permission-aware service start guards.
+### Core transport and relay
+- Offline mesh behavior remains active through existing discovery/transfer stack.
+- Relay metadata (`origin`, `hop_count`, `seen_by_ids`, `ttl_ms`) remains integrated in message lifecycle.
+- Existing blocked-origin receive filters remain active in runtime paths.
 
-Key files:
-- `app/src/main/java/com/dev/echodrop/service/EchoService.java`
-- `app/src/main/java/com/dev/echodrop/ble/BleScanner.java`
-- `app/src/main/java/com/dev/echodrop/ble/BleAdvertiser.java`
-- `app/src/main/java/com/dev/echodrop/ble/GattServer.java`
+### New curation and moderation features
+- Message Detail bottom actions now follow:
+  1. Save
+  2. Report
+  3. Got it / Dismiss
+- Saved message persistence added at DB level (`messages.saved`).
+- New Saved screen added and connected from Home toolbar.
+- Report action now:
+  - blocks sender origin in `BlockedDeviceStore`
+  - removes local messages from that origin
+- Existing unblock controls in Settings remain the canonical reversal path.
 
-### Phase 2 (Relay DTN)
-- Added relay metadata and controls:
-  - `origin`
-  - `ttl_ms`
-  - `hop_count` and max-hop enforcement
-- Added relay gate logic and dedup protection.
-- Added relay visibility logs (`RELAY_TRIGGERED`, `RELAY_SENT`, `RELAY_RECEIVED`, `DEDUP_SKIPPED`).
+### UI/branding alignment
+- Animated bulb app-bar logo added to Home, Message Detail, and Saved screens.
+- Shared toolbar animation behavior centralized in `ToolbarLogoAnimator`.
 
-Key files:
+---
+
+## Data and Schema State
+
+### Room
+- `AppDatabase` version: 7
+- Migration mode: destructive (pre-release)
+
+### Message table behavior additions
+- Added `saved` persistence field.
+- Added DAO methods:
+  - `getSavedMessages(now)`
+  - `setSaved(messageId, saved)`
+  - `deleteByOrigin(originId)`
+
+### ViewModel/Repository alignment
+- `MessageRepo` and `MessageViewModel` now expose saved-message stream and update operations.
+
+---
+
+## Key Files Updated in Current Cycle
+
+- `app/src/main/java/com/dev/echodrop/screens/MessageDetailFragment.java`
+- `app/src/main/java/com/dev/echodrop/screens/SavedMessagesFragment.java`
+- `app/src/main/java/com/dev/echodrop/screens/HomeInboxFragment.java`
+- `app/src/main/java/com/dev/echodrop/MainActivity.java`
 - `app/src/main/java/com/dev/echodrop/db/MessageEntity.java`
+- `app/src/main/java/com/dev/echodrop/db/MessageDao.java`
 - `app/src/main/java/com/dev/echodrop/repository/MessageRepo.java`
-- `app/src/main/java/com/dev/echodrop/service/EchoService.java`
-- `app/src/main/java/com/dev/echodrop/ble/GattServer.java`
+- `app/src/main/java/com/dev/echodrop/viewmodels/MessageViewModel.java`
+- `app/src/main/java/com/dev/echodrop/util/ToolbarLogoAnimator.java`
+- `app/src/main/res/layout/fragment_message_detail.xml`
+- `app/src/main/res/layout/screen_saved_messages.xml`
+- `app/src/main/res/menu/home_menu.xml`
 
-### Phase 3 (Stability + UX)
-- Bluetooth OFF/ON stack pause-resume handling in service lifecycle.
-- BLE power profile tuned for better battery behavior:
-  - scan duty: 8s/30s
-  - balanced scan mode
-  - advertiser low-power + medium TX
-- GATT cooldown/backoff improvements.
-- Added blocked device ID support in settings and runtime relay filters.
-- Added OEM battery guide enhancements (including Realme section).
-- Added diagnostics in-app log ring buffer and increased retention to 1000 entries.
+---
 
-Key files:
-- `app/src/main/java/com/dev/echodrop/service/EchoService.java`
-- `app/src/main/java/com/dev/echodrop/ble/BleScanner.java`
-- `app/src/main/java/com/dev/echodrop/ble/BleAdvertiser.java`
-- `app/src/main/java/com/dev/echodrop/util/BlockedDeviceStore.java`
-- `app/src/main/java/com/dev/echodrop/util/DiagnosticsLog.java`
-- `app/src/main/java/com/dev/echodrop/screens/SettingsFragment.java`
-- `app/src/main/res/layout/screen_settings.xml`
-- `app/src/main/java/com/dev/echodrop/screens/BatteryGuideFragment.java`
-- `app/src/main/res/layout/screen_battery_guide.xml`
-- `app/src/main/res/values/strings.xml`
+## Validation Status
 
-## Recent Reliability Fixes (Post Validation Logs)
+Latest execution in this cycle:
+- `:app:assembleDebug` -> PASS
+- `:app:testDebugUnitTest` -> PASS
 
-### 1. Stable BLE Identity Across Restarts
-Issue:
-- Device IDs in BLE advertisement could change after service restarts on some Android versions due to restricted adapter MAC behavior.
+Historical full-cycle context remains in `doc/TEST_REPORT.md`.
 
-Fix:
-- BLE advertiser device ID now derives from persistent `DeviceIdHelper` value.
+---
 
-File:
-- `app/src/main/java/com/dev/echodrop/ble/BleAdvertiser.java`
+## Active Risks
 
-### 2. Private Chat Processing on GATT Receive Path
-Issue:
-- Incoming `CHAT` bundles were inserted into messages table but chat conversation processing was not consistently executed in GATT receive path.
+1. Destructive Room migration is still enabled and will reset local data on schema changes.
+2. OEM background policy differences still require ongoing real-device validation.
+3. Moderation remains local-only; no distributed enforcement plane exists.
 
-Fix:
-- GATT receive path now calls `ChatRepo.processIncomingChatBundle(...)` for `CHAT` bundles.
+---
 
-File:
-- `app/src/main/java/com/dev/echodrop/service/EchoService.java`
+## Recommended Near-Term Follow-ups
 
-### 3. Outgoing Chat Bundle Origin Metadata
-Issue:
-- Some relayed chat bundles appeared with `origin=unknown`.
-
-Fix:
-- Outgoing chat bundles now explicitly set `origin` from persistent device ID.
-
-File:
-- `app/src/main/java/com/dev/echodrop/repository/ChatRepo.java`
-
-### 4. Service Resilience on Task Removal
-Fix:
-- Added restart path on `onTaskRemoved(...)` when background mode is enabled and permissions are granted.
-
-File:
-- `app/src/main/java/com/dev/echodrop/service/EchoService.java`
-
-## Validation Assets Added
-- Structured matrix: `doc/PHASE3_VALIDATION_MATRIX.md`
-- Multi-device capture script: `tools/phase3_relay_validation.ps1`
-
-## Test and Build Status
-- Full unit tests previously validated after updates:
-  - `:app:testDebugUnitTest` passed.
-- Current packaging:
-  - `:app:assembleDebug` passed.
-- Latest debug APK path:
-  - `app/build/outputs/apk/debug/app-debug.apk`
-
-## Key Markers Verified in Field Logs
-Observed in device logs:
-- `GATT_CONNECTED`
-- `MANIFEST_EXCHANGED`
-- `RELAY_TRIGGERED`
-- `RELAY_SENT`
-- `RELAY_RECEIVED`
-- `MESSAGE_RECEIVED`
-- `DB_INSERT`
-- `DEDUP_SKIPPED`
-
-## Known Remaining Risks
-- Long-run OEM-specific background process behavior still requires broader physical-device regression cycles.
-- Real-world dense and sparse mobility stress should continue using the provided matrix and script.
-
-## Branch and Merge Intent
-This status reflects code prepared on `debug` and intended to be merged into `main` with complete documentation of work up to Mar 30, 2026.
+1. Add targeted tests for Save/Report/Saved flows.
+2. Introduce non-destructive migration strategy before production release.
+3. Expand connected-device and OEM matrix for long-run transport reliability.
+4. Consider optional moderation audit metadata for local troubleshooting.

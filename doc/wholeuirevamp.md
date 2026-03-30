@@ -448,7 +448,43 @@ Resource files in this consolidated revamp:
 - notifications suppressed by user toggle
 - notifications suppressed by platform permission state
 
-## 14. Final Note
+## 14. Post-Revamp Addendum (Mar 30, 2026)
+
+After the primary UI revamp was stabilized, a targeted curation and moderation expansion was added:
+
+1. Message detail action stack now follows Save, Report, then Got it/Dismiss.
+
+2. Saved flow is now persisted and navigable:
+
+- Added boolean `saved` persistence to message storage.
+- Added Saved list screen with toolbar entry and empty-state handling.
+- Added repository and ViewModel read/write paths for saved-message state.
+
+3. Report flow now integrates directly with existing moderation controls:
+
+- Report blocks the message `origin` through `BlockedDeviceStore`.
+- Local messages from the same origin are removed immediately.
+- Existing unblock management remains centralized in Settings.
+
+4. Branding consistency was extended via shared animated app-bar logo utility:
+
+- Home toolbar
+- Message detail toolbar
+- Saved screen toolbar
+
+Primary files for this addendum:
+
+- app/src/main/java/com/dev/echodrop/screens/MessageDetailFragment.java
+- app/src/main/java/com/dev/echodrop/screens/SavedMessagesFragment.java
+- app/src/main/java/com/dev/echodrop/db/MessageEntity.java
+- app/src/main/java/com/dev/echodrop/db/MessageDao.java
+- app/src/main/java/com/dev/echodrop/repository/MessageRepo.java
+- app/src/main/java/com/dev/echodrop/viewmodels/MessageViewModel.java
+- app/src/main/java/com/dev/echodrop/util/ToolbarLogoAnimator.java
+- app/src/main/res/layout/fragment_message_detail.xml
+- app/src/main/res/layout/screen_saved_messages.xml
+
+## 15. Final Note
 
 This document intentionally captures both UX-facing and infrastructure-facing revamp details. It should be treated as the canonical reference for this revamp checkpoint and used alongside:
 

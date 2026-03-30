@@ -3,9 +3,9 @@
     <!-- HTML-aligned dark token set -->
 
     <!-- Backgrounds -->
-    <color name="echo_bg_main">#000000</color>
-    <color name="echo_card_surface">#0A0A0A</color>
-    <color name="echo_elevated_surface">#060606</color>
+    <color name="echo_bg_main">#0A0C0F</color>
+    <color name="echo_card_surface">#111318</color>
+    <color name="echo_elevated_surface">#151920</color>
 
     <!-- Accents -->
     <color name="echo_primary_accent">#00C2D4</color>

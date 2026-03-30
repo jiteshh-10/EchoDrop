@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/echo_bg_main">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/blocked_toolbar"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/app_bar_height"
+        android:background="@color/echo_elevated_surface"
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationContentDescription="@string/content_back"
+        app:title="@string/blocked_devices_title"
+        app:titleTextAppearance="@style/TextAppearance.EchoDrop.H1"
+        app:titleTextColor="@color/echo_text_primary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <View
+        android:id="@+id/toolbar_divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/echo_divider"
+        app:layout_constraintTop_toBottomOf="@id/blocked_toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/header_row"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/spacing_2"
+        android:paddingTop="@dimen/spacing_2"
+        android:paddingEnd="@dimen/spacing_2"
+        android:paddingBottom="@dimen/spacing_1"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_divider"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/blocked_count_text"
+            style="@style/TextAppearance.EchoDrop.Small"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/settings_blocked_none"
+            android:textColor="@color/echo_text_secondary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/add_blocked_button"
+            style="@style/Widget.EchoDrop.Button.Secondary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/blocked_devices_add" />
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/blocked_list"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:paddingStart="@dimen/spacing_2"
+        android:paddingTop="@dimen/spacing_1"
+        android:paddingEnd="@dimen/spacing_2"
+        android:paddingBottom="@dimen/spacing_2"
+        app:layout_constraintTop_toBottomOf="@id/header_row"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/empty_state"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_3"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/header_row"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            app:cardBackgroundColor="@color/echo_card_surface"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:strokeColor="@color/echo_border"
+            app:strokeWidth="1dp">
+
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/blocked_devices_empty_title"
+                android:src="@drawable/ic_alert_outline"
+                app:tint="@color/echo_alert_accent" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            style="@style/TextAppearance.EchoDrop.H2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_2"
+            android:text="@string/blocked_devices_empty_title" />
+
+        <TextView
+            style="@style/TextAppearance.EchoDrop.Small"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_0_75"
+            android:text="@string/blocked_devices_empty_sub"
+            android:textAlignment="center"
+            android:textColor="@color/echo_text_secondary" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

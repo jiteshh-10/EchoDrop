@@ -12,7 +12,7 @@
         android:layout_height="@dimen/app_bar_height"
         android:background="@color/echo_elevated_surface"
         android:title="@string/how_it_works_title"
-        android:titleTextColor="@color/echo_alert_accent"
+        android:titleTextColor="@color/echo_primary_accent"
         app:titleTextAppearance="@style/TextAppearance.EchoDrop.H1" />
 
     <View
@@ -55,7 +55,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/how_it_works_headline"
                         android:src="@drawable/ic_wifi"
-                        app:tint="@color/echo_alert_accent" />
+                        app:tint="@color/echo_primary_accent" />
                 </FrameLayout>
 
                 <TextView
@@ -102,7 +102,7 @@
                         android:layout_width="30dp"
                         android:layout_height="30dp"
                         android:background="@drawable/bg_circle"
-                        android:backgroundTint="@color/echo_alert_accent"
+                        android:backgroundTint="@color/echo_primary_accent"
                         android:gravity="center"
                         android:text="1"
                         android:textColor="@color/echo_on_primary" />
@@ -129,7 +129,7 @@
                         android:layout_width="30dp"
                         android:layout_height="30dp"
                         android:background="@drawable/bg_circle"
-                        android:backgroundTint="@color/echo_alert_accent"
+                        android:backgroundTint="@color/echo_primary_accent"
                         android:gravity="center"
                         android:text="2"
                         android:textColor="@color/echo_on_primary" />
@@ -156,7 +156,7 @@
                         android:layout_width="30dp"
                         android:layout_height="30dp"
                         android:background="@drawable/bg_circle"
-                        android:backgroundTint="@color/echo_alert_accent"
+                        android:backgroundTint="@color/echo_primary_accent"
                         android:gravity="center"
                         android:text="3"
                         android:textColor="@color/echo_on_primary" />
@@ -183,7 +183,7 @@
                         android:layout_width="30dp"
                         android:layout_height="30dp"
                         android:background="@drawable/bg_circle"
-                        android:backgroundTint="@color/echo_alert_accent"
+                        android:backgroundTint="@color/echo_primary_accent"
                         android:gravity="center"
                         android:text="4"
                         android:textColor="@color/echo_on_primary" />
@@ -225,7 +225,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/how_it_works_tile_1_title"
                         android:src="@drawable/ic_wifi"
-                        app:tint="@color/echo_alert_accent" />
+                        app:tint="@color/echo_primary_accent" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -271,7 +271,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/how_it_works_tile_2_title"
                         android:src="@drawable/ic_clock"
-                        app:tint="@color/echo_alert_accent" />
+                        app:tint="@color/echo_primary_accent" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -317,7 +317,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/how_it_works_tile_3_title"
                         android:src="@drawable/ic_lock"
-                        app:tint="@color/echo_alert_accent" />
+                        app:tint="@color/echo_primary_accent" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -363,7 +363,7 @@
                         android:layout_gravity="center"
                         android:contentDescription="@string/how_it_works_tile_4_title"
                         android:src="@drawable/ic_activity"
-                        app:tint="@color/echo_alert_accent" />
+                        app:tint="@color/echo_primary_accent" />
                 </FrameLayout>
 
                 <LinearLayout
@@ -528,7 +528,7 @@
                 <View
                     android:layout_width="4dp"
                     android:layout_height="match_parent"
-                    android:background="@color/echo_alert_accent" />
+                    android:background="@color/echo_primary_accent" />
 
                 <LinearLayout
                     android:layout_width="0dp"

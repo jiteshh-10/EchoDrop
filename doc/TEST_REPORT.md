@@ -56,7 +56,8 @@
 ### Commands Executed
 
 ```bash
-.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest
+.\gradlew.bat :app:assembleDebug
+.\gradlew.bat :app:testDebugUnitTest
 .\gradlew.bat :app:connectedDebugAndroidTest
 ```
 
@@ -66,6 +67,15 @@
 - Connected Android test suite: 1 test, 0 failures, 0 errors, 0 skipped
 - Total executed in this validation cycle: 460 tests
 - Build pipeline status: assembleDebug successful
+
+### Incremental Verification for Latest Feature Additions
+
+For the Save/Report/Saved-screen and toolbar-logo changes in this cycle, the following incremental checks were re-run:
+
+- `:app:assembleDebug` -> PASS
+- `:app:testDebugUnitTest` -> PASS
+
+Connected Android test artifacts remain from the latest full-cycle run documented above.
 
 Artifact sources used for parsing:
 

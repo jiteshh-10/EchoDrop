@@ -74,6 +74,7 @@
     <string name="how_it_works_tech_5">- Priority-based forwarding queue</string>
 
     <string name="home_title">echodrop</string>
+    <string name="saved_title">saved</string>
     <string name="search_placeholder">search messages...</string>
     <string name="tab_all">All</string>
     <string name="tab_alerts">Alerts</string>
@@ -87,6 +88,8 @@
     <string name="empty_state_sub">messages appear when nearby devices broadcast</string>
     <string name="empty_state_search_title">no results</string>
     <string name="empty_state_search_sub">try different words</string>
+    <string name="saved_empty_title">no saved messages</string>
+    <string name="saved_empty_sub">save a message in detail view to keep it here</string>
     <string name="fab_post">new broadcast</string>
     <string name="fab_chats">private chats</string>
 
@@ -125,10 +128,21 @@
     <string name="content_add">Add post</string>
     <string name="content_search">Search</string>
     <string name="content_sync">Nearby devices</string>
+    <string name="content_saved">Saved messages</string>
+    <string name="content_app_logo">EchoDrop logo</string>
 
     <!-- Message Detail (Iteration 2) -->
     <string name="detail_title">message</string>
+    <string name="detail_save">save</string>
+    <string name="detail_unsave">unsave</string>
+    <string name="detail_report">report</string>
     <string name="detail_got_it">got it - dismiss</string>
+    <string name="detail_saved_snackbar">message saved</string>
+    <string name="detail_unsaved_snackbar">removed from saved</string>
+    <string name="detail_report_blocked">sender blocked and reported</string>
+    <string name="detail_report_blocked_exists">sender already blocked</string>
+    <string name="detail_report_missing_origin">unable to report this message</string>
+    <string name="detail_report_self_forbidden">you cannot report your own device</string>
     <string name="detail_ttl_expires_in">Expires in %1$s</string>
     <string name="detail_created_at">Posted %1$s</string>
     <string name="detail_visible_nearby">Visible to: People nearby</string>
@@ -223,10 +237,17 @@
     <string name="settings_block_device_manage">Manage blocked</string>
     <string name="settings_block_device_added">Device ID blocked</string>
     <string name="settings_block_device_exists">Device ID already blocked</string>
+    <string name="settings_block_device_self_forbidden">you cannot block your own device id</string>
     <string name="settings_blocked_count">%1$d blocked</string>
     <string name="settings_blocked_none">no blocked device ids</string>
     <string name="settings_unblock_title">unblock device</string>
     <string name="settings_unblock_done">device id unblocked</string>
+    <string name="blocked_devices_title">manage blocked devices</string>
+    <string name="blocked_devices_add">block device id</string>
+    <string name="blocked_devices_empty_title">no blocked devices</string>
+    <string name="blocked_devices_empty_sub">reported or manually blocked origins appear here</string>
+    <string name="blocked_devices_device_id_label">device id</string>
+    <string name="blocked_devices_unblock">unblock</string>
 
     <!-- Battery Guide (Iteration 5) -->
     <string name="battery_title">battery guide</string>

@@ -1,5 +1,7 @@
 # Changelog — Iteration 09: Stability, UX Polish & Demo Readiness
 
+> Historical scope note: this file documents Iteration 09 only. For current release behavior, see `README.md`, `CHANGELOG.md`, `doc/CHANGELOG_ITERATION_10.md`, and `doc/PROJECT_STATUS_MAR30_2026.md`.
+
 **Branch:** `iteration-9`  
 **Date:** 2025-01-20  
 **Tests:** 446 passing, 0 failures  
@@ -164,3 +166,19 @@ improvements (Timber, StrictMode, ProGuard), and documentation deliverables.
 | D6 | Log-only StrictMode penalty | Crash penalty would break demo; log penalty catches issues for dev review. |
 | D7 | ProGuard strips Timber.d/v but keeps i/w/e | Release builds still have info/warning/error logs for crash diagnostics. |
 | D8 | 100dp badge corner radius for pill shape | Android clips corners up to half-height; 100dp ensures pill on any badge height. |
+
+---
+
+## Post-Iteration Follow-up Note
+
+This file is intentionally scoped to Iteration 09 only.
+
+Subsequent additions (Mar 30, 2026) including:
+- Message Detail Save/Report/Got-it action stack
+- Saved messages persistence and dedicated Saved screen
+- Animated toolbar bulb branding utility
+
+are documented in:
+- `doc/CHANGELOG_ITERATION_10.md`
+- `CHANGELOG.md`
+- `doc/PROJECT_STATUS_MAR30_2026.md`

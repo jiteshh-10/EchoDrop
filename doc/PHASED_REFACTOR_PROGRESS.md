@@ -256,4 +256,44 @@ Status: Completed
 - This pass focuses on visual consistency of existing icon affordances; future UX iterations may still introduce dedicated semantic icons for new features.
 
 ## Next phase
-- Phase 9: Final visual QA sweep (touch targets, state colors, and per-screen accessibility contrast checks).
+- Phase 9: Message curation and moderation completion (saved flow, report flow, and toolbar branding consistency).
+
+## Phase 9 - Message Curation, Moderation, and Toolbar Branding
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Added persisted save toggle for messages and integrated a dedicated Saved screen.
+- Added report action in message detail that blocks sender origin and removes local origin messages.
+- Reused existing blocked-device management in Settings for unblock lifecycle continuity.
+- Added animated bulb logo across Home, Message Detail, and Saved app bars via shared utility.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/screens/MessageDetailFragment.java
+- app/src/main/java/com/dev/echodrop/screens/SavedMessagesFragment.java
+- app/src/main/java/com/dev/echodrop/screens/HomeInboxFragment.java
+- app/src/main/java/com/dev/echodrop/MainActivity.java
+- app/src/main/java/com/dev/echodrop/db/MessageEntity.java
+- app/src/main/java/com/dev/echodrop/db/MessageDao.java
+- app/src/main/java/com/dev/echodrop/repository/MessageRepo.java
+- app/src/main/java/com/dev/echodrop/viewmodels/MessageViewModel.java
+- app/src/main/java/com/dev/echodrop/util/ToolbarLogoAnimator.java
+- app/src/main/res/layout/fragment_message_detail.xml
+- app/src/main/res/layout/screen_saved_messages.xml
+- app/src/main/res/menu/home_menu.xml
+- app/src/main/res/drawable/anim_toolbar_logo.xml
+- app/src/main/res/drawable/ic_toolbar_logo_off.xml
+- app/src/main/res/drawable/ic_toolbar_logo_on.xml
+
+### Verified behavior intent
+- Message detail actions now consistently follow Save -> Report -> Got it.
+- Save and unsave operations persist and reflect in Saved list reactively.
+- Report enforces local moderation and aligns with existing Settings unblock path.
+- App-bar logo behavior is consistent across key surfaces.
+
+### Risks / notes
+- Current migration mode is still destructive in pre-release.
+- Save/report integration should receive dedicated UI/integration tests in a follow-up pass.
+
+## Next phase
+- Phase 10: Expand integration coverage for save/report workflows and migrate toward non-destructive Room upgrades.
