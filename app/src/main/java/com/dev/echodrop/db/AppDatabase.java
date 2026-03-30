@@ -15,7 +15,7 @@ import androidx.room.RoomDatabase;
  */
 @Database(
         entities = {MessageEntity.class, ChatEntity.class, ChatMessageEntity.class},
-        version = 5,
+        version = 6,
         exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {

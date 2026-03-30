@@ -24,7 +24,7 @@ import timber.log.Timber;
 public final class DiagnosticsLog {
 
     /** Maximum number of entries retained in the ring buffer. */
-    private static final int MAX_ENTRIES = 500;
+    private static final int MAX_ENTRIES = 1000;
 
     private static final LinkedList<String> entries = new LinkedList<>();
     private static final SimpleDateFormat TIME_FMT =

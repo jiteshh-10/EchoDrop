@@ -34,8 +34,8 @@ public class MessageEntityHopTest {
     // ── MAX_HOP_COUNT ─────────────────────────────────────────────
 
     @Test
-    public void maxHopCount_isFive() {
-        assertEquals(5, MessageEntity.MAX_HOP_COUNT);
+    public void maxHopCount_isThree() {
+        assertEquals(3, MessageEntity.MAX_HOP_COUNT);
     }
 
     // ── Default Values ────────────────────────────────────────────

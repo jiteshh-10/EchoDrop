@@ -8,8 +8,10 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -29,11 +31,12 @@ import com.dev.echodrop.R;
 import com.dev.echodrop.ble.BleAdvertiser;
 import com.dev.echodrop.ble.BleScanner;
 import com.dev.echodrop.ble.GattServer;
-import com.dev.echodrop.ble.GattTransferProtocol;
 import com.dev.echodrop.db.AppDatabase;
 import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
+import com.dev.echodrop.repository.ChatRepo;
 import com.dev.echodrop.transfer.WifiDirectManager;
+import com.dev.echodrop.util.BlockedDeviceStore;
 import com.dev.echodrop.util.DeviceIdHelper;
 
 import org.json.JSONObject;
@@ -42,6 +45,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Foreground service that keeps BLE discovery and GATT transfer running.
@@ -61,11 +66,26 @@ public class EchoService extends Service {
     private static final String PREFS_NAME = "echodrop_prefs";
     private static final String PREF_BG_ENABLED = "bg_enabled";
 
+    /** Singleton guard: true while onStartCommand has run and service is alive. */
+    private static volatile boolean isRunning;
+
+    /** Returns whether the service is currently running. */
+    public static boolean isRunning() { return isRunning; }
+
     /** Cooldown before allowing a new GATT session after one ends. */
     private static final long GATT_SESSION_COOLDOWN_MS = 5_000;
 
     /** Extended cooldown when last session exchanged zero bundles (already synced). */
     private static final long GATT_SYNCED_COOLDOWN_MS = 30_000;
+
+    /** Exponential backoff steps (ms): 0 → 5s → 15s → 60s → 120s. */
+    private static final long[] BACKOFF_STEPS_MS = { 5_000, 10_000, 20_000, 60_000, 120_000 };
+
+    /** Phase 1: hard-disable Wi-Fi Direct runtime path. */
+    private static final boolean WIFI_DIRECT_ENABLED = false;
+
+    /** Phase 2 relay max hops. */
+    private static final int PHASE2_MAX_HOPS = MessageEntity.MAX_HOP_COUNT;
 
     /** Intent action to stop the service from the notification "Quit" button. */
     public static final String ACTION_QUIT_SERVICE = "com.dev.echodrop.ACTION_QUIT";
@@ -77,6 +97,7 @@ public class EchoService extends Service {
     private BleScanner scanner;
     private GattServer gattServer;
     private WifiDirectManager wifiDirectManager;
+    private ChatRepo chatRepo;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     /** Single-thread executor for DB operations. */
@@ -88,17 +109,23 @@ public class EchoService extends Service {
     /** Whether the last completed session actually transferred any bundles. */
     private volatile boolean lastSessionHadInserts;
 
+    /** Consecutive sessions that ended with zero transfers (drives backoff). */
+    private volatile int consecutiveEmptySessions;
+
     /** Whether Bluetooth is currently ON. */
     private volatile boolean bluetoothEnabled;
 
     /** Whether Wi-Fi P2P is currently enabled. */
     private volatile boolean p2pEnabled;
 
+    /** Receiver for BT ON/OFF transitions to pause/resume BLE stack safely. */
+    private BroadcastReceiver bluetoothStateReceiver;
+
     // ──────────────────── UI Listeners ────────────────────
 
-    private static TransferStateListener transferStateListener;
-    private static PeerCountListener peerCountListener;
-    private static PrerequisiteListener prerequisiteListener;
+    private static volatile TransferStateListener transferStateListener;
+    private static volatile PeerCountListener peerCountListener;
+    private static volatile PrerequisiteListener prerequisiteListener;
 
     public interface TransferStateListener {
         void onTransferStateChanged(boolean inProgress);
@@ -141,7 +168,14 @@ public class EchoService extends Service {
         advertiser = new BleAdvertiser(this);
         scanner = new BleScanner(this);
         gattServer = new GattServer(this);
-        wifiDirectManager = new WifiDirectManager(this);
+        if (getApplication() instanceof android.app.Application) {
+            chatRepo = new ChatRepo((android.app.Application) getApplication());
+        }
+        wifiDirectManager = WIFI_DIRECT_ENABLED ? new WifiDirectManager(this) : null;
+        if (!WIFI_DIRECT_ENABLED) {
+            Timber.tag(TAG).i("ED:WIFI_DIRECT_DISABLED phase=1");
+        }
+        registerBluetoothStateReceiver();
 
         bluetoothEnabled = isBluetoothOn();
 
@@ -161,23 +195,61 @@ public class EchoService extends Service {
                             return;
                         }
 
-                        // Skip bundles past hop limit
-                        if (entity.getHopCount() >= GattTransferProtocol.MAX_HOPS) {
-                            Timber.tag(TAG).d("ED:GATT_RECV_SKIP_HOP_LIMIT id=%s hops=%d",
-                                    entity.getId(), entity.getHopCount());
+                        final String originId = entity.getOrigin() != null
+                                ? entity.getOrigin().trim()
+                                : "";
+                        if (!originId.isEmpty() && BlockedDeviceStore.isBlocked(EchoService.this, originId)) {
+                            Timber.tag(TAG).i("ED:GATT_RECV_SKIP_BLOCKED id=%s origin=%s",
+                                    entity.getId(), originId);
                             return;
                         }
+
+                        // Phase 2 relay gate: drop packets that already exceeded max hops.
+                        if (entity.getHopCount() > PHASE2_MAX_HOPS) {
+                            Timber.tag(TAG).d("ED:GATT_RECV_SKIP_HOP id=%s hops=%d max=%d",
+                                    entity.getId(), entity.getHopCount(), PHASE2_MAX_HOPS);
+                            return;
+                        }
+
+                        if (entity.getHopCount() >= PHASE2_MAX_HOPS) {
+                            Timber.tag(TAG).d("ED:GATT_RECV_AT_HOP_LIMIT id=%s hops=%d",
+                                    entity.getId(), entity.getHopCount());
+                        }
+
+                        Timber.tag(TAG).i("MESSAGE_RECEIVED id=%s", entity.getId());
+                        Timber.tag(TAG).i("RELAY_RECEIVED id=%s hop=%d origin=%s",
+                                entity.getId(), entity.getHopCount(), entity.getOrigin());
 
                         // Increment hop count and add our device ID to seenBy
                         entity.setHopCount(entity.getHopCount() + 1);
                         final String localId = DeviceIdHelper.getDeviceId(EchoService.this);
                         entity.addSeenBy(localId);
+                        if (entity.getOrigin() == null || entity.getOrigin().isEmpty()) {
+                            entity.setOrigin(localId);
+                        }
+                        if (entity.getTtlMs() <= 0L) {
+                            entity.setTtlMs(Math.max(0L, entity.getExpiresAt() - entity.getCreatedAt()));
+                        }
+
+                        // CHAT bundles need chat-table processing for private chat UX.
+                        if (entity.isChatBundle() && chatRepo != null) {
+                            final boolean chatProcessed = chatRepo.processIncomingChatBundle(entity);
+                            if (chatProcessed) {
+                                Timber.tag(TAG).i("ED:GATT_RECV_CHAT code=%s", entity.getScopeId());
+                            }
+                        }
 
                         final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
-                        dao.insert(entity); // IGNORE on duplicate content_hash
-                        lastSessionHadInserts = true;
-                        Timber.tag(TAG).i("ED:GATT_RECV_INSERT id=%s hops=%d",
-                                entity.getId(), entity.getHopCount());
+                        final long rowId = dao.insert(entity); // IGNORE on duplicate content_hash
+                        if (rowId > 0) {
+                            lastSessionHadInserts = true;
+                            Timber.tag(TAG).i("DB_INSERT id=%s row=%d", entity.getId(), rowId);
+                            Timber.tag(TAG).i("ED:GATT_RECV_INSERT id=%s hops=%d",
+                                    entity.getId(), entity.getHopCount());
+                        } else {
+                            Timber.tag(TAG).d("ED:GATT_RECV_DUP id=%s", entity.getId());
+                            Timber.tag(TAG).i("DEDUP_SKIPPED id=%s", entity.getId());
+                        }
                     } catch (Exception e) {
                         Timber.tag(TAG).e(e, "ED:GATT_RECV_ERR");
                     }
@@ -186,14 +258,17 @@ public class EchoService extends Service {
 
             @Override
             public String getBundleJsonById(String bundleId) {
-                // Called on GATT binder thread — synchronous DB access is fine
                 try {
-                    final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
-                    final MessageEntity entity = dao.getMessageByIdSync(bundleId);
-                    if (entity == null) return null;
-                    if (entity.getExpiresAt() <= System.currentTimeMillis()) return null;
-                    if (entity.getHopCount() >= GattTransferProtocol.MAX_HOPS) return null;
-                    return serializeBundleJson(entity);
+                    final Future<String> future = dbExecutor.submit(() -> {
+                        final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
+                        final MessageEntity entity = dao.getMessageByIdSync(bundleId);
+                        if (entity == null) return null;
+                        if (entity.getExpiresAt() <= System.currentTimeMillis()) return null;
+                        if (entity.getHopCount() >= PHASE2_MAX_HOPS) return null;
+                        if (BlockedDeviceStore.isBlocked(EchoService.this, entity.getOrigin())) return null;
+                        return serializeBundleJson(entity);
+                    });
+                    return future.get(5, TimeUnit.SECONDS);
                 } catch (Exception e) {
                     Timber.tag(TAG).e(e, "ED:GATT_SERVE_BUNDLE_ERR id=%s", bundleId);
                     return null;
@@ -203,14 +278,23 @@ public class EchoService extends Service {
             @Override
             public List<String> getActiveBundleIds() {
                 try {
-                    final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
-                    final List<MessageEntity> active =
-                            dao.getActiveMessagesDirect(System.currentTimeMillis());
-                    final List<String> ids = new ArrayList<>(active.size());
-                    for (MessageEntity m : active) {
-                        ids.add(m.getId());
-                    }
-                    return ids;
+                    final Future<List<String>> future = dbExecutor.submit(() -> {
+                        final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
+                        final List<MessageEntity> active =
+                                dao.getActiveMessagesDirect(System.currentTimeMillis());
+                        final List<String> ids = new ArrayList<>(active.size());
+                        for (MessageEntity m : active) {
+                            if (m.getHopCount() >= PHASE2_MAX_HOPS) {
+                                continue;
+                            }
+                            if (BlockedDeviceStore.isBlocked(EchoService.this, m.getOrigin())) {
+                                continue;
+                            }
+                            ids.add(m.getId());
+                        }
+                        return ids;
+                    });
+                    return future.get(5, TimeUnit.SECONDS);
                 } catch (Exception e) {
                     Timber.tag(TAG).e(e, "ED:GATT_ACTIVE_IDS_ERR");
                     return new ArrayList<>();
@@ -222,6 +306,11 @@ public class EchoService extends Service {
                 Timber.tag(TAG).i("ED:GATT_SESSION_DONE addr=%s inserts=%b",
                         deviceAddress, lastSessionHadInserts);
                 lastSessionEndMs = System.currentTimeMillis();
+                if (lastSessionHadInserts) {
+                    consecutiveEmptySessions = 0;
+                } else {
+                    consecutiveEmptySessions++;
+                }
                 notifyTransferState(false);
 
                 // Refresh manifest after transfer so next session is accurate
@@ -232,6 +321,7 @@ public class EchoService extends Service {
             public void onGattError(String deviceAddress, String message) {
                 Timber.tag(TAG).w("ED:GATT_ERROR addr=%s msg=%s", deviceAddress, message);
                 lastSessionEndMs = System.currentTimeMillis();
+                consecutiveEmptySessions++;
                 notifyTransferState(false);
             }
         });
@@ -240,14 +330,14 @@ public class EchoService extends Service {
         scanner.setGattConnectRequester(device -> {
             if (!bluetoothEnabled) return;
 
-            // Cooldown check
+            // Exponential backoff cooldown
             final long elapsed = System.currentTimeMillis() - lastSessionEndMs;
-            final long cooldown = lastSessionHadInserts
-                    ? GATT_SESSION_COOLDOWN_MS
-                    : GATT_SYNCED_COOLDOWN_MS;
+            final int backoffIdx = Math.min(consecutiveEmptySessions,
+                    BACKOFF_STEPS_MS.length - 1);
+            final long cooldown = BACKOFF_STEPS_MS[backoffIdx];
             if (elapsed < cooldown) {
-                Timber.tag(TAG).d("ED:GATT_COOLDOWN skip addr=%s elapsed=%dms cooldown=%dms",
-                        device.getAddress(), elapsed, cooldown);
+                Timber.tag(TAG).d("ED:GATT_COOLDOWN addr=%s elapsed=%dms cooldown=%dms backoff=%d",
+                        device.getAddress(), elapsed, cooldown, consecutiveEmptySessions);
                 return;
             }
 
@@ -272,29 +362,31 @@ public class EchoService extends Service {
         });
 
         // ── Wi-Fi Direct state monitoring ──
-        wifiDirectManager.setConnectionCallback(new WifiDirectManager.ConnectionCallback() {
-            @Override
-            public void onConnected(@NonNull java.net.InetAddress addr, boolean isGo) {
-                Timber.tag(TAG).i("ED:WIFI_CONNECTED (unexpected — GATT handles transfer)");
-            }
+        if (wifiDirectManager != null) {
+            wifiDirectManager.setConnectionCallback(new WifiDirectManager.ConnectionCallback() {
+                @Override
+                public void onConnected(@NonNull java.net.InetAddress addr, boolean isGo) {
+                    Timber.tag(TAG).i("ED:WIFI_CONNECTED (unexpected — GATT handles transfer)");
+                }
 
-            @Override
-            public void onDisconnected() {
-                Timber.tag(TAG).d("ED:WIFI_DISCONNECTED");
-            }
+                @Override
+                public void onDisconnected() {
+                    Timber.tag(TAG).d("ED:WIFI_DISCONNECTED");
+                }
 
-            @Override
-            public void onPeersAvailable(@NonNull List<android.net.wifi.p2p.WifiP2pDevice> peers) {
-                // No-op
-            }
+                @Override
+                public void onPeersAvailable(@NonNull List<android.net.wifi.p2p.WifiP2pDevice> peers) {
+                    // No-op
+                }
 
-            @Override
-            public void onP2pStateChanged(boolean enabled) {
-                p2pEnabled = enabled;
-                Timber.tag(TAG).i("ED:P2P_STATE enabled=%b", enabled);
-                notifyPrerequisite();
-            }
-        });
+                @Override
+                public void onP2pStateChanged(boolean enabled) {
+                    p2pEnabled = enabled;
+                    Timber.tag(TAG).i("ED:P2P_STATE enabled=%b", enabled);
+                    notifyPrerequisite();
+                }
+            });
+        }
     }
 
     @Override
@@ -310,14 +402,27 @@ public class EchoService extends Service {
 
         startForeground(NOTIFICATION_ID, buildNotification());
 
-        wifiDirectManager.initialize();
-        advertiser.start();
-        scanner.start();
-        gattServer.startServer();
+        // Singleton guard: skip re-init if already running
+        if (isRunning) {
+            Timber.tag(TAG).d("ED:SERVICE_ALREADY_RUNNING");
+            return START_STICKY;
+        }
+        isRunning = true;
+
+        // Guard: don't start BLE/GATT without permissions
+        if (!hasBlePermissions(this)) {
+            Timber.tag(TAG).w("ED:SERVICE_START_SKIP_PERMS");
+            return START_STICKY;
+        }
+
+        if (wifiDirectManager != null) {
+            wifiDirectManager.initialize();
+        }
+        startBleStack();
         refreshGattManifest();
 
         bluetoothEnabled = isBluetoothOn();
-        p2pEnabled = wifiDirectManager.isP2pEnabled();
+        p2pEnabled = wifiDirectManager == null || wifiDirectManager.isP2pEnabled();
         notifyPrerequisite();
 
         Timber.tag(TAG).i("ED:SERVICE_START localId=%s bt=%b p2p=%b",
@@ -327,13 +432,24 @@ public class EchoService extends Service {
 
     @Override
     public void onDestroy() {
+        isRunning = false;
         super.onDestroy();
-        advertiser.stop();
-        scanner.stop();
-        gattServer.stopServer();
-        wifiDirectManager.teardown();
+        stopBleStack();
+        if (wifiDirectManager != null) {
+            wifiDirectManager.teardown();
+        }
+        unregisterBluetoothStateReceiver();
         if (dbExecutor != null) dbExecutor.shutdownNow();
         Timber.tag(TAG).i("ED:SERVICE_STOP");
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        Timber.tag(TAG).w("ED:SERVICE_TASK_REMOVED");
+        if (isBackgroundEnabled(this) && hasBlePermissions(this)) {
+            startService(this);
+        }
+        super.onTaskRemoved(rootIntent);
     }
 
     @Nullable
@@ -364,6 +480,21 @@ public class EchoService extends Service {
             o.put("senderAlias", m.getSenderAlias());
             o.put("seenByIds", m.getSeenByIds());
             o.put("hopCount", m.getHopCount());
+            o.put("origin", m.getOrigin());
+            o.put("ttl_ms", m.getTtlMs());
+
+            // Phase 1 lightweight wire model aliases.
+            o.put("timestamp", m.getCreatedAt());
+            o.put("ttl", Math.max(0L, m.getExpiresAt() - m.getCreatedAt()));
+            o.put("hop_count", m.getHopCount());
+
+            if (!o.has("origin") || o.optString("origin", "").isEmpty()) {
+                final String seenBy = m.getSeenByIds();
+                final String origin = (seenBy == null || seenBy.trim().isEmpty())
+                    ? "unknown"
+                    : seenBy.split(",")[0].trim();
+                o.put("origin", origin);
+            }
             return o.toString();
         } catch (Exception e) {
             Timber.tag(TAG).e(e, "ED:SERIALIZE_ERR id=%s", m.getId());
@@ -380,11 +511,21 @@ public class EchoService extends Service {
             final JSONObject o = new JSONObject(json);
             final String id = o.getString("id");
             final String text = o.getString("text");
-            final String scope = o.getString("scope");
-            final String priority = o.getString("priority");
-            final long createdAt = o.getLong("createdAt");
-            final long expiresAt = o.getLong("expiresAt");
-            final String contentHash = o.getString("contentHash");
+            final String scope = o.optString("scope", MessageEntity.Scope.LOCAL.name());
+            final String priority = o.optString("priority", MessageEntity.Priority.NORMAL.name());
+            final long createdAt = o.has("createdAt")
+                    ? o.getLong("createdAt")
+                    : o.optLong("timestamp", System.currentTimeMillis());
+            final long expiresAt;
+            if (o.has("expiresAt")) {
+                expiresAt = o.getLong("expiresAt");
+            } else {
+                final long ttlMs = Math.max(0L, o.optLong("ttl", 0L));
+                expiresAt = createdAt + ttlMs;
+            }
+            final String contentHash = o.has("contentHash")
+                    ? o.getString("contentHash")
+                    : MessageEntity.computeHash(text, scope, createdAt);
 
             final MessageEntity entity = new MessageEntity(
                     id, text, scope, priority, createdAt, expiresAt, false, contentHash);
@@ -393,7 +534,14 @@ public class EchoService extends Service {
             entity.setScopeId(o.optString("scopeId", ""));
             entity.setSenderAlias(o.optString("senderAlias", ""));
             entity.setSeenByIds(o.optString("seenByIds", ""));
-            entity.setHopCount(o.optInt("hopCount", 0));
+            entity.setHopCount(o.has("hopCount")
+                    ? o.optInt("hopCount", 0)
+                    : o.optInt("hop_count", 0));
+            final String origin = o.optString("origin", "");
+            entity.setOrigin(origin);
+            entity.setTtlMs(o.has("ttl_ms")
+                    ? Math.max(0L, o.optLong("ttl_ms", 0L))
+                    : Math.max(0L, expiresAt - createdAt));
 
             return entity;
         } catch (Exception e) {
@@ -418,6 +566,12 @@ public class EchoService extends Service {
                         dao.getActiveMessagesDirect(System.currentTimeMillis());
                 final ArrayList<String> ids = new ArrayList<>(active.size());
                 for (MessageEntity m : active) {
+                    if (m.getHopCount() >= PHASE2_MAX_HOPS) {
+                        continue;
+                    }
+                    if (BlockedDeviceStore.isBlocked(this, m.getOrigin())) {
+                        continue;
+                    }
                     ids.add(m.getId());
                 }
                 gattServer.updateManifest(ids);
@@ -560,6 +714,67 @@ public class EchoService extends Service {
         return adapter != null && adapter.isEnabled();
     }
 
+    private void startBleStack() {
+        if (!hasBlePermissions(this)) {
+            Timber.tag(TAG).w("ED:BLE_STACK_SKIP perms=denied");
+            return;
+        }
+        if (!isBluetoothOn()) {
+            Timber.tag(TAG).w("ED:BLE_STACK_SKIP bt_off=true");
+            notifyPrerequisite();
+            return;
+        }
+        if (advertiser != null && !advertiser.isRunning()) {
+            advertiser.start();
+        }
+        if (scanner != null && !scanner.isRunning()) {
+            scanner.start();
+        }
+        if (gattServer != null) {
+            gattServer.startServer();
+        }
+    }
+
+    private void stopBleStack() {
+        if (advertiser != null) advertiser.stop();
+        if (scanner != null) scanner.stop();
+        if (gattServer != null) gattServer.stopServer();
+    }
+
+    private void registerBluetoothStateReceiver() {
+        if (bluetoothStateReceiver != null) return;
+        bluetoothStateReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent == null || intent.getAction() == null) return;
+                if (!BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())) return;
+                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                if (state == BluetoothAdapter.STATE_ON) {
+                    bluetoothEnabled = true;
+                    Timber.tag(TAG).i("ED:BT_STATE_ON -> resume_ble_stack");
+                    startBleStack();
+                    refreshGattManifest();
+                } else if (state == BluetoothAdapter.STATE_OFF) {
+                    bluetoothEnabled = false;
+                    Timber.tag(TAG).i("ED:BT_STATE_OFF -> pause_ble_stack");
+                    stopBleStack();
+                }
+                notifyPrerequisite();
+            }
+        };
+        registerReceiver(bluetoothStateReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+    }
+
+    private void unregisterBluetoothStateReceiver() {
+        if (bluetoothStateReceiver == null) return;
+        try {
+            unregisterReceiver(bluetoothStateReceiver);
+        } catch (Exception ignored) {
+            // Receiver may already be unregistered on some OEM lifecycle paths.
+        }
+        bluetoothStateReceiver = null;
+    }
+
     // ══════════════════════════════════════════════════════════
     //  STATIC HELPERS
     // ══════════════════════════════════════════════════════════
@@ -585,20 +800,18 @@ public class EchoService extends Service {
     }
 
     public static boolean hasBlePermissions(Context context) {
+        final boolean locationGranted = ContextCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            boolean granted = ContextCompat.checkSelfPermission(context,
+            final boolean granted = ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
                     && ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
                     && ContextCompat.checkSelfPermission(context,
                             Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                granted = granted && ContextCompat.checkSelfPermission(context,
-                        Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED;
-            }
-            return granted;
+            return granted && locationGranted;
         }
-        return true;
+        return locationGranted;
     }
 
     public static String[] getBlePermissions() {
@@ -607,17 +820,18 @@ public class EchoService extends Service {
                     Manifest.permission.BLUETOOTH_ADVERTISE,
                     Manifest.permission.BLUETOOTH_CONNECT,
                     Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.NEARBY_WIFI_DEVICES
+                    Manifest.permission.ACCESS_FINE_LOCATION
             };
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             return new String[]{
                     Manifest.permission.BLUETOOTH_ADVERTISE,
                     Manifest.permission.BLUETOOTH_CONNECT,
-                    Manifest.permission.BLUETOOTH_SCAN
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.ACCESS_FINE_LOCATION
             };
         }
-        return new String[0];
+        return new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
     }
 
     public static void startService(Context context) {

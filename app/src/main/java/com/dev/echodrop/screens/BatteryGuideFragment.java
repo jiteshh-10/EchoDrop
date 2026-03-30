@@ -50,6 +50,7 @@ public class BatteryGuideFragment extends Fragment {
         setupSection(binding.headerSamsung, binding.bodySamsung, binding.arrowSamsung);
         setupSection(binding.headerXiaomi, binding.bodyXiaomi, binding.arrowXiaomi);
         setupSection(binding.headerOneplus, binding.bodyOneplus, binding.arrowOneplus);
+        setupSection(binding.headerRealme, binding.bodyRealme, binding.arrowRealme);
         setupSection(binding.headerStock, binding.bodyStock, binding.arrowStock);
     }
 

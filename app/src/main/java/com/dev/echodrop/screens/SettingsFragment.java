@@ -3,9 +3,11 @@ package com.dev.echodrop.screens;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -19,6 +21,12 @@ import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.ScreenSettingsBinding;
 import com.dev.echodrop.service.EchoService;
+import com.dev.echodrop.util.BlockedDeviceStore;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Settings screen with background sharing toggle, battery guide link,
@@ -35,8 +43,7 @@ public class SettingsFragment extends Fragment {
             registerForActivityResult(
                     new ActivityResultContracts.RequestMultiplePermissions(),
                     result -> {
-                        boolean anyGranted = result.containsValue(Boolean.TRUE);
-                        if (anyGranted) {
+                        if (EchoService.hasBlePermissions(requireContext())) {
                             EchoService.setBackgroundEnabled(requireContext(), true);
                             EchoService.startService(requireContext());
                         } else {
@@ -67,6 +74,7 @@ public class SettingsFragment extends Fragment {
         setupBatteryGuide();
         setupHowItWorks();
         setupDiagnostics();
+        setupBlockDevices();
         setupVersion();
     }
 
@@ -136,6 +144,65 @@ public class SettingsFragment extends Fragment {
                 ((MainActivity) getActivity()).showDiagnostics();
             }
         });
+    }
+
+    private void setupBlockDevices() {
+        refreshBlockedSummary();
+        binding.blockDeviceRow.setOnClickListener(v -> showBlockDialog());
+    }
+
+    private void refreshBlockedSummary() {
+        final int count = BlockedDeviceStore.getBlockedIds(requireContext()).size();
+        if (count <= 0) {
+            binding.blockedSummaryText.setText(R.string.settings_blocked_none);
+        } else {
+            binding.blockedSummaryText.setText(getString(R.string.settings_blocked_count, count));
+        }
+    }
+
+    private void showBlockDialog() {
+        final EditText input = new EditText(requireContext());
+        input.setHint(R.string.settings_block_device_hint);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        input.setSingleLine(true);
+
+        new AlertDialog.Builder(requireContext(), R.style.Theme_EchoDrop_Dialog)
+                .setTitle(R.string.settings_block_device_title)
+                .setView(input)
+                .setPositiveButton(R.string.settings_block_device_save, (d, w) -> {
+                    final String id = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (id.isEmpty()) return;
+                    final boolean added = BlockedDeviceStore.addBlockedId(requireContext(), id);
+                    Toast.makeText(requireContext(),
+                            added ? R.string.settings_block_device_added : R.string.settings_block_device_exists,
+                            Toast.LENGTH_SHORT).show();
+                    refreshBlockedSummary();
+                })
+                .setNeutralButton(R.string.settings_block_device_manage, (d, w) -> showUnblockDialog())
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showUnblockDialog() {
+        final Set<String> blocked = BlockedDeviceStore.getBlockedIds(requireContext());
+        if (blocked.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.settings_blocked_none, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final List<String> ids = new ArrayList<>(blocked);
+        Collections.sort(ids);
+        final String[] items = ids.toArray(new String[0]);
+
+        new AlertDialog.Builder(requireContext(), R.style.Theme_EchoDrop_Dialog)
+                .setTitle(R.string.settings_unblock_title)
+                .setItems(items, (dialog, which) -> {
+                    final String id = items[which];
+                    BlockedDeviceStore.removeBlockedId(requireContext(), id);
+                    Toast.makeText(requireContext(), R.string.settings_unblock_done, Toast.LENGTH_SHORT).show();
+                    refreshBlockedSummary();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void setupVersion() {

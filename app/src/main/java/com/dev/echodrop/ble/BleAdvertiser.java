@@ -12,6 +12,8 @@ import android.os.ParcelUuid;
 
 import androidx.annotation.VisibleForTesting;
 
+import com.dev.echodrop.util.DeviceIdHelper;
+
 import timber.log.Timber;
 
 import java.nio.ByteBuffer;
@@ -41,7 +43,7 @@ public class BleAdvertiser {
 
     private final Context context;
     private BluetoothLeAdvertiser advertiser;
-    private boolean running;
+    private volatile boolean running;
 
     private int deviceId;
     private int manifestSize;
@@ -89,10 +91,10 @@ public class BleAdvertiser {
             }
 
             final AdvertiseSettings settings = new AdvertiseSettings.Builder()
-                    .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+                    .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER)
                     .setConnectable(true)
                     .setTimeout(0)
-                    .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+                    .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
                     .build();
 
             final AdvertiseData data = new AdvertiseData.Builder()
@@ -168,18 +170,16 @@ public class BleAdvertiser {
         return new int[]{deviceId, manifestSize};
     }
 
-    /** Generates a stable 4-byte device ID from the Bluetooth MAC or a random fallback. */
+    /**
+     * Generates a stable 4-byte device ID from the app's persistent DeviceIdHelper value.
+     * This avoids random BLE identity churn on Android versions where adapter MAC is hidden.
+     */
     private int generateDeviceId() {
         try {
-            final BluetoothAdapter adapter = getBluetoothAdapter();
-            if (adapter != null) {
-                final String address = adapter.getAddress();
-                if (address != null && !address.equals("02:00:00:00:00:00")) {
-                    return address.hashCode();
-                }
-            }
-        } catch (SecurityException e) {
-            Timber.tag(TAG).w("ED:BLE_ADV_ID fallback=random");
+            final String stableHex = DeviceIdHelper.getDeviceId(context);
+            return (int) Long.parseLong(stableHex, 16);
+        } catch (Exception e) {
+            Timber.tag(TAG).w("ED:BLE_ADV_ID fallback=uuid");
         }
         return UUID.randomUUID().hashCode();
     }
