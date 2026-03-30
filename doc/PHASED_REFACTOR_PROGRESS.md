@@ -148,3 +148,31 @@ Status: Completed
 
 ## Next phase
 - Phase 6: QA hardening pass for room management flows (UI tests for long-press manage/leave and full wording sweep in docs).
+
+## Phase 6 - Visual Consistency and Dialog Theming Fixes
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Applied a brighter cyan-forward accent palette and raised secondary/muted text contrast for better readability on dark backgrounds.
+- Added a shared Material AlertDialog overlay in theme resources to enforce dark dialog surface and text colors.
+- Switched room list dialog implementation to AppCompat AlertDialog so theme overlays apply correctly.
+- Preserved dark-only behavior across default and night resources.
+
+### Files modified
+- app/src/main/res/values/themes.xml
+- app/src/main/res/values-night/themes.xml
+- app/src/main/res/values/colors.xml
+- app/src/main/res/values-night/colors.xml
+- app/src/main/java/com/dev/echodrop/screens/PrivateChatListFragment.java
+
+### Verified behavior intent
+- Join-room and room-action dialogs render in dark theme with visible text and action labels.
+- Text readability is improved throughout the app due to higher-contrast secondary/muted tokens.
+- Existing button handlers and screen navigation flows remain intact.
+
+### Risks / notes
+- This pass prioritizes shared theme tokens; screen-by-screen micro-typography tuning can be done in a later polish pass.
+
+## Next phase
+- Phase 7: Full UI polish sweep against all provided reference screens (spacing/typography hierarchy and component-level refinements).

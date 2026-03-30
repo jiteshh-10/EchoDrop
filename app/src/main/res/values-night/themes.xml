@@ -6,6 +6,7 @@
         <item name="colorOnPrimary">@color/echo_text_primary</item>
         <item name="colorSurface">@color/echo_card_surface</item>
         <item name="colorOnSurface">@color/echo_text_primary</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.EchoDrop.MaterialAlertDialog</item>
         <item name="android:colorBackground">@color/echo_bg_main</item>
         <item name="colorOnBackground">@color/echo_text_primary</item>
         <item name="colorError">@color/echo_alert_accent</item>
@@ -23,6 +24,27 @@
         <item name="colorSurface">@color/echo_card_surface</item>
         <item name="colorOnSurface">@color/echo_text_primary</item>
         <item name="android:colorBackground">@color/echo_elevated_surface</item>
+        <item name="android:textColorPrimary">@color/echo_text_primary</item>
+        <item name="android:textColorSecondary">@color/echo_text_secondary</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.EchoDrop.MaterialAlertDialog</item>
+    </style>
+
+    <style name="ThemeOverlay.EchoDrop.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="backgroundTint">@color/echo_elevated_surface</item>
+        <item name="colorOnSurface">@color/echo_text_primary</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/TextAppearance.EchoDrop.DialogTitle</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/TextAppearance.EchoDrop.DialogBody</item>
+        <item name="android:textColorPrimary">@color/echo_text_primary</item>
+        <item name="android:textColorSecondary">@color/echo_text_secondary</item>
+    </style>
+
+    <style name="TextAppearance.EchoDrop.DialogTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">@color/echo_text_primary</item>
+        <item name="android:fontFamily">monospace</item>
+    </style>
+
+    <style name="TextAppearance.EchoDrop.DialogBody" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">@color/echo_text_secondary</item>
     </style>
 
 </resources>
