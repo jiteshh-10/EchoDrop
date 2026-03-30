@@ -34,11 +34,9 @@ public class OnboardingConsentFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        // All paths go straight to HomeInbox — permissions are requested inline
-        binding.onboardingPrimaryButton.setOnClickListener(v -> navigateToHome());
-        // Hide the "How It Works" link and "Skip" — single CTA only
-        binding.onboardingSecondaryLink.setVisibility(View.GONE);
-        binding.onboardingSkip.setVisibility(View.GONE);
+        binding.onboardingPrimaryButton.setOnClickListener(v -> navigateToHowItWorks());
+        binding.onboardingSecondaryLink.setOnClickListener(v -> navigateToHowItWorks());
+        binding.onboardingSkip.setOnClickListener(v -> navigateToHome());
 
         // Button press scale animation (scale 0.97 on press, 40ms)
         binding.onboardingPrimaryButton.setOnTouchListener((v, event) -> {
@@ -84,6 +82,12 @@ public class OnboardingConsentFragment extends Fragment {
     private void navigateToHome() {
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).showHomeInbox();
+        }
+    }
+
+    private void navigateToHowItWorks() {
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showHowItWorks();
         }
     }
 

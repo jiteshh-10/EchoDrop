@@ -4,62 +4,68 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/echo_bg_main"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:scrollbars="none">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="@dimen/spacing_3">
+        android:paddingLeft="@dimen/spacing_3"
+        android:paddingTop="@dimen/spacing_3"
+        android:paddingRight="@dimen/spacing_3"
+        android:paddingBottom="@dimen/spacing_4">
 
         <FrameLayout
-            android:layout_width="160dp"
-            android:layout_height="160dp"
+            android:layout_width="136dp"
+            android:layout_height="136dp"
             android:layout_marginTop="@dimen/spacing_2"
             android:layout_marginBottom="@dimen/spacing_2">
 
             <View
                 android:id="@+id/onboarding_pulse_ring"
-                android:layout_width="160dp"
-                android:layout_height="160dp"
+                android:layout_width="136dp"
+                android:layout_height="136dp"
                 android:background="@drawable/bg_circle"
-                android:alpha="0.2" />
+                android:alpha="0.18" />
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="128dp"
-                android:layout_height="128dp"
+            <LinearLayout
+                android:layout_width="96dp"
+                android:layout_height="96dp"
                 android:layout_gravity="center"
-                app:cardBackgroundColor="@color/echo_card_surface"
-                app:cardCornerRadius="64dp">
+                android:background="@drawable/bg_stat_card"
+                android:gravity="center"
+                android:orientation="vertical">
 
                 <ImageView
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="center"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:contentDescription="@string/content_sync"
                     android:src="@drawable/ic_wifi"
                     app:tint="@color/echo_primary_accent" />
-            </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </FrameLayout>
 
         <TextView
             android:id="@+id/onboarding_headline"
+            style="@style/TextAppearance.EchoDrop.Display"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/TextAppearance.EchoDrop.Display"
+            android:gravity="center"
             android:text="@string/onboarding_headline"
             android:textAlignment="center" />
 
         <TextView
+            style="@style/TextAppearance.EchoDrop.Body"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_1_5"
-            android:fontFamily="sans-serif"
+            android:gravity="center"
+            android:maxWidth="330dp"
             android:text="@string/onboarding_subheading"
             android:textAlignment="center"
-            android:textColor="@color/echo_text_secondary"
-            android:textSize="16sp" />
+            android:textColor="@color/echo_text_secondary" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -67,154 +73,139 @@
             android:layout_marginTop="@dimen/spacing_3"
             android:orientation="vertical">
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_2"
-                app:cardBackgroundColor="@color/echo_card_surface"
-                app:cardCornerRadius="@dimen/card_corner_radius">
+                android:layout_marginBottom="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="@dimen/card_padding">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/card_padding">
+                <FrameLayout
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_icon_holder">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
                         android:contentDescription="@string/onboarding_feature_1_title"
-                        android:scaleType="centerInside"
                         android:src="@drawable/ic_check_circle"
-                        app:tint="@color/echo_positive_accent" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/onboarding_feature_1_title"
-                            android:textColor="@color/echo_text_primary"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/onboarding_feature_1_sub"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_2"
-                app:cardBackgroundColor="@color/echo_card_surface"
-                app:cardCornerRadius="@dimen/card_corner_radius">
+                        app:tint="@color/echo_primary_accent" />
+                </FrameLayout>
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/card_padding">
+                    android:layout_marginStart="@dimen/spacing_1_5"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/onboarding_feature_1_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_5"
+                        android:text="@string/onboarding_feature_1_sub" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="@dimen/card_padding">
+
+                <FrameLayout
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_icon_holder">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
                         android:contentDescription="@string/onboarding_feature_2_title"
-                        android:scaleType="centerInside"
                         android:src="@drawable/ic_clock"
                         app:tint="@color/echo_text_secondary" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/onboarding_feature_2_title"
-                            android:textColor="@color/echo_text_primary"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/onboarding_feature_2_sub"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/echo_card_surface"
-                app:cardCornerRadius="@dimen/card_corner_radius">
+                </FrameLayout>
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/card_padding">
+                    android:layout_marginStart="@dimen/spacing_1_5"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/onboarding_feature_2_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_5"
+                        android:text="@string/onboarding_feature_2_sub" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_stat_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="@dimen/card_padding">
+
+                <FrameLayout
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/bg_icon_holder">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
                         android:contentDescription="@string/onboarding_feature_3_title"
-                        android:scaleType="centerInside"
                         android:src="@drawable/ic_lock"
                         app:tint="@color/echo_primary_accent" />
+                </FrameLayout>
 
-                    <LinearLayout
-                        android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1_5"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:text="@string/onboarding_feature_3_title" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/onboarding_feature_3_title"
-                            android:textColor="@color/echo_text_primary"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/onboarding_feature_3_sub"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_5"
+                        android:text="@string/onboarding_feature_3_sub" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
@@ -227,22 +218,20 @@
 
         <TextView
             android:id="@+id/onboarding_secondary_link"
+            style="@style/TextAppearance.EchoDrop.Body"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_1"
-            android:fontFamily="sans-serif"
+            android:layout_marginTop="@dimen/spacing_1_5"
             android:text="@string/onboarding_see_how"
-            android:textColor="@color/echo_primary_accent"
-            android:textSize="14sp" />
+            android:textColor="@color/echo_primary_accent" />
 
         <TextView
             android:id="@+id/onboarding_skip"
+            style="@style/TextAppearance.EchoDrop.Small"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_0_5"
-            android:fontFamily="sans-serif"
+            android:layout_marginTop="@dimen/spacing_1"
             android:text="@string/onboarding_skip_demo"
-            android:textColor="@color/echo_muted_disabled"
-            android:textSize="12sp" />
+            android:textColor="@color/echo_text_muted" />
     </LinearLayout>
 </ScrollView>

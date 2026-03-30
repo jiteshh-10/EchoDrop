@@ -21,7 +21,10 @@ import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.ChatRepo;
 import com.dev.echodrop.repository.MessageRepo;
+import com.dev.echodrop.util.AppPreferences;
 import com.dev.echodrop.util.DeviceIdHelper;
+import com.dev.echodrop.util.MessageNotificationHelper;
+import com.dev.echodrop.util.MessageStorageCapManager;
 import com.dev.echodrop.util.RoomCodeCodec;
 
 import java.io.IOException;
@@ -306,6 +309,7 @@ public class BundleReceiver {
         final MessageDao dao = AppDatabase.getInstance(context).messageDao();
         final long rowId = dao.insert(entity);
         if (rowId != -1) {
+            MessageStorageCapManager.enforce(dao, context);
             Timber.tag(TAG).i("ED:RECV_INSERT id=%s hop=%d type=%s",
                     entity.getId(), entity.getHopCount(), entity.getType());
             return true;
@@ -358,6 +362,11 @@ public class BundleReceiver {
     /** Shows a notification for newly arrived messages. */
     private void showNotification(@NonNull final List<MessageEntity> messages,
                                   final int insertedCount) {
+        if (!AppPreferences.isMessageAlertsEnabled(context)
+                || !MessageNotificationHelper.canPostNotifications(context)) {
+            return;
+        }
+
         // Find the first chat bundle to use for deep-link navigation
         MessageEntity firstChat = null;
         for (final MessageEntity msg : messages) {

@@ -1,15 +1,16 @@
 # EchoDrop — Test Report
 
-> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9: Foundations + Local Persistence + Priority Handling + Private Chat + Offline Discovery + Payload Transfer + Multi-Hop DTN + Chat Sync + Stability & UX Polish**  
-> **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0  
-> **Execution Date:** 2026  
-> **Result:** ✅ **446 tests — 0 failures — 100% pass rate**  
-> **Note:** Iteration 9 added no new test classes. All 446 existing tests pass without modification after stability, theming, and bug-fix changes.
+> **Iterations 0-1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + Mar 30 Revamp Validation**  
+> **Test Framework:** JUnit 4.13.2 + Robolectric 4.12.1 + Mockito 5.11.0 + AndroidX Instrumentation  
+> **Execution Date:** 2026-03-30  
+> **Latest Result:** ✅ **460 tests executed in current cycle (459 unit + 1 connected) — 0 failures**  
+> **Note:** This report contains historical breakdown sections from earlier iterations. The latest authoritative run snapshot is documented in Section 0 below.
 
 ---
 
 ## Table of Contents
 
+- [0. Latest Validation Snapshot (Mar 30, 2026)](#0-latest-validation-snapshot-mar-30-2026)
 - [1. Summary](#1-summary)
 - [2. Test Infrastructure](#2-test-infrastructure)
 - [3. Test Suite Breakdown](#3-test-suite-breakdown)
@@ -50,17 +51,54 @@
 
 ---
 
+## 0. Latest Validation Snapshot (Mar 30, 2026)
+
+### Commands Executed
+
+```bash
+.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest
+.\gradlew.bat :app:connectedDebugAndroidTest
+```
+
+### Parsed Results From Generated Artifacts
+
+- Unit test suite: 459 tests, 0 failures, 0 errors, 0 skipped
+- Connected Android test suite: 1 test, 0 failures, 0 errors, 0 skipped
+- Total executed in this validation cycle: 460 tests
+- Build pipeline status: assembleDebug successful
+
+Artifact sources used for parsing:
+
+- `app/build/test-results/testDebugUnitTest/TEST-*.xml`
+- `app/build/reports/tests/testDebugUnitTest/index.html`
+- `app/build/outputs/androidTest-results/connected/debug/TEST-Pixel_8a_API_35-ext14(AVD) - 15-_app-.xml`
+- `app/build/reports/androidTests/connected/debug/index.html`
+
+### Cycle Regression and Resolution
+
+- Initial unit run reported 3 failures in `DesignSystemTest`:
+   - `string_tabAll_exists`
+   - `string_tabAlerts_exists`
+   - `string_tabChats_exists`
+- Root cause: tab label strings were lowercase.
+- Fix applied: updated string resources to title-case values (`All`, `Alerts`, `Chats`).
+- Re-run outcome: full unit suite passed.
+
+---
+
 ## 1. Summary
 
 | Metric            | Value          |
 |-------------------|----------------|
-| **Total Tests**   | 446            |
-| **Passed**        | 446            |
+| **Total Tests**   | 460            |
+| **Passed**        | 460            |
 | **Failed**        | 0              |
 | **Ignored**       | 0              |
 | **Success Rate**  | 100%           |
-| **Test Classes**  | 30             |
-| **Packages Tested** | 14           |
+| **Unit Tests**    | 459            |
+| **Connected Tests** | 1            |
+
+Historical note: package-level distribution in the table below is preserved from earlier generated snapshots and may not sum to the latest cycle totals.
 
 ### Package Results
 

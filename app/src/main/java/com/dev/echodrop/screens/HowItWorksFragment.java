@@ -44,7 +44,7 @@ public class HowItWorksFragment extends Fragment {
         fromSettings = getArguments() != null
                 && getArguments().getBoolean(ARG_FROM_SETTINGS, false);
 
-        binding.howToolbar.setNavigationIcon(android.R.drawable.ic_media_previous);
+        binding.howToolbar.setNavigationIcon(R.drawable.ic_back);
         binding.howToolbar.setNavigationContentDescription(R.string.content_back);
         binding.howToolbar.setNavigationOnClickListener(v -> navigateBack());
 
@@ -52,7 +52,7 @@ public class HowItWorksFragment extends Fragment {
             binding.howGetStarted.setText(R.string.how_it_works_got_it);
             binding.howGetStarted.setOnClickListener(v -> navigateBack());
         } else {
-            binding.howGetStarted.setOnClickListener(v -> navigateToHome());
+            binding.howGetStarted.setOnClickListener(v -> navigateToPermissions());
         }
     }
 
@@ -62,9 +62,9 @@ public class HowItWorksFragment extends Fragment {
         }
     }
 
-    private void navigateToHome() {
+    private void navigateToPermissions() {
         if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).showHomeInbox();
+            ((MainActivity) getActivity()).showPermissions();
         }
     }
 

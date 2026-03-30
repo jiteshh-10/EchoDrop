@@ -32,8 +32,9 @@
             android:layout_weight="1"
             android:text="@string/discovery_title"
             android:textColor="@color/echo_text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -48,14 +49,14 @@
         <TextView
             android:id="@+id/btn_diagnostics"
             android:layout_width="wrap_content"
-            android:layout_height="@dimen/min_touch_target"
-            android:background="?attr/selectableItemBackground"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_badge_primary"
             android:gravity="center"
             android:paddingHorizontal="12dp"
-            android:text="Logs"
+            android:text="logs"
             android:textColor="@color/echo_primary_accent"
-            android:textSize="13sp"
-            android:fontFamily="sans-serif-medium" />
+            android:textSize="11sp"
+            android:fontFamily="monospace" />
     </LinearLayout>
 
     <!-- Divider -->
@@ -73,7 +74,8 @@
         android:paddingVertical="@dimen/spacing_1"
         android:text="@string/discovery_dev_warning"
         android:textColor="@color/echo_alert_accent"
-        android:textSize="12sp" />
+        android:textSize="11sp"
+        android:fontFamily="monospace" />
 
     <ScrollView
         android:layout_width="match_parent"

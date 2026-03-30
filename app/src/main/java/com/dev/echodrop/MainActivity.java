@@ -7,6 +7,7 @@ import android.os.StrictMode;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.splashscreen.SplashScreen;
+import androidx.fragment.app.FragmentManager;
 
 import com.dev.echodrop.screens.BatteryGuideFragment;
 import com.dev.echodrop.screens.ChatConversationFragment;
@@ -17,6 +18,7 @@ import com.dev.echodrop.screens.HomeInboxFragment;
 import com.dev.echodrop.screens.HowItWorksFragment;
 import com.dev.echodrop.screens.MessageDetailFragment;
 import com.dev.echodrop.screens.OnboardingConsentFragment;
+import com.dev.echodrop.screens.PermissionsFragment;
 import com.dev.echodrop.screens.PrivateChatListFragment;
 import com.dev.echodrop.screens.SettingsFragment;
 import com.dev.echodrop.service.EchoService;
@@ -135,13 +137,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showPermissions() {
-        // Permissions are now handled inline from HomeInbox — redirect
-        showHomeInbox();
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container, new PermissionsFragment())
+                .addToBackStack("permissions")
+                .commit();
     }
 
     public void showHowItWorks() {
-        // How It Works is no longer a separate screen — redirect
-        showHomeInbox();
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(
+                        R.anim.fragment_enter, R.anim.fragment_exit,
+                        R.anim.fragment_pop_enter, R.anim.fragment_pop_exit)
+                .replace(R.id.fragment_container,
+                        HowItWorksFragment.newInstance(false))
+                .addToBackStack("howItWorks")
+                .commit();
     }
 
     public void showHowItWorksFromSettings() {
@@ -159,6 +174,9 @@ public class MainActivity extends AppCompatActivity {
     public void showHomeInbox() {
         // Mark onboarding as complete when reaching home for the first time
         markOnboardingComplete();
+        getSupportFragmentManager().popBackStack(
+                null,
+                FragmentManager.POP_BACK_STACK_INCLUSIVE);
         getSupportFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(

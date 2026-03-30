@@ -12,13 +12,20 @@
         android:layout_height="@dimen/app_bar_height"
         android:background="@color/echo_elevated_surface"
         android:title="@string/permissions_title"
-        android:titleTextColor="@color/echo_text_primary" />
+        android:titleTextColor="@color/echo_text_primary"
+        app:titleTextAppearance="@style/TextAppearance.EchoDrop.H1" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/echo_divider" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -27,46 +34,45 @@
             android:padding="@dimen/spacing_3">
 
             <TextView
+                style="@style/TextAppearance.EchoDrop.H1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                style="@style/TextAppearance.EchoDrop.H2"
-                android:text="@string/permissions_headline"
-                />
+                android:text="@string/permissions_headline" />
 
             <TextView
+                style="@style/TextAppearance.EchoDrop.Body"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_1"
-                android:fontFamily="sans-serif"
+                android:maxWidth="340dp"
                 android:text="@string/permissions_subtext"
-                android:textColor="@color/echo_text_secondary"
-                android:textSize="14sp" />
+                android:textColor="@color/echo_text_secondary" />
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_3"
-                app:cardBackgroundColor="@color/echo_card_surface"
-                app:cardCornerRadius="@dimen/card_corner_radius">
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/spacing_1"
+                    android:background="@drawable/bg_stat_card"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:padding="@dimen/card_padding">
 
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:background="@drawable/bg_icon_holder">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:contentDescription="@string/permission_nearby_title"
-                            android:scaleType="centerInside"
                             android:src="@drawable/ic_bluetooth"
                             app:tint="@color/echo_primary_accent" />
                     </FrameLayout>
@@ -74,76 +80,64 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="@dimen/spacing_1_5"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
+                                style="@style/TextAppearance.EchoDrop.H2"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/permission_nearby_title"
-                                android:textColor="@color/echo_text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:text="@string/permission_nearby_title" />
 
                             <TextView
+                                style="@style/TextAppearance.EchoDrop.Badge"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
+                                android:layout_marginStart="@dimen/spacing_1"
                                 android:background="@drawable/bg_badge_alert"
-                                android:fontFamily="sans-serif"
                                 android:paddingLeft="7dp"
                                 android:paddingTop="2dp"
                                 android:paddingRight="7dp"
                                 android:paddingBottom="2dp"
                                 android:text="@string/permission_required"
-                                android:textColor="@color/echo_alert_accent"
-                                android:textSize="10sp" />
+                                android:textColor="@color/echo_alert_accent" />
                         </LinearLayout>
 
                         <TextView
+                            style="@style/TextAppearance.EchoDrop.Small"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/permission_nearby_desc"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
+                            android:layout_marginTop="@dimen/spacing_0_5"
+                            android:text="@string/permission_nearby_desc" />
                     </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_2"
-                app:cardBackgroundColor="@color/echo_card_surface"
-                app:cardCornerRadius="@dimen/card_corner_radius">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/spacing_1"
+                    android:background="@drawable/bg_stat_card"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:padding="@dimen/card_padding">
 
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:background="@drawable/bg_icon_holder">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:contentDescription="@string/permission_location_title"
-                            android:scaleType="centerInside"
                             android:src="@drawable/ic_location"
                             app:tint="@color/echo_primary_accent" />
                     </FrameLayout>
@@ -151,76 +145,63 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="@dimen/spacing_1_5"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
+                                style="@style/TextAppearance.EchoDrop.H2"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/permission_location_title"
-                                android:textColor="@color/echo_text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:text="@string/permission_location_title" />
 
                             <TextView
+                                style="@style/TextAppearance.EchoDrop.Badge"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
+                                android:layout_marginStart="@dimen/spacing_1"
                                 android:background="@drawable/bg_badge_alert"
-                                android:fontFamily="sans-serif"
                                 android:paddingLeft="7dp"
                                 android:paddingTop="2dp"
                                 android:paddingRight="7dp"
                                 android:paddingBottom="2dp"
                                 android:text="@string/permission_required"
-                                android:textColor="@color/echo_alert_accent"
-                                android:textSize="10sp" />
+                                android:textColor="@color/echo_alert_accent" />
                         </LinearLayout>
 
                         <TextView
+                            style="@style/TextAppearance.EchoDrop.Small"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/permission_location_desc"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
+                            android:layout_marginTop="@dimen/spacing_0_5"
+                            android:text="@string/permission_location_desc" />
                     </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_2"
-                app:cardBackgroundColor="@color/echo_card_surface"
-                app:cardCornerRadius="@dimen/card_corner_radius">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_stat_card"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:padding="@dimen/card_padding">
 
                     <FrameLayout
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:background="@drawable/bg_icon_holder">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:layout_gravity="center"
                             android:contentDescription="@string/permission_notifications_title"
-                            android:scaleType="centerInside"
                             android:src="@drawable/ic_bell"
                             app:tint="@color/echo_text_secondary" />
                     </FrameLayout>
@@ -228,106 +209,80 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="@dimen/spacing_1_5"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
+                                style="@style/TextAppearance.EchoDrop.H2"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/permission_notifications_title"
-                                android:textColor="@color/echo_text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold" />
+                                android:text="@string/permission_notifications_title" />
 
                             <TextView
+                                style="@style/TextAppearance.EchoDrop.Badge"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
+                                android:layout_marginStart="@dimen/spacing_1"
                                 android:background="@drawable/bg_badge_primary"
-                                android:fontFamily="sans-serif"
                                 android:paddingLeft="7dp"
                                 android:paddingTop="2dp"
                                 android:paddingRight="7dp"
                                 android:paddingBottom="2dp"
                                 android:text="@string/permission_optional"
-                                android:textColor="@color/echo_primary_accent"
-                                android:textSize="10sp" />
+                                android:textColor="@color/echo_primary_accent" />
                         </LinearLayout>
 
                         <TextView
+                            style="@style/TextAppearance.EchoDrop.Small"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/permission_notifications_desc"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
+                            android:layout_marginTop="@dimen/spacing_0_5"
+                            android:text="@string/permission_notifications_desc" />
                     </LinearLayout>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_3"
-                app:cardBackgroundColor="@color/echo_elevated_surface"
-                app:cardCornerRadius="@dimen/card_corner_radius">
+                android:background="@drawable/bg_info_note"
+                android:orientation="horizontal"
+                android:padding="@dimen/card_padding">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.Small"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="@dimen/card_padding">
+                    android:text="@string/permission_privacy_label"
+                    android:textColor="@color/echo_primary_accent" />
 
-                    <View
-                        android:layout_width="3dp"
-                        android:layout_height="match_parent"
-                        android:background="@color/echo_primary_accent" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:layout_weight="1"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/permission_privacy_label"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            android:layout_weight="1"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/permission_privacy_note"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.Small"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1"
+                    android:layout_weight="1"
+                    android:text="@string/permission_privacy_note" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/echo_bg_main"
         android:orientation="vertical"
-        android:padding="@dimen/spacing_2">
+        android:paddingLeft="@dimen/spacing_2"
+        android:paddingTop="@dimen/spacing_1"
+        android:paddingRight="@dimen/spacing_2"
+        android:paddingBottom="@dimen/spacing_2">
 
         <View
             android:layout_width="match_parent"
@@ -344,13 +299,12 @@
 
         <TextView
             android:id="@+id/permissions_later_link"
+            style="@style/TextAppearance.EchoDrop.Body"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="@dimen/spacing_1"
-            android:fontFamily="sans-serif"
             android:text="@string/permissions_later"
-            android:textColor="@color/echo_text_secondary"
-            android:textSize="14sp" />
+            android:textColor="@color/echo_text_secondary" />
     </LinearLayout>
 </LinearLayout>

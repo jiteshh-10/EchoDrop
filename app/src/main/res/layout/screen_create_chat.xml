@@ -37,9 +37,10 @@
                 android:layout_weight="1"
                 android:layout_marginStart="@dimen/spacing_1"
                 android:text="@string/chat_create_title"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="monospace"
                 android:textColor="@color/echo_text_primary"
-                android:textSize="18sp" />
+                android:textSize="17sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <View
@@ -59,9 +60,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/chat_create_name_label"
-                android:fontFamily="sans-serif"
+                android:fontFamily="monospace"
                 android:textColor="@color/echo_text_secondary"
-                android:textSize="13sp" />
+                android:textSize="11sp" />
 
             <EditText
                 android:id="@+id/input_name"
@@ -85,16 +86,16 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_3"
                 android:orientation="vertical"
-                android:background="@color/echo_elevated_surface"
+                android:background="@drawable/bg_stat_card"
                 android:padding="@dimen/spacing_2">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/chat_code_label"
-                    android:fontFamily="sans-serif"
+                    android:fontFamily="monospace"
                     android:textColor="@color/echo_text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/code_display"
@@ -103,7 +104,7 @@
                     android:layout_marginTop="@dimen/spacing_1"
                     android:fontFamily="monospace"
                     android:textColor="@color/echo_text_primary"
-                    android:textSize="28sp"
+                    android:textSize="25sp"
                     android:gravity="center"
                     android:letterSpacing="0.15"
                     tools:text="XKBQ-T7NR" />
@@ -123,9 +124,9 @@
                         android:layout_weight="1"
                         android:gravity="center"
                         android:text="@string/chat_code_copy"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="monospace"
                         android:textColor="@color/echo_primary_accent"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         android:background="?attr/selectableItemBackground"
                         android:contentDescription="@string/content_copy_code" />
 
@@ -141,9 +142,9 @@
                         android:layout_weight="1"
                         android:gravity="center"
                         android:text="@string/chat_code_qr"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="monospace"
                         android:textColor="@color/echo_primary_accent"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         android:background="?attr/selectableItemBackground"
                         android:contentDescription="@string/content_chat_qr" />
 
@@ -159,9 +160,9 @@
                         android:layout_weight="1"
                         android:gravity="center"
                         android:text="@string/chat_code_new"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="monospace"
                         android:textColor="@color/echo_primary_accent"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         android:background="?attr/selectableItemBackground"
                         android:contentDescription="@string/content_new_code" />
                 </LinearLayout>
@@ -176,7 +177,7 @@
                 android:gravity="center"
                 android:visibility="gone"
                 android:padding="@dimen/spacing_2"
-                android:background="@android:color/white"
+                android:background="@drawable/bg_stat_card"
                 tools:visibility="visible">
 
                 <ImageView
@@ -202,7 +203,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/chat_create_info"
-                    android:fontFamily="sans-serif"
+                    android:fontFamily="monospace"
                     android:textColor="@color/echo_text_secondary"
                     android:textSize="12sp"
                     android:lineSpacingMultiplier="1.3" />
@@ -223,9 +224,9 @@
                 android:background="@drawable/bg_chat_avatar"
                 android:gravity="center"
                 android:text="@string/chat_create_button"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="monospace"
                 android:textColor="@color/echo_bg_main"
-                android:textSize="16sp" />
+                android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

@@ -51,7 +51,7 @@
     <!-- Splash screen theme (AndroidX SplashScreen compat) -->
     <style name="Theme.EchoDrop.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/echo_bg_main</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="postSplashScreenTheme">@style/Theme.EchoDrop</item>
     </style>
 

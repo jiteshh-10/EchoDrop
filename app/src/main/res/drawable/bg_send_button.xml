@@ -1,8 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Send button circular background. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
+    android:shape="rectangle">
     <solid android:color="@color/echo_primary_accent" />
+    <corners android:radius="12dp" />
     <size
         android:width="@dimen/chat_send_size"
         android:height="@dimen/chat_send_size" />

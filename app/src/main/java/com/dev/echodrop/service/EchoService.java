@@ -38,6 +38,7 @@ import com.dev.echodrop.repository.ChatRepo;
 import com.dev.echodrop.transfer.WifiDirectManager;
 import com.dev.echodrop.util.BlockedDeviceStore;
 import com.dev.echodrop.util.DeviceIdHelper;
+import com.dev.echodrop.util.MessageStorageCapManager;
 
 import org.json.JSONObject;
 
@@ -242,6 +243,7 @@ public class EchoService extends Service {
                         final MessageDao dao = AppDatabase.getInstance(EchoService.this).messageDao();
                         final long rowId = dao.insert(entity); // IGNORE on duplicate content_hash
                         if (rowId > 0) {
+                            MessageStorageCapManager.enforce(dao, EchoService.this);
                             lastSessionHadInserts = true;
                             Timber.tag(TAG).i("DB_INSERT id=%s row=%d", entity.getId(), rowId);
                             Timber.tag(TAG).i("ED:GATT_RECV_INSERT id=%s hops=%d",

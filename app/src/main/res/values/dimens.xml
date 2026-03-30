@@ -13,52 +13,52 @@
 
     <!-- ═══ Component dimensions ═══ -->
     <dimen name="app_bar_height">56dp</dimen>
-    <dimen name="fab_size">56dp</dimen>
-    <dimen name="fab_mini_size">48dp</dimen>
-    <dimen name="min_touch_target">48dp</dimen>
-    <dimen name="card_padding">16dp</dimen>
-    <dimen name="list_item_padding_vertical">16dp</dimen>
-    <dimen name="card_corner_radius">12dp</dimen>
-    <dimen name="badge_corner_radius">100dp</dimen>
-    <dimen name="badge_height">22dp</dimen>
-    <dimen name="badge_padding_h">8dp</dimen>
-    <dimen name="input_corner_radius">12dp</dimen>
-    <dimen name="button_height_primary">52dp</dimen>
+    <dimen name="fab_size">52dp</dimen>
+    <dimen name="fab_mini_size">44dp</dimen>
+    <dimen name="min_touch_target">44dp</dimen>
+    <dimen name="card_padding">14dp</dimen>
+    <dimen name="list_item_padding_vertical">14dp</dimen>
+    <dimen name="card_corner_radius">10dp</dimen>
+    <dimen name="badge_corner_radius">4dp</dimen>
+    <dimen name="badge_height">18dp</dimen>
+    <dimen name="badge_padding_h">7dp</dimen>
+    <dimen name="input_corner_radius">8dp</dimen>
+    <dimen name="button_height_primary">50dp</dimen>
     <dimen name="button_height_ghost">44dp</dimen>
-    <dimen name="button_corner_radius">12dp</dimen>
-    <dimen name="icon_size_default">24dp</dimen>
-    <dimen name="icon_size_small">16dp</dimen>
+    <dimen name="button_corner_radius">10dp</dimen>
+    <dimen name="icon_size_default">22dp</dimen>
+    <dimen name="icon_size_small">15dp</dimen>
     <dimen name="appbar_border_height">1dp</dimen>
     <dimen name="bottom_sheet_corner">20dp</dimen>
     <dimen name="input_border_width">1dp</dimen>
     <dimen name="input_border_focused">2dp</dimen>
 
     <!-- Priority (Iteration 3) -->
-    <dimen name="priority_border_width">3dp</dimen>
+    <dimen name="priority_border_width">2dp</dimen>
     <dimen name="priority_banner_corner">8dp</dimen>
-    <dimen name="priority_banner_border">4dp</dimen>
-    <dimen name="priority_banner_icon_size">20dp</dimen>
+    <dimen name="priority_banner_border">2dp</dimen>
+    <dimen name="priority_banner_icon_size">16dp</dimen>
 
     <!-- Private Chat (Iteration 4) -->
-    <dimen name="chat_avatar_size">36dp</dimen>
-    <dimen name="chat_avatar_text_size">14sp</dimen>
-    <dimen name="bubble_corner_radius">16dp</dimen>
-    <dimen name="bubble_corner_small">4dp</dimen>
-    <dimen name="bubble_padding_h">12dp</dimen>
-    <dimen name="bubble_padding_v">8dp</dimen>
+    <dimen name="chat_avatar_size">40dp</dimen>
+    <dimen name="chat_avatar_text_size">12sp</dimen>
+    <dimen name="bubble_corner_radius">12dp</dimen>
+    <dimen name="bubble_corner_small">3dp</dimen>
+    <dimen name="bubble_padding_h">14dp</dimen>
+    <dimen name="bubble_padding_v">10dp</dimen>
     <dimen name="bubble_max_width">260dp</dimen>
-    <dimen name="chat_input_height">48dp</dimen>
-    <dimen name="chat_input_corner">24dp</dimen>
-    <dimen name="chat_send_size">40dp</dimen>
-    <dimen name="info_note_border">3dp</dimen>
-    <dimen name="sync_indicator_size">12dp</dimen>
-    <dimen name="qr_size">200dp</dimen>
+    <dimen name="chat_input_height">42dp</dimen>
+    <dimen name="chat_input_corner">21dp</dimen>
+    <dimen name="chat_send_size">42dp</dimen>
+    <dimen name="info_note_border">2dp</dimen>
+    <dimen name="sync_indicator_size">11dp</dimen>
+    <dimen name="qr_size">220dp</dimen>
 
     <!-- Discovery & Settings (Iteration 5) -->
-    <dimen name="stat_card_size">152dp</dimen>
-    <dimen name="status_dot_size">8dp</dimen>
+    <dimen name="stat_card_size">140dp</dimen>
+    <dimen name="status_dot_size">5dp</dimen>
     <dimen name="dev_badge_corner">100dp</dimen>
-    <dimen name="section_header_spacing">32dp</dimen>
-    <dimen name="oem_card_padding">16dp</dimen>
-    <dimen name="step_indent">16dp</dimen>
+    <dimen name="section_header_spacing">20dp</dimen>
+    <dimen name="oem_card_padding">14dp</dimen>
+    <dimen name="step_indent">8dp</dimen>
 </resources>

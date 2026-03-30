@@ -16,12 +16,14 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.ScreenPermissionsBinding;
 import com.dev.echodrop.service.EchoService;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import timber.log.Timber;
 
@@ -42,31 +44,7 @@ public class PermissionsFragment extends Fragment {
     private final ActivityResultLauncher<String[]> permissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.RequestMultiplePermissions(),
-                    result -> {
-                        Timber.tag("ED:Perms").i("ED:PERM_RESULT %s", result);
-                        if (EchoService.hasBlePermissions(requireContext())) {
-                            Timber.tag("ED:Perms").i("ED:PERMS_ALL_GRANTED");
-                            // Enable background sharing and start the service
-                            EchoService.setBackgroundEnabled(requireContext(), true);
-                            EchoService.startService(requireContext());
-                            Toast.makeText(requireContext(),
-                                    "Permissions granted — mesh sharing active",
-                                    Toast.LENGTH_SHORT).show();
-                            navigateToHome();
-                        } else if (hasPermanentlyDeniedPermission(result)) {
-                            // User selected "Don't ask again" — direct to app settings
-                            Timber.tag("ED:Perms").w("ED:PERMS_PERMANENT_DENIAL");
-                            Toast.makeText(requireContext(),
-                                    "Please enable permissions in App Settings to use mesh sharing",
-                                    Toast.LENGTH_LONG).show();
-                            openAppSettings();
-                        } else {
-                            Toast.makeText(requireContext(),
-                                    "Permissions denied — you can enable later in Settings",
-                                    Toast.LENGTH_LONG).show();
-                            navigateToHome();
-                        }
-                    });
+                    this::handlePermissionResult);
 
     @Nullable
     @Override
@@ -78,7 +56,7 @@ public class PermissionsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        binding.permissionsToolbar.setNavigationIcon(android.R.drawable.ic_media_previous);
+        binding.permissionsToolbar.setNavigationIcon(R.drawable.ic_back);
         binding.permissionsToolbar.setNavigationContentDescription(R.string.content_back);
         binding.permissionsToolbar.setNavigationOnClickListener(v -> requireActivity().onBackPressed());
         binding.permissionsAllowButton.setOnClickListener(v -> requestAllPermissions());
@@ -89,31 +67,76 @@ public class PermissionsFragment extends Fragment {
      * Requests runtime permissions needed for BLE scan/advertise/connect + location.
      */
     private void requestAllPermissions() {
-        final List<String> perms = new ArrayList<>();
+        final List<String> missingRequired = getMissingRequiredPermissions();
+        final List<String> missingOptional = getMissingOptionalPermissions();
+        final List<String> permissionsToRequest = new ArrayList<>(
+                missingRequired.size() + missingOptional.size());
+        permissionsToRequest.addAll(missingRequired);
+        permissionsToRequest.addAll(missingOptional);
 
-        // BLE permissions (API 31+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            perms.add(Manifest.permission.BLUETOOTH_ADVERTISE);
-            perms.add(Manifest.permission.BLUETOOTH_CONNECT);
-            perms.add(Manifest.permission.BLUETOOTH_SCAN);
+        if (permissionsToRequest.isEmpty()) {
+            proceedAfterRequiredPermissionsGranted();
+            return;
         }
 
-        // Location — required for BLE scan reliability across Android versions
-        perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        permissionLauncher.launch(permissionsToRequest.toArray(new String[0]));
+    }
 
-        // Notification permission (API 33+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            perms.add(Manifest.permission.POST_NOTIFICATIONS);
+    private void handlePermissionResult(Map<String, Boolean> result) {
+        Timber.tag("ED:Perms").i("ED:PERM_RESULT %s", result);
+
+        if (EchoService.hasBlePermissions(requireContext())) {
+            Timber.tag("ED:Perms").i("ED:PERMS_REQUIRED_GRANTED");
+            if (!getMissingOptionalPermissions().isEmpty()) {
+                Toast.makeText(requireContext(),
+                        R.string.permissions_notifications_optional_notice,
+                        Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(requireContext(),
+                        R.string.permissions_granted_mesh_active,
+                        Toast.LENGTH_SHORT).show();
+            }
+            proceedAfterRequiredPermissionsGranted();
+            return;
         }
 
-        if (perms.isEmpty()) {
-            // Pre-S: no runtime BLE permissions needed, just start the service
-            EchoService.setBackgroundEnabled(requireContext(), true);
-            EchoService.startService(requireContext());
-            navigateToHome();
-        } else {
-            permissionLauncher.launch(perms.toArray(new String[0]));
+        if (hasPermanentlyDeniedRequiredPermission(result)) {
+            Timber.tag("ED:Perms").w("ED:PERMS_PERMANENT_DENIAL");
+            showOpenSettingsDialog();
+            return;
         }
+
+        showRetryPermissionsDialog();
+    }
+
+    private void proceedAfterRequiredPermissionsGranted() {
+        EchoService.setBackgroundEnabled(requireContext(), true);
+        EchoService.startService(requireContext());
+        navigateToHome();
+    }
+
+    private List<String> getMissingRequiredPermissions() {
+        final List<String> missing = new ArrayList<>();
+        for (String permission : EchoService.getBlePermissions()) {
+            if (!isGranted(permission)) {
+                missing.add(permission);
+            }
+        }
+        return missing;
+    }
+
+    private List<String> getMissingOptionalPermissions() {
+        final List<String> missing = new ArrayList<>();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && !isGranted(Manifest.permission.POST_NOTIFICATIONS)) {
+            missing.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
+        return missing;
+    }
+
+    private boolean isGranted(String permission) {
+        return ContextCompat.checkSelfPermission(requireContext(), permission)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
     }
 
     private void navigateToHome() {
@@ -127,17 +150,36 @@ public class PermissionsFragment extends Fragment {
      * A permission is permanently denied when the result is false AND
      * shouldShowRequestPermissionRationale also returns false.
      */
-    private boolean hasPermanentlyDeniedPermission(Map<String, Boolean> result) {
-        for (Map.Entry<String, Boolean> entry : result.entrySet()) {
-            if (!entry.getValue()) {
-                // Permission denied — check if permanently denied
+    private boolean hasPermanentlyDeniedRequiredPermission(Map<String, Boolean> result) {
+        for (String permission : EchoService.getBlePermissions()) {
+            if (Boolean.FALSE.equals(result.get(permission))) {
                 if (!ActivityCompat.shouldShowRequestPermissionRationale(
-                        requireActivity(), entry.getKey())) {
+                        requireActivity(), permission)) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    private void showRetryPermissionsDialog() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.permissions_rationale_title)
+                .setMessage(R.string.permissions_rationale_body)
+                .setPositiveButton(R.string.permissions_try_again,
+                        (dialog, which) -> requestAllPermissions())
+                .setNegativeButton(R.string.permissions_not_now, null)
+                .show();
+    }
+
+    private void showOpenSettingsDialog() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.permissions_settings_title)
+                .setMessage(R.string.permissions_settings_body)
+                .setPositiveButton(R.string.permissions_open_settings,
+                        (dialog, which) -> openAppSettings())
+                .setNegativeButton(R.string.permissions_not_now, null)
+                .show();
     }
 
     /** Opens the system app settings page for this app. */
@@ -146,6 +188,14 @@ public class PermissionsFragment extends Fragment {
         intent.setData(Uri.fromParts("package", requireContext().getPackageName(), null));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (EchoService.hasBlePermissions(requireContext())) {
+            proceedAfterRequiredPermissionsGranted();
+        }
     }
 
     @Override

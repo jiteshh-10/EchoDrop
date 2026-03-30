@@ -8,6 +8,7 @@ import com.dev.echodrop.db.AppDatabase;
 import com.dev.echodrop.db.MessageDao;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.util.DeviceIdHelper;
+import com.dev.echodrop.util.MessageStorageCapManager;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -19,7 +20,7 @@ import java.util.concurrent.Executors;
  * <p>Responsibilities:
  * <ul>
  *   <li>Insert messages with SHA-256 deduplication</li>
- *   <li>Enforce 200-row storage cap (evict BULK first, then NORMAL, never ALERT)</li>
+ *   <li>Enforce storage cap (settings-driven; evict BULK first, then NORMAL, never ALERT)</li>
  *   <li>TTL cleanup (delete expired messages)</li>
  *   <li>Expose LiveData for reactive UI updates</li>
  * </ul>
@@ -101,7 +102,7 @@ public class MessageRepo {
      * <ol>
      *   <li>Check if content hash already exists → callback.onDuplicate()</li>
      *   <li>Insert the message (IGNORE on conflict as safety net)</li>
-     *   <li>Enforce storage cap if count exceeds 200</li>
+    *   <li>Enforce storage cap after insert</li>
      *   <li>callback.onInserted()</li>
      * </ol>
      * </p>
@@ -203,6 +204,12 @@ public class MessageRepo {
      * <p>Must be called on the executor thread.</p>
      */
     private void enforceStorageCap() {
+        if (appContext != null) {
+            MessageStorageCapManager.enforce(dao, appContext);
+            return;
+        }
+
+        // Fallback for test-only repo instances with no context.
         int total = dao.countAll();
         if (total <= STORAGE_CAP) return;
 

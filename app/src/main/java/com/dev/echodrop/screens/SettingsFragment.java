@@ -1,8 +1,13 @@
 package com.dev.echodrop.screens;
 
+import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +20,9 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -22,13 +30,18 @@ import com.dev.echodrop.MainActivity;
 import com.dev.echodrop.R;
 import com.dev.echodrop.databinding.ScreenSettingsBinding;
 import com.dev.echodrop.service.EchoService;
+import com.dev.echodrop.util.AppPreferences;
 import com.dev.echodrop.util.BlockedDeviceStore;
+import com.dev.echodrop.util.MessageStorageCapManager;
 import com.dev.echodrop.viewmodels.ChatViewModel;
+import com.google.android.material.slider.Slider;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Settings screen with background sharing toggle, battery guide link,
@@ -37,9 +50,17 @@ import java.util.Set;
  */
 public class SettingsFragment extends Fragment {
 
+    private static final ExecutorService SETTINGS_EXECUTOR =
+            Executors.newSingleThreadExecutor(r -> {
+                final Thread thread = new Thread(r, "SettingsExecutor");
+                thread.setDaemon(true);
+                return thread;
+            });
+
     private ScreenSettingsBinding binding;
     private ChatViewModel chatViewModel;
     private int versionTapCount;
+    private boolean isUpdatingIncomingAlertsSwitch;
 
     /** Launcher that requests BLE permissions, then starts the service on grant. */
     private final ActivityResultLauncher<String[]> blePermissionLauncher =
@@ -60,6 +81,39 @@ public class SettingsFragment extends Fragment {
                         }
                     });
 
+    /** Launcher that requests runtime notification permission (API 33+). */
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    granted -> {
+                        if (binding == null) return;
+
+                        if (granted) {
+                            AppPreferences.setMessageAlertsEnabled(requireContext(), true);
+                            setIncomingAlertsSwitchChecked(true);
+                            Toast.makeText(requireContext(),
+                                    R.string.settings_alerts_enabled,
+                                    Toast.LENGTH_SHORT).show();
+                        } else {
+                            AppPreferences.setMessageAlertsEnabled(requireContext(), false);
+                            setIncomingAlertsSwitchChecked(false);
+
+                            final boolean permanentDenial = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                                    && !ActivityCompat.shouldShowRequestPermissionRationale(
+                                    requireActivity(), Manifest.permission.POST_NOTIFICATIONS);
+
+                            if (permanentDenial) {
+                                Toast.makeText(requireContext(),
+                                        R.string.settings_alerts_permission_settings_hint,
+                                        Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(requireContext(),
+                                        R.string.settings_alerts_permission_required,
+                                        Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -75,12 +129,26 @@ public class SettingsFragment extends Fragment {
         chatViewModel = new ViewModelProvider(requireActivity()).get(ChatViewModel.class);
         setupToolbar();
         setupToggle();
+        setupIncomingAlerts();
+        setupStorageCap();
         setupBatteryGuide();
         setupHowItWorks();
         setupDiagnostics();
         setupBlockDevices();
         setupRooms();
         setupVersion();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (binding == null) {
+            return;
+        }
+        refreshIncomingAlertsState();
+        final int capMb = AppPreferences.getStorageCapMb(requireContext());
+        binding.storageCapSlider.setValue(capMb);
+        updateStorageCapLabel(capMb);
     }
 
     private void setupToolbar() {
@@ -125,6 +193,116 @@ public class SettingsFragment extends Fragment {
                 }
             }
         });
+    }
+
+    private void setupIncomingAlerts() {
+        refreshIncomingAlertsState();
+
+        binding.switchIncomingAlerts.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isUpdatingIncomingAlertsSwitch) {
+                return;
+            }
+
+            if (!isChecked) {
+                AppPreferences.setMessageAlertsEnabled(requireContext(), false);
+                return;
+            }
+
+            if (!NotificationManagerCompat.from(requireContext()).areNotificationsEnabled()) {
+                AppPreferences.setMessageAlertsEnabled(requireContext(), false);
+                setIncomingAlertsSwitchChecked(false);
+                Toast.makeText(requireContext(),
+                        R.string.settings_alerts_system_disabled,
+                        Toast.LENGTH_LONG).show();
+                openSystemNotificationSettings();
+                return;
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    && !hasRuntimeNotificationPermission()) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+                return;
+            }
+
+            AppPreferences.setMessageAlertsEnabled(requireContext(), true);
+            Toast.makeText(requireContext(),
+                    R.string.settings_alerts_enabled,
+                    Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void refreshIncomingAlertsState() {
+        final boolean enabled = AppPreferences.isMessageAlertsEnabled(requireContext())
+                && hasRuntimeNotificationPermission()
+                && NotificationManagerCompat.from(requireContext()).areNotificationsEnabled();
+
+        if (!enabled && AppPreferences.isMessageAlertsEnabled(requireContext())) {
+            AppPreferences.setMessageAlertsEnabled(requireContext(), false);
+        }
+
+        setIncomingAlertsSwitchChecked(enabled);
+    }
+
+    private boolean hasRuntimeNotificationPermission() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void setIncomingAlertsSwitchChecked(boolean checked) {
+        isUpdatingIncomingAlertsSwitch = true;
+        binding.switchIncomingAlerts.setChecked(checked);
+        isUpdatingIncomingAlertsSwitch = false;
+    }
+
+    private void setupStorageCap() {
+        final int currentCapMb = AppPreferences.getStorageCapMb(requireContext());
+        binding.storageCapSlider.setValue(currentCapMb);
+        updateStorageCapLabel(currentCapMb);
+
+        binding.storageCapSlider.addOnChangeListener((slider, value, fromUser) ->
+                updateStorageCapLabel(Math.round(value)));
+
+        binding.storageCapSlider.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
+            @Override
+            public void onStartTrackingTouch(@NonNull Slider slider) {
+                // No-op.
+            }
+
+            @Override
+            public void onStopTrackingTouch(@NonNull Slider slider) {
+                final int selectedCapMb = Math.round(slider.getValue());
+                AppPreferences.setStorageCapMb(requireContext(), selectedCapMb);
+
+                final int normalizedCapMb = AppPreferences.getStorageCapMb(requireContext());
+                slider.setValue(normalizedCapMb);
+                updateStorageCapLabel(normalizedCapMb);
+
+                final android.content.Context appContext = requireContext().getApplicationContext();
+                SETTINGS_EXECUTOR.execute(() -> MessageStorageCapManager.enforceNow(appContext));
+
+                Toast.makeText(requireContext(),
+                        getString(R.string.settings_storage_cap_saved, normalizedCapMb),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void updateStorageCapLabel(int capMb) {
+        binding.storageCapValue.setText(getString(R.string.settings_storage_cap_value, capMb));
+    }
+
+    private void openSystemNotificationSettings() {
+        final Intent intent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().getPackageName());
+        } else {
+            intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.fromParts("package", requireContext().getPackageName(), null));
+        }
+        startActivity(intent);
     }
 
     private void setupBatteryGuide() {

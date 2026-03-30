@@ -12,392 +12,600 @@
         android:layout_height="@dimen/app_bar_height"
         android:background="@color/echo_elevated_surface"
         android:title="@string/how_it_works_title"
-        android:titleTextColor="@color/echo_text_primary" />
+        android:titleTextColor="@color/echo_alert_accent"
+        app:titleTextAppearance="@style/TextAppearance.EchoDrop.H1" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/echo_divider" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="@dimen/spacing_3">
+            android:padding="@dimen/spacing_2">
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/echo_card_surface"
-                app:cardCornerRadius="@dimen/card_corner_radius">
+                android:layout_marginTop="@dimen/spacing_2"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingLeft="@dimen/spacing_1"
+                android:paddingTop="@dimen/spacing_1"
+                android:paddingRight="@dimen/spacing_1"
+                android:paddingBottom="@dimen/spacing_1">
+
+                <FrameLayout
+                    android:layout_width="110dp"
+                    android:layout_height="110dp"
+                    android:background="@drawable/bg_icon_circle_surface">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/how_it_works_headline"
+                        android:src="@drawable/ic_wifi"
+                        app:tint="@color/echo_alert_accent" />
+                </FrameLayout>
+
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.Display"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_3"
+                    android:gravity="center"
+                    android:text="@string/how_it_works_headline" />
+
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1"
+                    android:gravity="center"
+                    android:text="@string/how_it_works_subheading"
+                    android:textColor="@color/echo_text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_2"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding">
+
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.H2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/how_it_works_section" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1_5"
+                    android:gravity="top"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Badge"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_circle"
+                        android:backgroundTint="@color/echo_alert_accent"
+                        android:gravity="center"
+                        android:text="1"
+                        android:textColor="@color/echo_on_primary" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_1_5"
+                        android:layout_weight="1"
+                        android:text="@string/how_it_works_step_1"
+                        android:textColor="@color/echo_text_secondary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1_5"
+                    android:gravity="top"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Badge"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_circle"
+                        android:backgroundTint="@color/echo_alert_accent"
+                        android:gravity="center"
+                        android:text="2"
+                        android:textColor="@color/echo_on_primary" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_1_5"
+                        android:layout_weight="1"
+                        android:text="@string/how_it_works_step_2"
+                        android:textColor="@color/echo_text_secondary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1_5"
+                    android:gravity="top"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Badge"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_circle"
+                        android:backgroundTint="@color/echo_alert_accent"
+                        android:gravity="center"
+                        android:text="3"
+                        android:textColor="@color/echo_on_primary" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_1_5"
+                        android:layout_weight="1"
+                        android:text="@string/how_it_works_step_3"
+                        android:textColor="@color/echo_text_secondary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1_5"
+                    android:gravity="top"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Badge"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_circle"
+                        android:backgroundTint="@color/echo_alert_accent"
+                        android:gravity="center"
+                        android:text="4"
+                        android:textColor="@color/echo_on_primary" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_1_5"
+                        android:layout_weight="1"
+                        android:text="@string/how_it_works_step_4"
+                        android:textColor="@color/echo_text_secondary" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                style="@style/TextAppearance.EchoDrop.H2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:text="@string/how_it_works_key_features" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="horizontal"
+                android:padding="@dimen/card_padding">
+
+                <FrameLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icon_circle_surface">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/how_it_works_tile_1_title"
+                        android:src="@drawable/ic_wifi"
+                        app:tint="@color/echo_alert_accent" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1_5"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:paddingTop="@dimen/spacing_0_25"
+                    android:paddingBottom="@dimen/spacing_0_25">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/how_it_works_tile_1_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_5"
+                        android:text="@string/how_it_works_tile_1_sub" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="horizontal"
+                android:padding="@dimen/card_padding">
+
+                <FrameLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icon_circle_surface">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/how_it_works_tile_2_title"
+                        android:src="@drawable/ic_clock"
+                        app:tint="@color/echo_alert_accent" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1_5"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:paddingTop="@dimen/spacing_0_25"
+                    android:paddingBottom="@dimen/spacing_0_25">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/how_it_works_tile_2_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_5"
+                        android:text="@string/how_it_works_tile_2_sub" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="horizontal"
+                android:padding="@dimen/card_padding">
+
+                <FrameLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icon_circle_surface">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/how_it_works_tile_3_title"
+                        android:src="@drawable/ic_lock"
+                        app:tint="@color/echo_alert_accent" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1_5"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:paddingTop="@dimen/spacing_0_25"
+                    android:paddingBottom="@dimen/spacing_0_25">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/how_it_works_tile_3_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_5"
+                        android:text="@string/how_it_works_tile_3_sub" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="horizontal"
+                android:padding="@dimen/card_padding">
+
+                <FrameLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_icon_circle_surface">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/how_it_works_tile_4_title"
+                        android:src="@drawable/ic_activity"
+                        app:tint="@color/echo_alert_accent" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_1_5"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:paddingTop="@dimen/spacing_0_25"
+                    android:paddingBottom="@dimen/spacing_0_25">
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/how_it_works_tile_4_title" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Small"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_5"
+                        android:text="@string/how_it_works_tile_4_sub" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                style="@style/TextAppearance.EchoDrop.H2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:text="@string/how_it_works_use_cases" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_icon_circle_surface"
+                        android:gravity="center"
+                        android:text="@string/how_it_works_use_case_campus_icon"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_1_5"
+                        android:layout_weight="1"
+                        android:text="@string/how_it_works_use_case_campus_title" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1"
+                    android:text="@string/how_it_works_use_case_campus_sub"
+                    android:textColor="@color/echo_text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_icon_circle_surface"
+                        android:gravity="center"
+                        android:text="@string/how_it_works_use_case_emergency_icon"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_1_5"
+                        android:layout_weight="1"
+                        android:text="@string/how_it_works_use_case_emergency_title" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1"
+                    android:text="@string/how_it_works_use_case_emergency_sub"
+                    android:textColor="@color/echo_text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_1"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_icon_circle_surface"
+                        android:gravity="center"
+                        android:text="@string/how_it_works_use_case_events_icon"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_1_5"
+                        android:layout_weight="1"
+                        android:text="@string/how_it_works_use_case_events_title" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/TextAppearance.EchoDrop.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_1"
+                    android:text="@string/how_it_works_use_case_events_sub"
+                    android:textColor="@color/echo_text_secondary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_3"
+                android:layout_marginBottom="@dimen/spacing_2"
+                android:background="@drawable/bg_stat_card"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="match_parent"
+                    android:background="@color/echo_alert_accent" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:orientation="vertical"
                     android:padding="@dimen/card_padding">
 
                     <TextView
+                        style="@style/TextAppearance.EchoDrop.H2"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
-                        android:letterSpacing="0.01"
-                        android:text="@string/how_it_works_section"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="12sp" />
+                        android:text="@string/how_it_works_technical_title" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_1_5"
-                        android:fontFamily="sans-serif"
-                        android:text="@string/how_it_works_step_1"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/spacing_1"
-                        android:fontFamily="sans-serif"
-                        android:text="@string/how_it_works_step_2"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="14sp" />
+                        android:text="@string/how_it_works_tech_1"
+                        android:textColor="@color/echo_text_secondary" />
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_1"
-                        android:fontFamily="sans-serif"
-                        android:text="@string/how_it_works_step_3"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="@dimen/spacing_0_75"
+                        android:text="@string/how_it_works_tech_2"
+                        android:textColor="@color/echo_text_secondary" />
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_1"
-                        android:fontFamily="sans-serif"
-                        android:text="@string/how_it_works_step_4"
-                        android:textColor="@color/echo_text_secondary"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="@dimen/spacing_0_75"
+                        android:text="@string/how_it_works_tech_3"
+                        android:textColor="@color/echo_text_secondary" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_75"
+                        android:text="@string/how_it_works_tech_4"
+                        android:textColor="@color/echo_text_secondary" />
+
+                    <TextView
+                        style="@style/TextAppearance.EchoDrop.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_0_75"
+                        android:text="@string/how_it_works_tech_5"
+                        android:textColor="@color/echo_text_secondary" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <GridLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_3"
-                android:columnCount="2"
-                android:rowCount="2">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:layout_columnWeight="1"
-                    app:cardBackgroundColor="@color/echo_card_surface"
-                    app:cardCornerRadius="@dimen/card_corner_radius">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="@dimen/card_padding">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@string/how_it_works_tile_1_title"
-                            android:src="@drawable/ic_wifi"
-                            app:tint="@color/echo_primary_accent" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/how_it_works_tile_1_title"
-                            android:textColor="@color/echo_text_primary"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/how_it_works_tile_1_sub"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:layout_columnWeight="1"
-                    app:cardBackgroundColor="@color/echo_card_surface"
-                    app:cardCornerRadius="@dimen/card_corner_radius">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="@dimen/card_padding">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@string/how_it_works_tile_2_title"
-                            android:scaleType="centerInside"
-                            android:src="@drawable/ic_clock"
-                            app:tint="@color/echo_text_secondary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/how_it_works_tile_2_title"
-                            android:textColor="@color/echo_text_primary"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/how_it_works_tile_2_sub"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:layout_columnWeight="1"
-                    app:cardBackgroundColor="@color/echo_card_surface"
-                    app:cardCornerRadius="@dimen/card_corner_radius">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="@dimen/card_padding">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@string/how_it_works_tile_3_title"
-                            android:scaleType="centerInside"
-                            android:src="@drawable/ic_lock"
-                            app:tint="@color/echo_primary_accent" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/how_it_works_tile_3_title"
-                            android:textColor="@color/echo_text_primary"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/how_it_works_tile_3_sub"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_columnWeight="1"
-                    app:cardBackgroundColor="@color/echo_card_surface"
-                    app:cardCornerRadius="@dimen/card_corner_radius">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="@dimen/card_padding">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:contentDescription="@string/how_it_works_tile_4_title"
-                            android:scaleType="centerInside"
-                            android:src="@drawable/ic_alert_outline"
-                            app:tint="@color/echo_alert_accent" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/how_it_works_tile_4_title"
-                            android:textColor="@color/echo_text_primary"
-                            android:textSize="14sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:fontFamily="sans-serif"
-                            android:text="@string/how_it_works_tile_4_sub"
-                            android:textColor="@color/echo_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </GridLayout>
-
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_3"
-                android:scrollbars="none">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="200dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="12dp"
-                        app:cardBackgroundColor="@color/echo_card_surface"
-                        app:cardCornerRadius="@dimen/card_corner_radius">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/card_padding">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/how_it_works_use_case_campus_icon"
-                                android:textSize="20sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/how_it_works_use_case_campus_title"
-                                android:textColor="@color/echo_text_primary"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/how_it_works_use_case_campus_sub"
-                                android:textColor="@color/echo_text_secondary"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="200dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="12dp"
-                        app:cardBackgroundColor="@color/echo_card_surface"
-                        app:cardCornerRadius="@dimen/card_corner_radius">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/card_padding">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/how_it_works_use_case_emergency_icon"
-                                android:textSize="20sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/how_it_works_use_case_emergency_title"
-                                android:textColor="@color/echo_text_primary"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/how_it_works_use_case_emergency_sub"
-                                android:textColor="@color/echo_text_secondary"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="200dp"
-                        android:layout_height="wrap_content"
-                        app:cardBackgroundColor="@color/echo_card_surface"
-                        app:cardCornerRadius="@dimen/card_corner_radius">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="@dimen/card_padding">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/how_it_works_use_case_events_icon"
-                                android:textSize="20sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/how_it_works_use_case_events_title"
-                                android:textColor="@color/echo_text_primary"
-                                android:textSize="14sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:fontFamily="sans-serif"
-                                android:text="@string/how_it_works_use_case_events_sub"
-                                android:textColor="@color/echo_text_secondary"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-            </HorizontalScrollView>
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/how_get_started"
-        style="@style/Widget.EchoDrop.Button.Primary"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="@dimen/button_height_primary"
-        android:layout_margin="@dimen/spacing_3"
-        android:text="@string/how_it_works_get_started" />
+        android:layout_height="wrap_content"
+        android:paddingLeft="@dimen/spacing_3"
+        android:paddingTop="@dimen/spacing_1"
+        android:paddingRight="@dimen/spacing_3"
+        android:paddingBottom="@dimen/spacing_3">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/echo_divider" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/how_get_started"
+            style="@style/Widget.EchoDrop.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/button_height_primary"
+            android:layout_marginTop="@dimen/spacing_2"
+            android:text="@string/how_it_works_get_started" />
+    </LinearLayout>
 </LinearLayout>

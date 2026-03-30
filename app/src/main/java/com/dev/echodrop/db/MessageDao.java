@@ -174,6 +174,20 @@ public interface MessageDao {
     int countByPriority(String priority);
 
     /**
+     * Approximate storage used by cached bundles in bytes.
+     * Includes text payload + key metadata with a fixed per-row overhead.
+     */
+    @Query("SELECT IFNULL(SUM(" +
+            "LENGTH(text) + " +
+            "LENGTH(content_hash) + " +
+            "IFNULL(LENGTH(scope_id), 0) + " +
+            "IFNULL(LENGTH(origin), 0) + " +
+            "IFNULL(LENGTH(seen_by_ids), 0) + " +
+            "IFNULL(LENGTH(sender_alias), 0)" +
+            "), 0) + (COUNT(*) * 64) FROM messages")
+    long estimateStorageBytes();
+
+    /**
      * Mark a message as read.
      */
     @Query("UPDATE messages SET read = 1 WHERE id = :messageId")

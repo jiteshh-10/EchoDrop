@@ -17,7 +17,6 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.OvershootInterpolator;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
@@ -44,6 +43,7 @@ import com.dev.echodrop.databinding.ScreenHomeInboxBinding;
 import com.dev.echodrop.db.MessageEntity;
 import com.dev.echodrop.repository.MessageRepo;
 import com.dev.echodrop.service.EchoService;
+import com.dev.echodrop.util.MessageNotificationHelper;
 import com.dev.echodrop.viewmodels.MessageViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -168,8 +168,6 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
         // Periodic TTL refresh so message card timestamps stay current
         startTtlRefresh();
 
-        // Auto-request permissions inline if not yet granted (replaces PermissionsFragment)
-        requestPermissionsIfNeeded();
     }
 
     /**
@@ -253,10 +251,6 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     }
 
     private boolean onMenuItemClicked(MenuItem item) {
-        if (item.getItemId() == R.id.action_post) {
-            openPostComposer();
-            return true;
-        }
         if (item.getItemId() == R.id.action_settings) {
             navigateToSettings();
             return true;
@@ -327,23 +321,9 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     @SuppressLint("ClickableViewAccessibility")
     private void setupFabs() {
         binding.fabPost.setOnClickListener(v -> openPostComposer());
-        binding.fabChats.setOnClickListener(v -> navigateToChatList());
 
         // FAB press scale animation (scale to 0.95 over 40ms)
         addFabPressAnimation(binding.fabPost);
-        addFabPressAnimation(binding.fabChats);
-
-        // Secondary FAB entrance animation (OvershootInterpolator)
-        binding.fabChats.setScaleX(0f);
-        binding.fabChats.setScaleY(0f);
-        binding.fabChats.post(() -> {
-            binding.fabChats.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(180)
-                    .setInterpolator(new OvershootInterpolator(1.2f))
-                    .start();
-        });
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -533,10 +513,11 @@ public class HomeInboxFragment extends Fragment implements PostComposerSheet.OnP
     @Override
     public void onPost(MessageEntity entity) {
         if (viewModel != null) {
+            final android.content.Context appContext = requireContext().getApplicationContext();
             viewModel.addMessage(entity, new MessageRepo.InsertCallback() {
                 @Override
                 public void onInserted() {
-                    // Success — Snackbar is shown by PostComposerSheet
+                    MessageNotificationHelper.notifyOutgoingBroadcast(appContext, entity.getText());
                 }
 
                 @Override

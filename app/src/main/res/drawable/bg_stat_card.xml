@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stat card background for DiscoveryStatus 2x2 grid (Iteration 5) -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <solid android:color="@color/echo_card_surface" />
-    <corners android:radius="@dimen/card_corner_radius" />
+    <corners android:radius="10dp" />
     <stroke
         android:width="1dp"
         android:color="@color/echo_border" />
