@@ -118,7 +118,9 @@ public class ChatConversationFragment extends Fragment {
 
     private void setupToolbar() {
         binding.toolbarTitle.setText(chatName);
-        binding.toolbarCode.setText(ChatEntity.formatCode(chatCode));
+        binding.toolbarCode.setText(getString(
+            R.string.chat_toolbar_code_format,
+            ChatEntity.formatCode(chatCode)));
 
         // Avatar initial
         final char initial = chatName != null && !chatName.isEmpty()

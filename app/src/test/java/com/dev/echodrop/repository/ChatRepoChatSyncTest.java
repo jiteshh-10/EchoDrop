@@ -190,6 +190,6 @@ public class ChatRepoChatSyncTest {
         MessageEntity bundle = createChatBundle("c9");
         assertTrue(bundle.isChatBundle());
         assertEquals("CHAT", bundle.getType());
-        assertEquals(CHAT_CODE, bundle.getScopeId());
+        assertEquals("room:abcd5678", bundle.getScopeId());
     }
 }

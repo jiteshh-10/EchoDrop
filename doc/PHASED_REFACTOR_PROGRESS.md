@@ -56,3 +56,37 @@ Status: Completed
 
 ## Next phase
 - Phase 3: Promote chat code UX into explicit room/group semantics with join/manage affordances.
+
+## Phase 3 - Room Semantics for Group Chat
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Added room scope-id codec to encode room bundles as `room:xxxxxxxx` while accepting legacy raw codes.
+- Updated chat bundle creation to write room-prefixed `scopeId` values.
+- Updated incoming chat sync and notification deep-link logic to decode both legacy and room-prefixed scope IDs.
+- Updated user-facing chat copy to room semantics (create/join/list/delete wording).
+- Updated conversation toolbar code display to explicit room format.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/util/RoomCodeCodec.java
+- app/src/main/java/com/dev/echodrop/db/MessageEntity.java
+- app/src/main/java/com/dev/echodrop/repository/ChatRepo.java
+- app/src/main/java/com/dev/echodrop/transfer/BundleReceiver.java
+- app/src/main/java/com/dev/echodrop/screens/ChatConversationFragment.java
+- app/src/main/java/com/dev/echodrop/screens/CreateChatFragment.java
+- app/src/main/res/values/strings.xml
+- app/src/test/java/com/dev/echodrop/db/MessageEntityChatTest.java
+- app/src/test/java/com/dev/echodrop/repository/ChatRepoChatSyncTest.java
+- app/src/test/java/com/dev/echodrop/transfer/TransferProtocolChatTest.java
+
+### Verified behavior intent
+- Multi-member room behavior remains keyed by the same 8-char room code.
+- Room-prefixed scope IDs do not break older bundles because decode accepts both forms.
+- Mesh relay, hop, and transport frame logic are unchanged outside scope-id value semantics.
+
+### Risks / notes
+- Existing documentation outside this phase file still references chat-code wording and can be harmonized in a follow-up pass.
+
+## Next phase
+- Phase 4: Continue room UX polish and management affordances (member clarity, leave/manage paths, and related docs/tests).

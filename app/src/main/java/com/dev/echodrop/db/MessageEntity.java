@@ -6,6 +6,8 @@ import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
+import com.dev.echodrop.util.RoomCodeCodec;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -156,10 +158,10 @@ public class MessageEntity {
      * Creates a chat bundle MessageEntity for DTN propagation.
      *
      * @param cipherText Base64-encoded encrypted message text
-     * @param chatCode   the 8-char chat code used as scope_id
+    * @param chatCode   the 8-char room code used as scope_id payload
      * @param createdAt  creation timestamp
      * @param expiresAt  expiry timestamp
-     * @return MessageEntity with type=CHAT, scope=LOCAL, scopeId=chatCode
+    * @return MessageEntity with type=CHAT, scope=LOCAL, scopeId=room:xxxxxxxx
      */
     public static MessageEntity createChatBundle(@NonNull String cipherText,
                                                   @NonNull String chatCode,
@@ -171,11 +173,11 @@ public class MessageEntity {
      * Creates a chat bundle with an attached chat name for DTN propagation.
      *
      * @param cipherText Base64-encoded encrypted message text
-     * @param chatCode   the 8-char chat code used as scope_id
+    * @param chatCode   the 8-char room code used as scope_id payload
      * @param createdAt  creation timestamp
      * @param expiresAt  expiry timestamp
      * @param chatName   human-readable chat name (propagated via senderAlias)
-     * @return MessageEntity with type=CHAT, scope=LOCAL, scopeId=chatCode
+    * @return MessageEntity with type=CHAT, scope=LOCAL, scopeId=room:xxxxxxxx
      */
     public static MessageEntity createChatBundle(@NonNull String cipherText,
                                                   @NonNull String chatCode,
@@ -186,7 +188,8 @@ public class MessageEntity {
         MessageEntity entity = new MessageEntity(id, cipherText, Scope.LOCAL.name(),
                 Priority.NORMAL.name(), createdAt, expiresAt, false, contentHash);
         entity.setType(TYPE_CHAT);
-        entity.setScopeId(chatCode);
+        String roomScopeId = RoomCodeCodec.toScopeIdFromRawCode(chatCode);
+        entity.setScopeId(roomScopeId.isEmpty() ? chatCode : roomScopeId);
         entity.setSenderAlias(chatName);
         return entity;
     }
