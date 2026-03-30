@@ -90,3 +90,33 @@ Status: Completed
 
 ## Next phase
 - Phase 4: Continue room UX polish and management affordances (member clarity, leave/manage paths, and related docs/tests).
+
+## Phase 4 - Room Management Affordances
+Date: 2026-03-30
+Status: Completed
+
+### Changes applied
+- Added long-press room actions in room list: copy room code and leave room.
+- Added explicit room code metadata to each room list card for faster visual identification.
+- Added a dedicated Rooms section in Settings with live joined-room count.
+- Added settings entry navigation to room management list.
+
+### Files modified
+- app/src/main/java/com/dev/echodrop/adapters/ChatListAdapter.java
+- app/src/main/java/com/dev/echodrop/screens/PrivateChatListFragment.java
+- app/src/main/java/com/dev/echodrop/screens/SettingsFragment.java
+- app/src/main/res/layout/item_chat_list.xml
+- app/src/main/res/layout/screen_settings.xml
+- app/src/main/res/values/strings.xml
+
+### Verified behavior intent
+- Room management no longer depends on hidden flows; users can manage rooms directly from list/settings.
+- Leave-room action maps to existing chat delete flow and preserves current data model.
+- No transport or DTN protocol behavior changed in this phase.
+
+### Risks / notes
+- Long-press affordance is not yet discoverable via in-app hint text.
+- No dedicated unit tests currently assert room long-press actions; covered by compile and manual flow validation.
+
+## Next phase
+- Phase 5: Add discoverability and robustness polish (room action hints, accessibility labels, and focused UI tests for manage/leave flows).

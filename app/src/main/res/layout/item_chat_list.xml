@@ -54,6 +54,18 @@
             tools:text="Study Group" />
 
         <TextView
+            android:id="@+id/chat_code"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="monospace"
+            android:textColor="@color/echo_text_muted"
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="ABCD-2345" />
+
+        <TextView
             android:id="@+id/chat_preview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

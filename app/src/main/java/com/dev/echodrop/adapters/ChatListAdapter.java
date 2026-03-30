@@ -25,7 +25,13 @@ public class ChatListAdapter extends ListAdapter<ChatEntity, ChatListAdapter.Cha
         void onChatClick(@NonNull ChatEntity chat);
     }
 
+    /** Long-press listener for room management actions. */
+    public interface OnChatLongPressListener {
+        void onChatLongPress(@NonNull ChatEntity chat);
+    }
+
     private OnChatClickListener listener;
+    private OnChatLongPressListener longPressListener;
 
     public ChatListAdapter() {
         super(DIFF_CALLBACK);
@@ -33,6 +39,10 @@ public class ChatListAdapter extends ListAdapter<ChatEntity, ChatListAdapter.Cha
 
     public void setOnChatClickListener(OnChatClickListener listener) {
         this.listener = listener;
+    }
+
+    public void setOnChatLongPressListener(OnChatLongPressListener listener) {
+        this.longPressListener = listener;
     }
 
     // ──────────────────── ViewHolder ────────────────────
@@ -63,6 +73,14 @@ public class ChatListAdapter extends ListAdapter<ChatEntity, ChatListAdapter.Cha
                     listener.onChatClick(getItem(pos));
                 }
             });
+            binding.getRoot().setOnLongClickListener(v -> {
+                final int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION && longPressListener != null) {
+                    longPressListener.onChatLongPress(getItem(pos));
+                    return true;
+                }
+                return false;
+            });
         }
 
         void bind(@NonNull ChatEntity chat) {
@@ -71,6 +89,7 @@ public class ChatListAdapter extends ListAdapter<ChatEntity, ChatListAdapter.Cha
 
             // Name — display name or formatted code
             binding.chatName.setText(chat.getDisplayName());
+            binding.chatCode.setText(ChatEntity.formatCode(chat.getCode()));
 
             // Preview
             final String preview = chat.getLastMessagePreview();
